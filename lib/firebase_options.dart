@@ -28,30 +28,34 @@ class DefaultFirebaseOptions {
     }
   }
 
-  // TODO: Substitua com os valores reais do seu Firebase Console
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCQcoCctNDi3gPk94jJSz5r72gLwXwdM94',
+    appId: '1:379727416390:web:da94ee56158e94e1c7ce47',
+    messagingSenderId: '379727416390',
+    projectId: 'studyops-dev',
+    authDomain: 'studyops-dev.firebaseapp.com',
+    storageBucket: 'studyops-dev.firebasestorage.app',
+    measurementId: 'G-XZ5QEZXHVT',
   );
 
+  // TODO: Substitua com os valores reais do seu Firebase Console
+
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_ANDROID_API_KEY',
-    appId: 'YOUR_ANDROID_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCKdSieJc_DlzZ6-bse2KW0eJhJa8CUAXg',
+    appId: '1:379727416390:android:37e1c30faa0f4642c7ce47',
+    messagingSenderId: '379727416390',
+    projectId: 'studyops-dev',
+    storageBucket: 'studyops-dev.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY',
-    appId: 'YOUR_IOS_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyCMmpGG6HQOobktG2D7wSOGFE5hThLOg-E',
+    appId: '1:379727416390:ios:3ed2735862af852dc7ce47',
+    messagingSenderId: '379727416390',
+    projectId: 'studyops-dev',
+    storageBucket: 'studyops-dev.firebasestorage.app',
+    iosClientId: '379727416390-0vu5m1jukfm12ol1vdjprl0ia8i3r5fr.apps.googleusercontent.com',
     iosBundleId: 'com.studyops.app',
   );
+
 }

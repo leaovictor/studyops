@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "379727416390",
+    "project_id": "studyops-dev",
+    "storage_bucket": "studyops-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:379727416390:android:37e1c30faa0f4642c7ce47",
+        "android_client_info": {
+          "package_name": "br.dev.victorleao.studyops"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "379727416390-po7ijsos4c45i6k9c547mtct9smjl496.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCKdSieJc_DlzZ6-bse2KW0eJhJa8CUAXg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "379727416390-po7ijsos4c45i6k9c547mtct9smjl496.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

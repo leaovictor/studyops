@@ -25,17 +25,23 @@ class _ShellPage extends ConsumerWidget {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authNotifier = ValueNotifier<bool>(false);
+  // Track both the auth value AND the loading state
+  // We use a record: (isLoading, isLoggedIn)
+  final notifier = ValueNotifier<(bool, bool)>((true, false));
 
   ref.listen(authStateProvider, (_, next) {
-    authNotifier.value = next.valueOrNull != null;
+    notifier.value = (next.isLoading, next.valueOrNull != null);
   });
 
   return GoRouter(
     initialLocation: '/',
-    refreshListenable: authNotifier,
+    refreshListenable: notifier,
     redirect: (context, state) {
-      final loggedIn = authNotifier.value;
+      final (isLoading, loggedIn) = notifier.value;
+
+      // While auth is still resolving, stay on splash — no redirect
+      if (isLoading) return state.uri.path == '/' ? null : '/';
+
       final loggingIn = state.uri.path == '/login' || state.uri.path == '/';
 
       if (!loggedIn && !loggingIn) return '/login';
