@@ -227,7 +227,9 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<Topic>(
-                initialValue: selectedTopic,
+                key: ValueKey(selectedSubject?.id),
+                initialValue:
+                    filteredTopics.isNotEmpty ? filteredTopics.first : null,
                 decoration: const InputDecoration(labelText: 'Tópico'),
                 items: filteredTopics
                     .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
@@ -423,8 +425,7 @@ class _EmptyChecklistState extends StatelessWidget {
       child: const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.checklist_rounded,
-              color: AppTheme.textMuted, size: 48),
+          Icon(Icons.checklist_rounded, color: AppTheme.textMuted, size: 48),
           SizedBox(height: 16),
           Text(
             'Nenhuma tarefa para hoje',

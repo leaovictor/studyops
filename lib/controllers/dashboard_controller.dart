@@ -14,6 +14,8 @@ class DashboardData {
   final Map<String, int> minutesBySubject; // subjectId → minutes
   final List<MapEntry<String, int>>
       weeklyTrend; // dateKey → minutes (last 7 days)
+  final int streakDays;
+  final double consistencyPct; // 0.0 – 1.0 over last 7 days
 
   const DashboardData({
     required this.todayMinutes,
@@ -21,6 +23,8 @@ class DashboardData {
     required this.monthMinutes,
     required this.minutesBySubject,
     required this.weeklyTrend,
+    this.streakDays = 0,
+    this.consistencyPct = 0.0,
   });
 
   static const empty = DashboardData(
@@ -29,6 +33,8 @@ class DashboardData {
     monthMinutes: 0,
     minutesBySubject: {},
     weeklyTrend: [],
+    streakDays: 0,
+    consistencyPct: 0.0,
   );
 }
 
@@ -72,11 +78,29 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     trend.add(MapEntry(k, dailyMap[k] ?? 0));
   }
 
+  // Consistency: how many of the last 7 days had ANY study
+  final studiedDaysLast7 = trend.where((e) => e.value > 0).length;
+  final consistencyPct = studiedDaysLast7 / 7.0;
+
+  // Streak: consecutive days ending today with study
+  int streak = 0;
+  for (int i = 0; i < 30; i++) {
+    final d = now.subtract(Duration(days: i));
+    final k = AppDateUtils.toKey(d);
+    if ((dailyMap[k] ?? 0) > 0) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
   return DashboardData(
     todayMinutes: todayMinutes,
     weekMinutes: weekMinutes,
     monthMinutes: monthMinutes,
     minutesBySubject: minutesBySubject,
     weeklyTrend: trend,
+    streakDays: streak,
+    consistencyPct: consistencyPct,
   );
 });

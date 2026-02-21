@@ -22,6 +22,23 @@ class SubjectService {
     return subject.copyWith(id: ref.id);
   }
 
+  /// Creates a subject with a pre-determined ID (used during onboarding).
+  Future<Subject> createSubjectWithId(Subject subject) async {
+    await _subjects.doc(subject.id).set(subject.toMap());
+    return subject;
+  }
+
+  /// Creates a default "Geral" topic for a subject.
+  Future<Topic> createDefaultTopic(String subjectId) async {
+    const topic = Topic(id: '', subjectId: '', name: 'Geral', difficulty: 2);
+    final ref = await _topics.add({
+      'subjectId': subjectId,
+      'name': 'Geral',
+      'difficulty': 2,
+    });
+    return topic.copyWith(id: ref.id, subjectId: subjectId);
+  }
+
   Future<void> updateSubject(Subject subject) async {
     await _subjects.doc(subject.id).update(subject.toMap());
   }

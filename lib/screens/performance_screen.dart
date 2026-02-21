@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/dashboard_controller.dart';
+import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
@@ -13,6 +14,7 @@ class PerformanceScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashAsync = ref.watch(dashboardProvider);
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+    final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppTheme.bg0,
@@ -25,6 +27,27 @@ class PerformanceScreen extends ConsumerWidget {
           final subjectColorMap = {for (final s in subjects) s.id: s.color};
           final subjectNameMap = {for (final s in subjects) s.id: s.name};
           final trend = data.weeklyTrend;
+
+          // KPI computations
+          final consistencyPct = data.consistencyPct;
+          final weekHours = data.weekMinutes / 60.0;
+          final targetWeekHours = (activePlan?.dailyHours ?? 3.0) * 7;
+          final productivity = targetWeekHours > 0
+              ? (weekHours / targetWeekHours).clamp(0.0, 1.0)
+              : 0.0;
+
+          final String riskLabel;
+          final Color riskColor;
+          if (productivity >= 0.8) {
+            riskLabel = 'Baixo';
+            riskColor = AppTheme.accent;
+          } else if (productivity >= 0.5) {
+            riskLabel = 'Médio';
+            riskColor = AppTheme.primary;
+          } else {
+            riskLabel = 'Alto';
+            riskColor = Colors.redAccent;
+          }
 
           return CustomScrollView(
             slivers: [
@@ -48,7 +71,75 @@ class PerformanceScreen extends ConsumerWidget {
                         style: TextStyle(
                             color: AppTheme.textSecondary, fontSize: 13),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
+
+                      // ── KPI Row ──────────────────────────────────────────
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _KpiCard(
+                              icon: Icons.local_fire_department_rounded,
+                              iconColor: Colors.orangeAccent,
+                              label: 'Constância',
+                              value: '${(consistencyPct * 100).round()}%',
+                              subtitle:
+                                  '${data.weeklyTrend.where((e) => e.value > 0).length}/7 dias',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _KpiCard(
+                              icon: Icons.bolt_rounded,
+                              iconColor: AppTheme.primary,
+                              label: 'Produtividade',
+                              value: '${(productivity * 100).round()}%',
+                              subtitle:
+                                  '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _KpiCard(
+                              icon: Icons.warning_amber_rounded,
+                              iconColor: riskColor,
+                              label: 'Risco de Atraso',
+                              value: riskLabel,
+                              valueColor: riskColor,
+                              subtitle: 'vs. meta semanal',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Streak chip
+                      if (data.streakDays > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.orangeAccent.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: Colors.orangeAccent.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🔥', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${data.streakDays} dia${data.streakDays > 1 ? 's' : ''} seguido${data.streakDays > 1 ? 's' : ''}!',
+                                style: const TextStyle(
+                                  color: Colors.orangeAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 16),
 
                       // Weekly trend chart
                       _SectionCard(
@@ -219,6 +310,68 @@ class _SectionCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           child,
+        ],
+      ),
+    );
+  }
+}
+
+class _KpiCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final String subtitle;
+
+  const _KpiCard({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.bg2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style:
+                      const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: valueColor ?? AppTheme.textPrimary,
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+          ),
         ],
       ),
     );

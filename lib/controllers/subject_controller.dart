@@ -37,6 +37,14 @@ class SubjectController extends AsyncNotifier<void> {
     await _service.createSubject(subject);
   }
 
+  Future<void> createSubjectWithId(Subject subject) async {
+    await _service.createSubjectWithId(subject);
+  }
+
+  Future<void> createDefaultTopic(String subjectId) async {
+    await _service.createDefaultTopic(subjectId);
+  }
+
   Future<void> updateSubject(Subject subject) async {
     await _service.updateSubject(subject);
   }

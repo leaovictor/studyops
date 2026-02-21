@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'controllers/auth_controller.dart';
+import 'controllers/study_plan_controller.dart';
+import 'controllers/subject_controller.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/daily_checklist_screen.dart';
 import 'screens/schedule_screen.dart';
@@ -26,7 +29,6 @@ class _ShellPage extends ConsumerWidget {
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Track both the auth value AND the loading state
-  // We use a record: (isLoading, isLoggedIn)
   final notifier = ValueNotifier<(bool, bool)>((true, false));
 
   ref.listen(authStateProvider, (_, next) {
@@ -38,14 +40,25 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final (isLoading, loggedIn) = notifier.value;
+      final path = state.uri.path;
 
-      // While auth is still resolving, stay on splash — no redirect
-      if (isLoading) return state.uri.path == '/' ? null : '/';
+      // While auth is still resolving, stay on splash
+      if (isLoading) return path == '/' ? null : '/';
 
-      final loggingIn = state.uri.path == '/login' || state.uri.path == '/';
+      final isPublicRoute = path == '/login' || path == '/';
 
-      if (!loggedIn && !loggingIn) return '/login';
-      if (loggedIn && loggingIn) return '/dashboard';
+      if (!loggedIn && !isPublicRoute) return '/login';
+
+      if (loggedIn && isPublicRoute) {
+        // Check if user needs onboarding (no active plan and no subjects)
+        final activePlan = ref.read(activePlanProvider).valueOrNull;
+        final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+        if (activePlan == null && subjects.isEmpty && path != '/onboarding') {
+          return '/onboarding';
+        }
+        return '/dashboard';
+      }
+
       return null;
     },
     routes: [
@@ -56,6 +69,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
       ),
       ShellRoute(
         builder: (_, __, child) => _ShellPage(child: child),

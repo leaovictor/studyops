@@ -5,6 +5,7 @@ import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import '../models/topic_model.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -27,6 +28,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   Widget build(BuildContext context) {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final subjectMap = {for (final s in subjects) s.id: s};
+    final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? <Topic>[];
+    final topicMap = {for (final t in allTopics) t.id: t};
 
     // Watch tasks for selected day
     final tasks = ref.watch(dailyTasksProvider).valueOrNull ?? [];
@@ -146,6 +149,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             itemBuilder: (_, i) {
                               final task = tasks[i];
                               final subject = subjectMap[task.subjectId];
+                              final topic = topicMap[task.topicId];
                               final color = subject != null
                                   ? Color(int.parse(
                                       'FF${subject.color.replaceAll('#', '')}',
@@ -194,7 +198,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Tópico',
+                                        topic?.name ?? 'Tópico',
                                         style: TextStyle(
                                           color: task.done
                                               ? AppTheme.textMuted
