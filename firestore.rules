@@ -41,7 +41,7 @@ service cloud.firestore {
     }
 
     // Error notes: user owns docs
-    match /error_notes/{docId} {
+    match /error_notebook/{docId} {
       allow get: if request.auth != null && resource.data.userId == request.auth.uid;
       allow list: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;

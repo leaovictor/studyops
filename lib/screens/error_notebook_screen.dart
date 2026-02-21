@@ -238,15 +238,16 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                   }),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<Topic>(
-                  initialValue: selectedTopic,
-                  decoration: const InputDecoration(labelText: 'Tópico'),
-                  items: filteredTopics
-                      .map((t) =>
-                          DropdownMenuItem(value: t, child: Text(t.name)))
-                      .toList(),
-                  onChanged: (t) => setS(() => selectedTopic = t),
-                ),
+                if (filteredTopics.isNotEmpty)
+                  DropdownButtonFormField<Topic>(
+                    initialValue: selectedTopic,
+                    decoration: const InputDecoration(labelText: 'Tópico'),
+                    items: filteredTopics
+                        .map((t) =>
+                            DropdownMenuItem(value: t, child: Text(t.name)))
+                        .toList(),
+                    onChanged: (t) => setS(() => selectedTopic = t),
+                  ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: questionCtrl,
@@ -270,14 +271,12 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: () {
-                    if (selectedSubject == null || selectedTopic == null) {
-                      return;
-                    }
+                    if (selectedSubject == null) return;
                     final note = ErrorNote(
                       id: existing?.id ?? const Uuid().v4(),
                       userId: user.uid,
                       subjectId: selectedSubject!.id,
-                      topicId: selectedTopic!.id,
+                      topicId: selectedTopic?.id ?? '',
                       question: questionCtrl.text,
                       correctAnswer: answerCtrl.text,
                       errorReason: reasonCtrl.text,

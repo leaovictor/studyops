@@ -107,7 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final validSubjects =
         _data.subjects.where((s) => s.name.trim().isNotEmpty).toList();
 
-    // Save subjects first
+    // Save subjects first (and create a default "Geral" topic for each)
     final controller = ref.read(subjectControllerProvider.notifier);
     for (final s in validSubjects) {
       final subject = Subject(
@@ -119,6 +119,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         weight: s.priority, // default weight = priority
       );
       await controller.createSubjectWithId(subject);
+      await controller.createDefaultTopic(s.id);
     }
 
     // Create study plan

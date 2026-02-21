@@ -89,7 +89,7 @@
             ]
         },
         {
-            "collectionGroup": "error_notes",
+            "collectionGroup": "error_notebook",
             "queryScope": "COLLECTION",
             "fields": [
                 {
@@ -103,7 +103,7 @@
             ]
         },
         {
-            "collectionGroup": "error_notes",
+            "collectionGroup": "error_notebook",
             "queryScope": "COLLECTION",
             "fields": [
                 {
