@@ -38,6 +38,7 @@ class DailyTaskService {
     final log = StudyLog(
       id: logRef.id,
       userId: task.userId,
+      goalId: task.goalId,
       date: task.date,
       subjectId: task.subjectId,
       minutes: actualMinutes > 0 ? actualMinutes : task.plannedMinutes,

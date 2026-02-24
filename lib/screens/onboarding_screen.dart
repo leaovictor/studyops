@@ -148,6 +148,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final plan = StudyPlan(
       id: '',
       userId: user.uid,
+      goalId: goal.id,
       startDate: DateTime.now(),
       durationDays: durationDays,
       dailyHours: _data.dailyHours,
@@ -273,18 +274,40 @@ class _OnboardingHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         // Progress bar
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: (currentPage + 1) / totalPages),
-            duration: const Duration(milliseconds: 400),
-            builder: (_, v, __) => LinearProgressIndicator(
-              value: v,
-              minHeight: 3,
-              backgroundColor: AppTheme.border,
-              valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: (currentPage + 1) / totalPages),
+                  duration: const Duration(milliseconds: 400),
+                  builder: (_, v, __) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 3,
+                    backgroundColor: AppTheme.border,
+                    valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                  ),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 16),
+            InkWell(
+              onTap: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/dashboard');
+                }
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(4.0),
+                child: Icon(Icons.close_rounded,
+                    color: AppTheme.textMuted, size: 24),
+              ),
+            ),
+          ],
         ),
       ],
     );

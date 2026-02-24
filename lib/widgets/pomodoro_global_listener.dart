@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/goal_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/study_log_model.dart';
 import '../core/theme/app_theme.dart';
@@ -110,8 +111,9 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
 
                   setState(() => _saving = true);
                   final user = ref.read(authStateProvider).valueOrNull;
+                  final activeGoalId = ref.read(activeGoalIdProvider);
 
-                  if (user != null) {
+                  if (user != null && activeGoalId != null) {
                     final dateKey = AppDateUtils.todayKey();
                     final logId =
                         'log_${DateTime.now().millisecondsSinceEpoch}';
@@ -119,6 +121,7 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
                     final log = StudyLog(
                       id: logId,
                       userId: user.uid,
+                      goalId: activeGoalId,
                       date: dateKey,
                       subjectId: _selectedSubjectId!,
                       minutes: widget.minutesCompleted,
@@ -134,7 +137,7 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
                     ref.invalidate(dashboardProvider);
                   }
 
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 },
           style: ElevatedButton.styleFrom(

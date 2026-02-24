@@ -62,6 +62,17 @@ Para evitar "lixo" no banco de dados e gráficos sujos, o app utiliza exclusão 
 
 ---
 
+### 6. Banco de Questões (PWA First)
+
+O aplicativo conta com um módulo completo para resolução e cadastro de questões, projetado para operar fluidamente como PWA (Progressive Web App):
+
+* **Cache-First (Offline Ready)**: Reduz os custos de leitura no Firestore e permite uso sem conexão graças à persistência e cache ilimitado configurado para a web.
+* **Batch Upsert (Ingestão em Massa)**: Mecanismo otimizado para a importação de questões oficiais (admin) via JSON, sem o risco de duplicação.
+* **Integração com o Caderno de Erros (FSRS)**: Toda questão respondida incorretamente é enviada para o Caderno de Erros, associada à matéria e ao objetivo originais, ativando automaticamente o estágio inicial (revisão de 1 dia) do algoritmo de repetição espaçada.
+* **Modais Inteligentes (Mobile Web)**: Os formulários foram otimizados com compensação dinâmica de área útil, garantindo que o teclado em dispositivos móveis não mascare os campos de texto.
+
+---
+
 ## 🚀 Tecnologias
 
 * **Firebase/Firestore**: Banco de dados NoSQL em tempo real.

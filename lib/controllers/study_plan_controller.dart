@@ -4,6 +4,7 @@ import '../services/study_plan_service.dart';
 import '../services/subject_service.dart';
 import 'auth_controller.dart';
 import 'subject_controller.dart';
+import 'goal_controller.dart';
 
 final studyPlanServiceProvider =
     Provider<StudyPlanService>((ref) => StudyPlanService());
@@ -11,7 +12,10 @@ final studyPlanServiceProvider =
 final activePlanProvider = StreamProvider<StudyPlan?>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value(null);
-  return ref.watch(studyPlanServiceProvider).watchActivePlan(user.uid);
+  final activeGoalId = ref.watch(activeGoalIdProvider);
+  return ref
+      .watch(studyPlanServiceProvider)
+      .watchActivePlan(user.uid, goalId: activeGoalId);
 });
 
 class StudyPlanController extends AsyncNotifier<void> {

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class StudyPlan {
   final String id;
   final String userId;
+  final String goalId;
   final DateTime startDate;
   final int durationDays; // 30, 60, or 90
   final double dailyHours;
@@ -10,6 +11,7 @@ class StudyPlan {
   const StudyPlan({
     required this.id,
     required this.userId,
+    required this.goalId,
     required this.startDate,
     required this.durationDays,
     required this.dailyHours,
@@ -20,6 +22,7 @@ class StudyPlan {
   StudyPlan copyWith({
     String? id,
     String? userId,
+    String? goalId,
     DateTime? startDate,
     int? durationDays,
     double? dailyHours,
@@ -27,6 +30,7 @@ class StudyPlan {
     return StudyPlan(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      goalId: goalId ?? this.goalId,
       startDate: startDate ?? this.startDate,
       durationDays: durationDays ?? this.durationDays,
       dailyHours: dailyHours ?? this.dailyHours,
@@ -35,6 +39,7 @@ class StudyPlan {
 
   Map<String, dynamic> toMap() => {
         'userId': userId,
+        'goalId': goalId,
         'startDate': Timestamp.fromDate(startDate),
         'durationDays': durationDays,
         'dailyHours': dailyHours,
@@ -54,6 +59,7 @@ class StudyPlan {
     return StudyPlan(
       id: id,
       userId: map['userId'] as String? ?? '',
+      goalId: map['goalId'] as String? ?? '',
       startDate: start,
       durationDays: (map['durationDays'] as num?)?.toInt() ?? 30,
       dailyHours: (map['dailyHours'] as num?)?.toDouble() ?? 3.0,

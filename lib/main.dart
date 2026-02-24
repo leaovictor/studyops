@@ -13,8 +13,9 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Enable unlimited caching for Firestore
+  // Enable offline persistence and unlimited caching for Firestore PWA
   FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 

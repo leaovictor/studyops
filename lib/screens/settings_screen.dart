@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/pomodoro_settings_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/study_plan_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
@@ -25,6 +26,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final user = ref.watch(authStateProvider).valueOrNull;
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+    final activeGoalId = ref.watch(activeGoalIdProvider);
     final planCtrl = ref.read(studyPlanControllerProvider.notifier);
     final planState = ref.watch(studyPlanControllerProvider);
 
@@ -191,10 +193,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           onPressed: planState.isLoading || subjects.isEmpty
                               ? null
                               : () async {
-                                  if (user == null) return;
+                                  if (user == null || activeGoalId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Erro: Crie um Objetivo primeiro.')),
+                                    );
+                                    return;
+                                  }
                                   final plan = StudyPlan(
                                     id: '',
                                     userId: user.uid,
+                                    goalId: activeGoalId,
                                     startDate: DateTime.now(),
                                     durationDays: _selectedDuration,
                                     dailyHours: _dailyHours,

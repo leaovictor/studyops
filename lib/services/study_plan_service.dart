@@ -11,9 +11,12 @@ class StudyPlanService {
   CollectionReference get _plans => _db.collection(AppConstants.colStudyPlans);
   CollectionReference get _tasks => _db.collection(AppConstants.colDailyTasks);
 
-  Stream<StudyPlan?> watchActivePlan(String userId) {
-    return _plans
-        .where('userId', isEqualTo: userId)
+  Stream<StudyPlan?> watchActivePlan(String userId, {String? goalId}) {
+    Query query = _plans.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query
         .orderBy('startDate', descending: true)
         .limit(1)
         .snapshots()
@@ -40,9 +43,11 @@ class StudyPlanService {
     required List<Subject> subjects,
     required List<Topic> topics,
   }) async {
-    // Delete existing tasks for this user (regenerate from scratch)
-    final existingSnap =
-        await _tasks.where('userId', isEqualTo: plan.userId).get();
+    // Delete existing tasks for this user (regenerate from scratch) for the current goal
+    final existingSnap = await _tasks
+        .where('userId', isEqualTo: plan.userId)
+        .where('goalId', isEqualTo: plan.goalId)
+        .get();
 
     const batchLimit = 400;
     var batch = _db.batch();

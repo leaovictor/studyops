@@ -7,6 +7,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/daily_task_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -343,10 +344,13 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
             FilledButton(
               onPressed: () {
                 if (selectedSubject == null || selectedTopic == null) return;
+                final activeGoalId = ref.read(activeGoalIdProvider);
+                if (activeGoalId == null) return;
                 ref.read(dailyTaskControllerProvider.notifier).addManualTask(
                       DailyTask(
                         id: const Uuid().v4(),
                         userId: user.uid,
+                        goalId: activeGoalId,
                         date:
                             AppDateUtils.toKey(ref.read(selectedDateProvider)),
                         subjectId: selectedSubject!.id,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../controllers/pomodoro_settings_controller.dart';
@@ -47,6 +48,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
   Timer? _timer;
   int workMins;
   int breakMins;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   PomodoroNotifier({
     this.workMins = 25,
@@ -88,6 +90,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
   void _tick(Timer t) {
     if (state.secondsLeft <= 1) {
       _timer?.cancel();
+      _playSound();
       if (state.phase == PomodoroPhase.work) {
         final completed = state.completedSessions + 1;
         state = PomodoroState(
@@ -109,9 +112,17 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     }
   }
 
+  Future<void> _playSound() async {
+    try {
+      await _audioPlayer.play(AssetSource(
+          'song/freesound_community-winner-bell-game-show-91932.mp3'));
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 }

@@ -66,6 +66,7 @@ class ScheduleGenerator {
         tasks.add(DailyTask(
           id: uuid.v4(),
           userId: plan.userId,
+          goalId: plan.goalId,
           date: dateKey,
           subjectId: entry.topic.subjectId,
           topicId: entry.topic.id,
