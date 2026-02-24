@@ -60,7 +60,7 @@ class GoalSwitcher extends ConsumerWidget {
                   border: Border.all(color: AppTheme.border),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -71,7 +71,7 @@ class GoalSwitcher extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
+                        color: AppTheme.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.flag_rounded,
@@ -294,7 +294,7 @@ class GoalSwitcher extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.error,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppTheme.error.withOpacity(0.2),
+                    disabledBackgroundColor: AppTheme.error.withValues(alpha: 0.2),
                   ),
                   child: const Text('Excluir Definitivamente'),
                 );
@@ -365,9 +365,9 @@ class _AddGoalButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.primary.withOpacity(0.1),
+          color: AppTheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [

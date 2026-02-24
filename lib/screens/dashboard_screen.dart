@@ -10,13 +10,12 @@ import '../controllers/flashcard_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
-import '../models/subject_model.dart';
-import '../widgets/metric_card.dart';
 import 'package:el_tooltip/el_tooltip.dart';
 import '../widgets/relevance_tooltip.dart';
+import '../widgets/metric_card.dart';
+import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
 import '../widgets/goal_switcher.dart';
-import '../widgets/relevance_info_dialog.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -93,12 +92,20 @@ class DashboardScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 32),
                         child: _SuggestedSubjectCTA(
-                          subjectId: data.suggestedSubjectId!,
+                          subject: subjects.firstWhere(
+                            (s) => s.id == data.suggestedSubjectId,
+                            orElse: () => subjects.isNotEmpty
+                                ? subjects.first
+                                : const Subject(
+                                    id: '',
+                                    userId: '',
+                                    name: 'Desconhecida',
+                                    color: '#7C6FFF',
+                                    priority: 3,
+                                    weight: 5,
+                                    difficulty: 3),
+                          ),
                           suggestedMinutes: data.suggestedMinutes,
-                          subjects: subjects,
-                          avgDifficulty: data.subjectDifficulties[
-                                  data.suggestedSubjectId] ??
-                              3.0,
                           onTap: () => context.go('/subjects'),
                         ),
                       ),
@@ -315,140 +322,189 @@ class _NoPlanCTA extends StatelessWidget {
   }
 }
 
-class _SuggestedSubjectCTA extends StatelessWidget {
-  final String subjectId;
+class _SuggestedSubjectCTA extends StatefulWidget {
+  final Subject subject;
   final int suggestedMinutes;
-  final List<Subject> subjects;
-  final double avgDifficulty;
   final VoidCallback onTap;
 
   const _SuggestedSubjectCTA({
-    required this.subjectId,
+    required this.subject,
     required this.suggestedMinutes,
-    required this.subjects,
-    required this.avgDifficulty,
     required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final subject = subjects.firstWhere(
-      (s) => s.id == subjectId,
-      orElse: () => const Subject(
-          id: '',
-          userId: '',
-          name: 'Desconhecida',
-          color: '#7C6FFF',
-          priority: 3,
-          weight: 5,
-          difficulty: 3),
-    );
+  State<_SuggestedSubjectCTA> createState() => _SuggestedSubjectCTAState();
+}
 
+class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  double? _lastScore;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _pulseAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.05), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0), weight: 50),
+    ]).animate(
+        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+
+    _lastScore = _calculateScore(widget.subject);
+  }
+
+  double _calculateScore(Subject s) =>
+      s.priority * s.weight * s.difficulty.toDouble();
+
+  @override
+  void didUpdateWidget(_SuggestedSubjectCTA oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newScore = _calculateScore(widget.subject);
+    if (_lastScore != null && newScore != _lastScore) {
+      _pulseController.forward(from: 0);
+    }
+    _lastScore = newScore;
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = widget.subject;
+    final suggestedMinutes = widget.suggestedMinutes;
+    final onTap = widget.onTap;
     final color =
         Color(int.parse('FF${subject.color.replaceAll('#', '')}', radix: 16));
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              color.withValues(alpha: 0.15),
-              color.withValues(alpha: 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return ScaleTransition(
+          scale: _pulseAnimation,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.15),
+                    color.withValues(alpha: 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        color.withValues(alpha: 0.2 * _pulseController.value),
+                    blurRadius: 15 * _pulseController.value,
+                    spreadRadius: 2 * _pulseController.value,
+                  )
+                ],
               ),
-              child: Icon(Icons.psychology_alt_rounded, color: color, size: 36),
+              child: child,
             ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          'ALOCAÇÃO INTELIGENTE',
-                          style: TextStyle(
-                            color: color,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                          ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.psychology_alt_rounded, color: color, size: 36),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'ALOCAÇÃO INTELIGENTE',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      ElTooltip(
-                        position: ElTooltipPosition.topCenter,
-                        padding: EdgeInsets.zero,
-                        color: Colors.transparent,
-                        content: RelevanceTooltip(
-                          subject: subject,
+                    ),
+                    ElTooltip(
+                      position: ElTooltipPosition.topCenter,
+                      padding: EdgeInsets.zero,
+                      color: Colors.transparent,
+                      content: RelevanceTooltip(
+                        subject: subject,
+                      ),
+                      child: Icon(Icons.info_outline_rounded,
+                          color: color, size: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Sua prioridade agora é  ',
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 16,
                         ),
-                        child: Icon(Icons.info_outline_rounded,
-                            color: color, size: 16),
+                      ),
+                      TextSpan(
+                        text: subject.name,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        const TextSpan(
-                          text: 'Sua prioridade agora é  ',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 16,
-                          ),
-                        ),
-                        TextSpan(
-                          text: subject.name,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 14,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Icon(Icons.arrow_forward_rounded,
-                color: AppTheme.textMuted.withValues(alpha: 0.5)),
-          ],
-        ),
+          ),
+          const SizedBox(width: 16),
+          Icon(Icons.arrow_forward_rounded,
+              color: AppTheme.textMuted.withValues(alpha: 0.5)),
+        ],
       ),
     );
   }
@@ -522,7 +578,7 @@ class _TopMetricsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
+    final List<Widget> cards = [
       MetricCard(
         icon: Icons.today_rounded,
         label: 'Hoje',

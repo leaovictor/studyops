@@ -330,7 +330,7 @@ class _Step0Welcome extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: AppTheme.primary.withOpacity(0.1),
+            color: AppTheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.auto_awesome_rounded,
@@ -589,7 +589,7 @@ class _RecommendationChips extends StatelessWidget {
           label: Text('${h.toStringAsFixed(0)}h'),
           selected: selected,
           onSelected: (_) => onTap(h),
-          selectedColor: AppTheme.primary.withOpacity(0.2),
+          selectedColor: AppTheme.primary.withValues(alpha: 0.2),
           labelStyle: TextStyle(
             color: selected ? AppTheme.primary : AppTheme.textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
@@ -744,7 +744,7 @@ class _SubjectRowState extends State<_SubjectRow> {
       decoration: BoxDecoration(
         color: AppTheme.bg2,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -758,7 +758,7 @@ class _SubjectRowState extends State<_SubjectRow> {
                 color: color,
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: Colors.white.withOpacity(0.3), width: 1.5),
+                    color: Colors.white.withValues(alpha: 0.3), width: 1.5),
               ),
             ),
           ),
@@ -819,7 +819,7 @@ class _SubjectRowState extends State<_SubjectRow> {
                     width: 2.5,
                   ),
                   boxShadow: selected
-                      ? [BoxShadow(color: c.withOpacity(0.5), blurRadius: 6)]
+                      ? [BoxShadow(color: c.withValues(alpha: 0.5), blurRadius: 6)]
                       : null,
                 ),
               ),
@@ -893,7 +893,7 @@ class _Step4GeneratingState extends State<_Step4Generating>
                     key: const ValueKey('done'),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppTheme.accent.withOpacity(0.15),
+                      color: AppTheme.accent.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.check_rounded,
@@ -905,7 +905,7 @@ class _Step4GeneratingState extends State<_Step4Generating>
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.15),
+                        color: AppTheme.primary.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.auto_awesome_rounded,
@@ -983,9 +983,9 @@ class _GamifiedTip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.accent.withOpacity(0.08),
+        color: AppTheme.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.accent.withOpacity(0.15)),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.15)),
       ),
       child: Row(
         children: [

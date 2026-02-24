@@ -233,10 +233,10 @@ class _SubjectCard extends ConsumerWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isExpanded ? color.withOpacity(0.4) : AppTheme.border,
+          color: isExpanded ? color.withValues(alpha: 0.4) : AppTheme.border,
         ),
       ),
       child: Column(
@@ -485,7 +485,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                    color: color.withOpacity(0.5),
+                                    color: color.withValues(alpha: 0.5),
                                     blurRadius: 6)
                               ]
                             : null,

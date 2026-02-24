@@ -64,7 +64,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: AppTheme.primary.withOpacity(0.2),
+                        backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
                         child: Text(
                           user?.email?.substring(0, 1).toUpperCase() ?? 'U',
                           style: const TextStyle(
@@ -107,10 +107,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.accent.withOpacity(0.1),
+                      color: AppTheme.accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border:
-                          Border.all(color: AppTheme.accent.withOpacity(0.3)),
+                          Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -147,7 +147,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             selected: selected,
                             onSelected: (_) =>
                                 setS(() => _selectedDuration = d),
-                            selectedColor: AppTheme.primary.withOpacity(0.2),
+                            selectedColor: AppTheme.primary.withValues(alpha: 0.2),
                             labelStyle: TextStyle(
                               color: selected
                                   ? AppTheme.primary

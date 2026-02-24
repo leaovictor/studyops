@@ -126,11 +126,11 @@ class PerformanceScreen extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: Colors.orangeAccent.withOpacity(0.12),
+                                color: Colors.orangeAccent.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                     color:
-                                        Colors.orangeAccent.withOpacity(0.3)),
+                                        Colors.orangeAccent.withValues(alpha: 0.3)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,

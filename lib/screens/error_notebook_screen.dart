@@ -75,10 +75,10 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppTheme.warning.withOpacity(0.15),
+                            color: AppTheme.warning.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: AppTheme.warning.withOpacity(0.4)),
+                                color: AppTheme.warning.withValues(alpha: 0.4)),
                           ),
                           child: Text(
                             '${due.length} p/ revisão',
@@ -104,7 +104,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                   label: const Text('Somente revisões de hoje'),
                   selected: _showDueOnly,
                   onSelected: (v) => setState(() => _showDueOnly = v),
-                  selectedColor: AppTheme.primary.withOpacity(0.2),
+                  selectedColor: AppTheme.primary.withValues(alpha: 0.2),
                   checkmarkColor: AppTheme.primary,
                 ),
               ],
@@ -444,7 +444,7 @@ class _NoteCard extends StatelessWidget {
         color: AppTheme.bg2,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDue ? AppTheme.warning.withOpacity(0.5) : AppTheme.border,
+          color: isDue ? AppTheme.warning.withValues(alpha: 0.5) : AppTheme.border,
         ),
       ),
       child: Column(
@@ -455,7 +455,7 @@ class _NoteCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -479,7 +479,7 @@ class _NoteCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppTheme.warning.withOpacity(0.15),
+                    color: AppTheme.warning.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(

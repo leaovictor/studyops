@@ -80,7 +80,7 @@ class AppTheme {
           color: textSecondary,
           fontSize: 12,
         ),
-        indicatorColor: primary.withOpacity(0.15),
+        indicatorColor: primary.withValues(alpha: 0.15),
         useIndicator: true,
       ),
       drawerTheme: const DrawerThemeData(
@@ -151,7 +151,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: bg3,
-        selectedColor: primary.withOpacity(0.2),
+        selectedColor: primary.withValues(alpha: 0.2),
         disabledColor: bg3,
         side: const BorderSide(color: border),
         labelStyle: GoogleFonts.inter(color: textSecondary, fontSize: 12),

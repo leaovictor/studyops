@@ -135,6 +135,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
   @override
   void dispose() {
     _timer?.cancel();
+    _focusService.disableWakeLock();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -247,7 +248,7 @@ class PomodoroTimer extends ConsumerWidget {
                       color: color,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: color.withOpacity(0.15),
+                      backgroundColor: color.withValues(alpha: 0.15),
                     ),
                   ),
                   const SizedBox(width: 8),

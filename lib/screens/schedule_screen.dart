@@ -82,7 +82,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   weekendTextStyle:
                       const TextStyle(color: AppTheme.textSecondary),
                   todayDecoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.3),
+                    color: AppTheme.primary.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   todayTextStyle: const TextStyle(
@@ -173,7 +173,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                           border: Border.all(
                                             color: task.done
                                                 ? AppTheme.border
-                                                : color.withOpacity(0.3),
+                                                : color.withValues(alpha: 0.3),
                                           ),
                                         ),
                                         child: Row(
@@ -194,7 +194,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                                       horizontal: 8,
                                                       vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: color.withOpacity(0.15),
+                                                color: color.withValues(alpha: 0.15),
                                                 borderRadius:
                                                     BorderRadius.circular(6),
                                               ),

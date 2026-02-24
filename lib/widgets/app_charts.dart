@@ -265,8 +265,8 @@ class EvolutionLineChart extends StatelessWidget {
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primary.withOpacity(0.3),
-                  AppTheme.primary.withOpacity(0),
+                  AppTheme.primary.withValues(alpha: 0.3),
+                  AppTheme.primary.withValues(alpha: 0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,

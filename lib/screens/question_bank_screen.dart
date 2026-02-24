@@ -200,7 +200,7 @@ class QuestionBankScreen extends ConsumerWidget {
                                               horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
                                             color: AppTheme.primary
-                                                .withOpacity(0.15),
+                                                .withValues(alpha: 0.15),
                                             borderRadius:
                                                 BorderRadius.circular(6),
                                           ),

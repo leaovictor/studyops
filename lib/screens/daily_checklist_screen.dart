@@ -407,7 +407,7 @@ class _TaskCard extends StatelessWidget {
         color: task.done ? AppTheme.bg1 : AppTheme.bg2,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: task.done ? AppTheme.border : color.withOpacity(0.3),
+          color: task.done ? AppTheme.border : color.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -428,7 +428,7 @@ class _TaskCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(

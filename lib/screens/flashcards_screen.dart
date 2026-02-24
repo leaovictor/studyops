@@ -180,14 +180,14 @@ class _SummaryBanner extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primary.withOpacity(0.15),
-            AppTheme.primary.withOpacity(0.05),
+            AppTheme.primary.withValues(alpha: 0.15),
+            AppTheme.primary.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -261,7 +261,7 @@ class _DeckCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.bg2,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -269,7 +269,7 @@ class _DeckCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.style_rounded, color: color, size: 22),
@@ -446,7 +446,7 @@ class _FilterChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.2) : AppTheme.bg2,
+          color: selected ? color.withValues(alpha: 0.2) : AppTheme.bg2,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? color : AppTheme.border,
@@ -489,7 +489,7 @@ class _FlashcardListTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withOpacity(0.15),
+          color: const Color(0xFFEF4444).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child:
@@ -503,7 +503,7 @@ class _FlashcardListTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color:
-                  isDue ? AppTheme.primary.withOpacity(0.3) : AppTheme.border),
+                  isDue ? AppTheme.primary.withValues(alpha: 0.3) : AppTheme.border),
         ),
         child: Row(
           children: [
@@ -543,7 +543,7 @@ class _FlashcardListTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.15),
+                  color: AppTheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(

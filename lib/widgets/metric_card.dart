@@ -42,7 +42,7 @@ class MetricCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6), // Reduced from 8
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 18), // Reduced from 20

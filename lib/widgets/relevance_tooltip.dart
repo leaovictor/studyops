@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/subject_model.dart';
 import '../controllers/subject_controller.dart';
@@ -47,6 +48,7 @@ class _RelevanceTooltipState extends ConsumerState<RelevanceTooltip> {
         ref.read(subjectControllerProvider.notifier).updateSubject(updated);
       }
     });
+    HapticFeedback.lightImpact();
     setState(() {});
   }
 
