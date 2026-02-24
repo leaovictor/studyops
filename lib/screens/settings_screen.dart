@@ -262,13 +262,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 final settings = settingsAsync.valueOrNull;
 
                 if (settingsAsync.hasError) {
-                  return _SettingsCard(
+                  return const _SettingsCard(
                     child: Center(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(16.0),
                         child: Text(
                           'Erro ao carregar configurações',
-                          style: const TextStyle(color: AppTheme.error),
+                          style: TextStyle(color: AppTheme.error),
                         ),
                       ),
                     ),

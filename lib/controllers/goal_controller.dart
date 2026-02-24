@@ -4,9 +4,9 @@ import '../models/goal_model.dart';
 import '../models/subject_model.dart';
 import '../models/error_note_model.dart';
 import '../services/goal_service.dart';
+import '../services/subject_service.dart';
+import '../services/error_notebook_service.dart';
 import 'auth_controller.dart';
-import 'subject_controller.dart';
-import 'error_notebook_controller.dart';
 
 final goalServiceProvider = Provider<GoalService>((ref) => GoalService());
 
@@ -66,7 +66,7 @@ class GoalController extends AsyncNotifier<void> {
     }
 
     // Check subjects without goalId
-    final subjectService = ref.read(subjectServiceProvider);
+    final subjectService = SubjectService();
     final subjects = await _dbGetSubjectsOnce(user.uid);
 
     for (final subject in subjects) {
@@ -77,7 +77,7 @@ class GoalController extends AsyncNotifier<void> {
     }
 
     // Check error notes without goalId
-    final errorService = ref.read(errorNotebookServiceProvider);
+    final errorService = ErrorNotebookService();
     final notes = await _dbGetErrorNotesOnce(user.uid);
 
     for (final note in notes) {

@@ -487,11 +487,11 @@ class _TaskCard extends StatelessWidget {
             ],
           ),
           if (showPomodoro)
-            Padding(
-              padding: const EdgeInsets.only(top: 12, left: 40),
+            const Padding(
+              padding: EdgeInsets.only(top: 12, left: 40),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: const PomodoroTimer(),
+                child: PomodoroTimer(),
               ),
             ),
         ],

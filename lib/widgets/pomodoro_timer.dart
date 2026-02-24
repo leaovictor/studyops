@@ -144,7 +144,7 @@ final pomodoroProvider = StateNotifierProvider<PomodoroNotifier, PomodoroState>(
 );
 
 class PomodoroTimer extends ConsumerWidget {
-  const PomodoroTimer();
+  const PomodoroTimer({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

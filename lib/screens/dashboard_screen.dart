@@ -412,7 +412,7 @@ class _SuggestedSubjectCTA extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppTheme.textMuted,
                       fontSize: 14,
                     ),

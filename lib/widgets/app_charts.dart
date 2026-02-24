@@ -355,10 +355,10 @@ class PlannedVsReadChart extends StatelessWidget {
 
     return Column(
       children: [
-        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          const _LegendItem(color: AppTheme.border, label: 'Planejado'),
-          const SizedBox(width: 16),
-          const _LegendItem(color: AppTheme.accent, label: 'Lido Hoje'),
+        const Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          _LegendItem(color: AppTheme.border, label: 'Planejado'),
+          SizedBox(width: 16),
+          _LegendItem(color: AppTheme.accent, label: 'Lido Hoje'),
         ]),
         const SizedBox(height: 16),
         Expanded(
@@ -393,8 +393,9 @@ class PlannedVsReadChart extends StatelessWidget {
                     showTitles: true,
                     getTitlesWidget: (value, _) {
                       final i = value.toInt();
-                      if (i < 0 || i >= entries.length)
+                      if (i < 0 || i >= entries.length) {
                         return const SizedBox.shrink();
+                      }
 
                       final subjectName = subjectNames[entries[i].key] ?? '?';
                       final displayStr = subjectName.length > 8

@@ -13,6 +13,8 @@ class GoalSwitcher extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
     final activeGoalId = ref.watch(activeGoalIdProvider);
+    // Explicitly watch the controller to ensure build() (migration) runs
+    ref.watch(goalControllerProvider);
 
     return goalsAsync.when(
       data: (goals) {
@@ -42,52 +44,77 @@ class GoalSwitcher extends ConsumerWidget {
           );
         }
 
-        return InkWell(
-          onTap: () => _showGoalPicker(context, ref, goals),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.bg2,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            InkWell(
+              onTap: () => _showGoalPicker(context, ref, goals),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.flag_rounded,
-                    color: AppTheme.primary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Objetivo Ativo',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        activeGoal.name,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bg2,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                const Icon(Icons.unfold_more_rounded,
-                    color: AppTheme.textSecondary, size: 18),
-              ],
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.flag_rounded,
+                          color: AppTheme.primary, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'AMBIENTE ATIVO',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          Text(
+                            activeGoal.name,
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.unfold_more_rounded,
+                        color: AppTheme.textSecondary, size: 20),
+                  ],
+                ),
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            _AddGoalButton(
+              onTap: () => _showAddGoalDialog(context, ref),
+            ),
+          ],
         );
       },
       loading: () =>
@@ -148,10 +175,25 @@ class GoalSwitcher extends ConsumerWidget {
                                 : FontWeight.normal,
                           ),
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded,
-                                color: AppTheme.primary)
-                            : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (goals.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    size: 20, color: AppTheme.textMuted),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _showDeleteConfirmationDialog(
+                                      context, ref, goal);
+                                },
+                                tooltip: 'Excluir Ambiente',
+                              ),
+                            if (isSelected)
+                              const Icon(Icons.check_circle_rounded,
+                                  color: AppTheme.primary),
+                          ],
+                        ),
                         onTap: () {
                           ref
                               .read(goalControllerProvider.notifier)
@@ -181,19 +223,113 @@ class GoalSwitcher extends ConsumerWidget {
     );
   }
 
+  void _showDeleteConfirmationDialog(
+      BuildContext context, WidgetRef ref, Goal goal) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppTheme.bg1,
+          title: const Text('Excluir Ambiente?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                        text: 'Esta ação é irreversível. Todas as ',
+                        style: TextStyle(fontSize: 13)),
+                    TextSpan(
+                        text: 'matérias e tarefas',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13)),
+                    TextSpan(
+                        text: ' deste ambiente serão perdidas.',
+                        style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Digite "${goal.name}" para confirmar:',
+                style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: goal.name,
+                  fillColor: AppTheme.bg0,
+                ),
+                autofocus: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: controller,
+              builder: (context, value, child) {
+                final isMatch = value.text == goal.name;
+                return ElevatedButton(
+                  onPressed: isMatch
+                      ? () {
+                          ref
+                              .read(goalControllerProvider.notifier)
+                              .deleteGoal(goal.id);
+                          Navigator.pop(context);
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.error,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppTheme.error.withOpacity(0.2),
+                  ),
+                  child: const Text('Excluir Definitivamente'),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showAddGoalDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.bg1,
-        title: const Text('Novo Objetivo'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Ex: Medicina 2026, Concurso...',
-          ),
-          autofocus: true,
+        title: const Text('Novo Ambiente de Estudo'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Crie um ambiente separado para organizar seus estudos (ex: ENEM, Faculdade, Concursos).',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Nome do ambiente (ex: Residência Médica)',
+              ),
+              autofocus: true,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -229,9 +365,9 @@ class _AddGoalButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.primary.withValues(alpha: 0.1),
+          color: AppTheme.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
         ),
         child: const Row(
           children: [

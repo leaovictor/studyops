@@ -10,7 +10,6 @@ class GoalService {
   Stream<List<Goal>> watchGoals(String userId) {
     return _goals
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map((d) => Goal.fromDoc(d)).toList());
   }

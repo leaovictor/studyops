@@ -92,8 +92,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                                             onPressed: () {
                                               controller
                                                   .deleteSubject(subject.id);
-                                              if (ctx.mounted)
+                                              if (ctx.mounted) {
                                                 Navigator.pop(ctx);
+                                              }
                                             },
                                             style: FilledButton.styleFrom(
                                                 backgroundColor:
