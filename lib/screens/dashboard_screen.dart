@@ -12,8 +12,11 @@ import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../models/subject_model.dart';
 import '../widgets/metric_card.dart';
+import 'package:el_tooltip/el_tooltip.dart';
+import '../widgets/relevance_tooltip.dart';
 import '../widgets/app_charts.dart';
 import '../widgets/goal_switcher.dart';
+import '../widgets/relevance_info_dialog.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -93,6 +96,9 @@ class DashboardScreen extends ConsumerWidget {
                           subjectId: data.suggestedSubjectId!,
                           suggestedMinutes: data.suggestedMinutes,
                           subjects: subjects,
+                          avgDifficulty: data.subjectDifficulties[
+                                  data.suggestedSubjectId] ??
+                              3.0,
                           onTap: () => context.go('/subjects'),
                         ),
                       ),
@@ -313,12 +319,14 @@ class _SuggestedSubjectCTA extends StatelessWidget {
   final String subjectId;
   final int suggestedMinutes;
   final List<Subject> subjects;
+  final double avgDifficulty;
   final VoidCallback onTap;
 
   const _SuggestedSubjectCTA({
     required this.subjectId,
     required this.suggestedMinutes,
     required this.subjects,
+    required this.avgDifficulty,
     required this.onTap,
   });
 
@@ -332,7 +340,8 @@ class _SuggestedSubjectCTA extends StatelessWidget {
           name: 'Desconhecida',
           color: '#7C6FFF',
           priority: 3,
-          weight: 5),
+          weight: 5,
+          difficulty: 3),
     );
 
     final color =
@@ -346,21 +355,21 @@ class _SuggestedSubjectCTA extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              color.withOpacity(0.15),
-              color.withOpacity(0.05),
+              color.withValues(alpha: 0.15),
+              color.withValues(alpha: 0.05),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.psychology_alt_rounded, color: color, size: 36),
@@ -370,22 +379,37 @@ class _SuggestedSubjectCTA extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'ALOCAÇÃO INTELIGENTE',
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'ALOCAÇÃO INTELIGENTE',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                       ),
-                    ),
+                      ElTooltip(
+                        position: ElTooltipPosition.topCenter,
+                        padding: EdgeInsets.zero,
+                        color: Colors.transparent,
+                        content: RelevanceTooltip(
+                          subject: subject,
+                        ),
+                        child: Icon(Icons.info_outline_rounded,
+                            color: color, size: 16),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   RichText(
@@ -422,7 +446,7 @@ class _SuggestedSubjectCTA extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             Icon(Icons.arrow_forward_rounded,
-                color: AppTheme.textMuted.withOpacity(0.5)),
+                color: AppTheme.textMuted.withValues(alpha: 0.5)),
           ],
         ),
       ),

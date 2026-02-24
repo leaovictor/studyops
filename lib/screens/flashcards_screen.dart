@@ -149,7 +149,8 @@ class _ReviewTab extends ConsumerWidget {
                         name: 'Matéria',
                         color: '#7C6FFF',
                         priority: 1,
-                        weight: 1),
+                        weight: 1,
+                        difficulty: 3),
                   );
                   return _DeckCard(
                     subject: subject,
@@ -393,7 +394,8 @@ class _AllCardsTab extends ConsumerWidget {
                             name: 'Matéria',
                             color: '#7C6FFF',
                             priority: 1,
-                            weight: 1),
+                            weight: 1,
+                            difficulty: 3),
                       );
                       return AnimationConfiguration.staggeredList(
                         position: i,

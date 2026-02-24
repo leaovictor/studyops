@@ -215,17 +215,6 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
       return;
     }
 
-    final questionCtrl = TextEditingController(text: existing?.question ?? '');
-    final answerCtrl =
-        TextEditingController(text: existing?.correctAnswer ?? '');
-    final reasonCtrl = TextEditingController(text: existing?.errorReason ?? '');
-
-    Subject? selectedSubject = subjects.firstWhere(
-      (s) => s.id == (existing?.subjectId ?? subjects.first.id),
-      orElse: () => subjects.first,
-    );
-    Topic? selectedTopic;
-
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -233,122 +222,188 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
-        final filteredTopics =
-            allTopics.where((t) => t.subjectId == selectedSubject?.id).toList();
-        if (selectedTopic == null &&
-            filteredTopics.isNotEmpty &&
-            existing == null) {
-          selectedTopic = filteredTopics.first;
-        } else if (existing != null && selectedTopic == null) {
-          selectedTopic = filteredTopics.firstWhere(
-            (t) => t.id == existing.topicId,
-            orElse: () => filteredTopics.isNotEmpty
-                ? filteredTopics.first
-                : const Topic(id: '', subjectId: '', name: '', difficulty: 1),
-          );
-        }
-
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  existing == null ? 'Novo Erro' : 'Editar Erro',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<Subject>(
-                  initialValue: selectedSubject,
-                  decoration: const InputDecoration(labelText: 'Matéria'),
-                  items: subjects
-                      .map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s.name)))
-                      .toList(),
-                  onChanged: (s) => setS(() {
-                    selectedSubject = s;
-                    selectedTopic = null;
-                  }),
-                ),
-                const SizedBox(height: 12),
-                if (filteredTopics.isNotEmpty)
-                  DropdownButtonFormField<Topic>(
-                    initialValue: selectedTopic,
-                    decoration: const InputDecoration(labelText: 'Tópico'),
-                    items: filteredTopics
-                        .map((t) =>
-                            DropdownMenuItem(value: t, child: Text(t.name)))
-                        .toList(),
-                    onChanged: (t) => setS(() => selectedTopic = t),
-                  ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: questionCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Questão / Enunciado'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: answerCtrl,
-                  maxLines: 2,
-                  decoration:
-                      const InputDecoration(labelText: 'Resposta correta'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reasonCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Por que errei?'),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () {
-                    if (selectedSubject == null) return;
-                    final note = ErrorNote(
-                      id: existing?.id ?? const Uuid().v4(),
-                      userId: user.uid,
-                      goalId: existing?.goalId ?? activeGoalId,
-                      subjectId: selectedSubject!.id,
-                      topicId: selectedTopic?.id ?? '',
-                      question: questionCtrl.text,
-                      correctAnswer: answerCtrl.text,
-                      errorReason: reasonCtrl.text,
-                      nextReview: existing?.nextReview ??
-                          DateTime.now().add(const Duration(days: 1)),
-                      reviewStage: existing?.reviewStage ?? 0,
-                    );
-                    if (existing == null) {
-                      ref
-                          .read(errorNotebookControllerProvider.notifier)
-                          .createNote(note);
-                    } else {
-                      ref
-                          .read(errorNotebookControllerProvider.notifier)
-                          .updateNote(note);
-                    }
-                    Navigator.pop(ctx);
-                  },
-                  child: Text(existing == null ? 'Salvar Erro' : 'Atualizar'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
+      builder: (ctx) => _NoteDialogContent(
+        existing: existing,
+        subjects: subjects,
+        allTopics: allTopics,
+        activeGoalId: activeGoalId,
+        userId: user.uid,
+      ),
     );
+  }
+}
+
+class _NoteDialogContent extends StatefulWidget {
+  final ErrorNote? existing;
+  final List<Subject> subjects;
+  final List<Topic> allTopics;
+  final String? activeGoalId;
+  final String userId;
+
+  const _NoteDialogContent({
+    required this.existing,
+    required this.subjects,
+    required this.allTopics,
+    required this.activeGoalId,
+    required this.userId,
+  });
+
+  @override
+  State<_NoteDialogContent> createState() => _NoteDialogContentState();
+}
+
+class _NoteDialogContentState extends State<_NoteDialogContent> {
+  late TextEditingController questionCtrl;
+  late TextEditingController answerCtrl;
+  late TextEditingController reasonCtrl;
+  Subject? selectedSubject;
+  Topic? selectedTopic;
+
+  @override
+  void initState() {
+    super.initState();
+    questionCtrl = TextEditingController(text: widget.existing?.question ?? '');
+    answerCtrl =
+        TextEditingController(text: widget.existing?.correctAnswer ?? '');
+    reasonCtrl =
+        TextEditingController(text: widget.existing?.errorReason ?? '');
+
+    selectedSubject = widget.subjects.firstWhere(
+      (s) => s.id == (widget.existing?.subjectId ?? widget.subjects.first.id),
+      orElse: () => widget.subjects.first,
+    );
+  }
+
+  @override
+  void dispose() {
+    questionCtrl.dispose();
+    answerCtrl.dispose();
+    reasonCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredTopics = widget.allTopics
+        .where((t) => t.subjectId == selectedSubject?.id)
+        .toList();
+
+    if (selectedTopic == null &&
+        filteredTopics.isNotEmpty &&
+        widget.existing == null) {
+      selectedTopic = filteredTopics.first;
+    } else if (widget.existing != null && selectedTopic == null) {
+      // Use iterable.where and firstOrNull if possible, or manual loop for safety
+      for (final t in filteredTopics) {
+        if (t.id == widget.existing!.topicId) {
+          selectedTopic = t;
+          break;
+        }
+      }
+      if (selectedTopic == null && filteredTopics.isNotEmpty) {
+        selectedTopic = filteredTopics.first;
+      }
+    }
+
+    return Consumer(builder: (context, ref, child) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.existing == null ? 'Novo Erro' : 'Editar Erro',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              DropdownButtonFormField<Subject>(
+                value: selectedSubject,
+                decoration: const InputDecoration(labelText: 'Matéria'),
+                items: widget.subjects
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
+                    .toList(),
+                onChanged: (s) => setState(() {
+                  selectedSubject = s;
+                  selectedTopic = null;
+                }),
+              ),
+              const SizedBox(height: 12),
+              if (filteredTopics.isNotEmpty)
+                DropdownButtonFormField<Topic>(
+                  value: selectedTopic,
+                  decoration: const InputDecoration(labelText: 'Tópico'),
+                  items: filteredTopics
+                      .map((t) =>
+                          DropdownMenuItem(value: t, child: Text(t.name)))
+                      .toList(),
+                  onChanged: (t) => setState(() => selectedTopic = t),
+                ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: questionCtrl,
+                maxLines: 2,
+                decoration:
+                    const InputDecoration(labelText: 'Questão / Enunciado'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: answerCtrl,
+                maxLines: 2,
+                decoration:
+                    const InputDecoration(labelText: 'Resposta correta'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonCtrl,
+                decoration: const InputDecoration(labelText: 'Por que errei?'),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () {
+                  if (selectedSubject == null) return;
+                  final note = ErrorNote(
+                    id: widget.existing?.id ?? const Uuid().v4(),
+                    userId: widget.userId,
+                    goalId: widget.existing?.goalId ?? widget.activeGoalId,
+                    subjectId: selectedSubject!.id,
+                    topicId: selectedTopic?.id ?? '',
+                    question: questionCtrl.text,
+                    correctAnswer: answerCtrl.text,
+                    errorReason: reasonCtrl.text,
+                    nextReview: widget.existing?.nextReview ??
+                        DateTime.now().add(const Duration(days: 1)),
+                    reviewStage: widget.existing?.reviewStage ?? 0,
+                  );
+                  if (widget.existing == null) {
+                    ref
+                        .read(errorNotebookControllerProvider.notifier)
+                        .createNote(note);
+                  } else {
+                    ref
+                        .read(errorNotebookControllerProvider.notifier)
+                        .updateNote(note);
+                  }
+                  Navigator.pop(context);
+                },
+                child:
+                    Text(widget.existing == null ? 'Salvar Erro' : 'Atualizar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 }
 

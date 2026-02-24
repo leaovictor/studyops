@@ -8,6 +8,7 @@ class Subject {
   final String color; // hex string e.g. "#7C6FFF"
   final int priority; // 1–5
   final int weight; // 1–10
+  final int difficulty; // 1-5
 
   const Subject({
     required this.id,
@@ -17,6 +18,7 @@ class Subject {
     required this.color,
     required this.priority,
     required this.weight,
+    required this.difficulty,
   });
 
   Subject copyWith({
@@ -27,6 +29,7 @@ class Subject {
     String? color,
     int? priority,
     int? weight,
+    int? difficulty,
   }) {
     return Subject(
       id: id ?? this.id,
@@ -36,6 +39,7 @@ class Subject {
       color: color ?? this.color,
       priority: priority ?? this.priority,
       weight: weight ?? this.weight,
+      difficulty: difficulty ?? this.difficulty,
     );
   }
 
@@ -46,6 +50,7 @@ class Subject {
         'color': color,
         'priority': priority,
         'weight': weight,
+        'difficulty': difficulty,
       };
 
   factory Subject.fromMap(String id, Map<String, dynamic> map) => Subject(
@@ -56,6 +61,7 @@ class Subject {
         color: map['color'] as String? ?? '#7C6FFF',
         priority: (map['priority'] as num?)?.toInt() ?? 1,
         weight: (map['weight'] as num?)?.toInt() ?? 1,
+        difficulty: (map['difficulty'] as num?)?.toInt() ?? 3,
       );
 
   factory Subject.fromDoc(DocumentSnapshot doc) =>

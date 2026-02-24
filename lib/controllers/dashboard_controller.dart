@@ -27,6 +27,7 @@ class DashboardData {
   final int suggestedMinutes; // Time suggested for the focal subject
   final Map<String, Map<String, int>>
       plannedVsRead; // subjectId → {'planned': x, 'read': y}
+  final Map<String, double> subjectDifficulties; // subjectId → avgDifficulty
 
   const DashboardData({
     required this.todayMinutes,
@@ -39,6 +40,7 @@ class DashboardData {
     this.suggestedSubjectId,
     this.suggestedMinutes = 0,
     this.plannedVsRead = const {},
+    this.subjectDifficulties = const {},
   });
 
   static const empty = DashboardData(
@@ -52,6 +54,7 @@ class DashboardData {
     suggestedSubjectId: null,
     suggestedMinutes: 0,
     plannedVsRead: {},
+    subjectDifficulties: {},
   );
 }
 
@@ -124,6 +127,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   int suggestedMinutes = 0;
 
   final plannedVsRead = <String, Map<String, int>>{};
+  final subjectDifficulties = <String, double>{};
 
   if (subjects.isNotEmpty) {
     // We base the active plan target daily time, default 3h (180 mins)
@@ -161,6 +165,16 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
         suggestedSubjectId = subject.id;
         suggestedMinutes = gap;
       }
+
+      // Calculate avg difficulty for the subject
+      final subTopics = allTopics.where((t) => t.subjectId == subject.id);
+      if (subTopics.isNotEmpty) {
+        subjectDifficulties[subject.id] =
+            subTopics.fold(0, (sum, t) => sum + t.difficulty) /
+                subTopics.length;
+      } else {
+        subjectDifficulties[subject.id] = 3.0;
+      }
     }
 
     // If all subjects are completed for the day, simply suggest the most relevant overall
@@ -182,5 +196,6 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     suggestedSubjectId: suggestedSubjectId,
     suggestedMinutes: suggestedMinutes,
     plannedVsRead: plannedVsRead,
+    subjectDifficulties: subjectDifficulties,
   );
 });

@@ -5,14 +5,11 @@ class ScheduleGeneratorService {
   /// Calculates the relevance score for a single subject based on:
   /// Score = Priority (1-5) * Weight (1-10) * Average Topic Difficulty (1-5)
   double calculateRelevanceScore(Subject subject, List<Topic> subjectTopics) {
-    double avgDifficulty = 3.0; // Default if no topics
-    if (subjectTopics.isNotEmpty) {
-      final totalDiff =
-          subjectTopics.fold(0, (sum, topic) => sum + topic.difficulty);
-      avgDifficulty = totalDiff / subjectTopics.length;
-    }
-
-    return subject.priority * subject.weight * avgDifficulty;
+    // We now have a subject.difficulty that is interactive.
+    // However, if it's the default (e.g. 0 or uninitialized in old data),
+    // we can fallback to the topics average.
+    // But for the new interactive system, let's use the provided field.
+    return subject.priority * subject.weight * subject.difficulty.toDouble();
   }
 
   /// Distributes the daily total time (in minutes) among the given subjects

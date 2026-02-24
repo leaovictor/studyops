@@ -137,6 +137,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         color: s.color,
         priority: s.priority,
         weight: s.priority, // default weight = priority
+        difficulty: 3,
       );
       await subjectController.createSubjectWithId(subject);
       await subjectController.createDefaultTopic(s.id);

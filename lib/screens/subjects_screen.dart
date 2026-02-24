@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
+import 'package:el_tooltip/el_tooltip.dart';
 import '../models/subject_model.dart';
+import '../widgets/relevance_tooltip.dart';
 import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
@@ -260,13 +262,31 @@ class _SubjectCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          subject.name,
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              subject.name,
+                              style: const TextStyle(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElTooltip(
+                              position: ElTooltipPosition.topCenter,
+                              padding: EdgeInsets.zero,
+                              color: Colors.transparent,
+                              content: RelevanceTooltip(
+                                subject: subject,
+                              ),
+                              child: const Icon(
+                                Icons.info_outline_rounded,
+                                size: 16,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
                           'Prioridade ${subject.priority} • Peso ${subject.weight} • ${topics.length} tópico(s)',
@@ -540,6 +560,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
               color: _selectedColor,
               priority: _priority,
               weight: _weight,
+              difficulty: widget.existing?.difficulty ?? 3,
             );
             final controller = ref.read(subjectControllerProvider.notifier);
             if (widget.existing == null) {

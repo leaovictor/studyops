@@ -174,7 +174,8 @@ class QuestionBankScreen extends ConsumerWidget {
                                 name: '',
                                 color: '',
                                 priority: 1,
-                                weight: 1));
+                                weight: 1,
+                                difficulty: 3));
 
                         return AnimationConfiguration.staggeredList(
                           position: i,

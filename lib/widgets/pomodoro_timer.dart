@@ -7,6 +7,9 @@ import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../controllers/pomodoro_settings_controller.dart';
 import 'package:animations/animations.dart';
+import '../services/focus_service.dart';
+
+final focusServiceProvider = Provider<FocusService>((ref) => FocusService());
 
 enum PomodoroPhase { work, shortBreak }
 
@@ -49,11 +52,14 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
   int workMins;
   int breakMins;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FocusService _focusService;
 
   PomodoroNotifier({
+    required FocusService focusService,
     this.workMins = 25,
     this.breakMins = 5,
-  }) : super(PomodoroState.initial(workMins));
+  })  : _focusService = focusService,
+        super(PomodoroState.initial(workMins));
 
   void updateDurations(int work, int breakM) {
     if (workMins == work && breakMins == breakM) return;
@@ -74,16 +80,22 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 
   void toggle() {
     if (state.running) {
-      _timer?.cancel();
-      state = state.copyWith(running: false);
+      _stopTimer();
     } else {
       state = state.copyWith(running: true);
+      _focusService.enableWakeLock();
       _timer = Timer.periodic(const Duration(seconds: 1), _tick);
     }
   }
 
-  void reset() {
+  void _stopTimer() {
     _timer?.cancel();
+    _focusService.disableWakeLock();
+    state = state.copyWith(running: false);
+  }
+
+  void reset() {
+    _stopTimer();
     state = PomodoroState.initial(workMins);
   }
 
@@ -107,6 +119,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           completedSessions: state.completedSessions,
         );
       }
+      _focusService.disableWakeLock();
     } else {
       state = state.copyWith(secondsLeft: state.secondsLeft - 1);
     }
@@ -129,7 +142,8 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 
 final pomodoroProvider = StateNotifierProvider<PomodoroNotifier, PomodoroState>(
   (ref) {
-    final notifier = PomodoroNotifier();
+    final focusService = ref.watch(focusServiceProvider);
+    final notifier = PomodoroNotifier(focusService: focusService);
 
     // Listen to settings changes to update durations without re-creating the notifier
     ref.listen(pomodoroSettingsProvider, (prev, next) {
