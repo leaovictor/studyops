@@ -438,22 +438,23 @@ class _RatingBtn extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 18),
+            Text(
+              interval,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: color,
+                color: color.withOpacity(0.8),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              interval,
-              style: TextStyle(
-                color: color.withOpacity(0.7),
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],

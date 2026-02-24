@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/study_plan_controller.dart';
 import 'controllers/subject_controller.dart';
+import 'controllers/goal_controller.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -62,11 +63,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           return path == '/' ? null : '/';
         }
 
-        final activePlan = planAsync.valueOrNull;
-        final subjects = subjectsAsync.valueOrNull ?? [];
+        final goalsAsync = ref.read(goalsProvider);
+        final goals = goalsAsync.valueOrNull ?? [];
 
         // Only redirect to onboarding when data is confirmed empty
-        if (activePlan == null && subjects.isEmpty && path != '/onboarding') {
+        if (goals.isEmpty && path != '/onboarding') {
           return '/onboarding';
         }
         return '/dashboard';

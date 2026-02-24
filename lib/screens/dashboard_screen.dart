@@ -9,6 +9,7 @@ import '../controllers/flashcard_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import '../models/subject_model.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/app_charts.dart';
 
@@ -92,6 +93,20 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
 
+                // Suggested Study Subject
+                if (activeId != null &&
+                    activePlan != null &&
+                    data.suggestedSubjectId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: _SuggestedSubjectCTA(
+                      subjectId: data.suggestedSubjectId!,
+                      suggestedMinutes: data.suggestedMinutes,
+                      subjects: subjects,
+                      onTap: () => context.go('/subjects'),
+                    ),
+                  ),
+
                 // Main Content (Charts)
                 if (isDesktop || isTablet)
                   Row(
@@ -147,6 +162,36 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                       ),
                     ],
+                  ),
+
+                const SizedBox(height: 24),
+
+                // Planned vs Read Row
+                if (isDesktop || isTablet)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 5,
+                        child: _ChartCard(
+                          title: 'Planejado vs Lido Hoje',
+                          height: 280,
+                          child: PlannedVsReadChart(
+                            data: data.plannedVsRead,
+                            subjectNames: subjectNameMap,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  _ChartCard(
+                    title: 'Planejado vs Lido Hoje',
+                    height: 240,
+                    child: PlannedVsReadChart(
+                      data: data.plannedVsRead,
+                      subjectNames: subjectNameMap,
+                    ),
                   ),
 
                 const SizedBox(height: 32),
@@ -371,6 +416,127 @@ class _NoPlanCTA extends StatelessWidget {
             child: const Text('Configurar'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SuggestedSubjectCTA extends StatelessWidget {
+  final String subjectId;
+  final int suggestedMinutes;
+  final List<Subject> subjects;
+  final VoidCallback onTap;
+
+  const _SuggestedSubjectCTA({
+    required this.subjectId,
+    required this.suggestedMinutes,
+    required this.subjects,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = subjects.firstWhere(
+      (s) => s.id == subjectId,
+      orElse: () => const Subject(
+          id: '',
+          userId: '',
+          name: 'Desconhecida',
+          color: '#7C6FFF',
+          priority: 3,
+          weight: 5),
+    );
+
+    final color =
+        Color(int.parse('FF${subject.color.replaceAll('#', '')}', radix: 16));
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withOpacity(0.15),
+              color.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.psychology_alt_rounded, color: color, size: 36),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'ALOCAÇÃO INTELIGENTE',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Sua prioridade agora é  ',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16,
+                          ),
+                        ),
+                        TextSpan(
+                          text: subject.name,
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
+                    style: TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Icon(Icons.arrow_forward_rounded,
+                color: AppTheme.textMuted.withOpacity(0.5)),
+          ],
+        ),
       ),
     );
   }

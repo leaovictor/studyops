@@ -45,7 +45,7 @@ class PomodoroState {
 
 class PomodoroNotifier extends StateNotifier<PomodoroState> {
   Timer? _timer;
-  final void Function(int minutes)? onSessionComplete;
+  void Function(int minutes)? onSessionComplete;
   int workMins;
   int breakMins;
 

@@ -93,7 +93,16 @@ class SubjectService {
       batch.delete(doc.reference);
     }
 
-    // 6. Delete the subject itself
+    // 6. Delete all FSRS Review Logs
+    final fsrsSnap = await _db
+        .collection('fsrs_review_logs')
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    for (final doc in fsrsSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 7. Delete the subject itself
     batch.delete(_subjects.doc(subjectId));
 
     await batch.commit();

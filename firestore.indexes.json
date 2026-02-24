@@ -47,6 +47,24 @@
             ]
         },
         {
+            "collectionGroup": "study_logs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "date",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "study_plans",
             "queryScope": "COLLECTION",
             "fields": [

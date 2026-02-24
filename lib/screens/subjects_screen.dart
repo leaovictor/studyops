@@ -69,19 +69,19 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                           onDelete: () {
                             showDialog(
                               context: context,
-                              builder: (_) => AlertDialog(
+                              builder: (ctx) => AlertDialog(
                                 title: const Text('Excluir Matéria'),
                                 content: Text(
                                     'Excluir "${subject.name}" e todos os seus tópicos?'),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(context),
+                                    onPressed: () => Navigator.pop(ctx),
                                     child: const Text('Cancelar'),
                                   ),
                                   FilledButton(
                                     onPressed: () {
                                       controller.deleteSubject(subject.id);
-                                      Navigator.pop(context);
+                                      if (ctx.mounted) Navigator.pop(ctx);
                                     },
                                     style: FilledButton.styleFrom(
                                         backgroundColor: AppTheme.error),
@@ -458,29 +458,50 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
               ),
               const SizedBox(height: 16),
               // Priority
-              Text('Prioridade: ${AppConstants.priorityLabels[_priority - 1]}',
-                  style: const TextStyle(
-                      color: AppTheme.textSecondary, fontSize: 13)),
-              Slider(
-                value: _priority.toDouble(),
-                min: 1,
-                max: 5,
-                divisions: 4,
-                activeColor: AppTheme.primary,
-                onChanged: (v) => setState(() => _priority = v.round()),
-              ),
+              StatefulBuilder(builder: (context, setStateSlider) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Prioridade: ${AppConstants.priorityLabels[_priority - 1]}',
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13)),
+                    Slider(
+                      value: _priority.toDouble(),
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                      activeColor: AppTheme.primary,
+                      onChanged: (v) {
+                        setStateSlider(() => _priority = v.round());
+                        setState(() => _priority = v.round());
+                      },
+                    ),
+                  ],
+                );
+              }),
               // Weight
-              Text('Peso na prova: $_weight',
-                  style: const TextStyle(
-                      color: AppTheme.textSecondary, fontSize: 13)),
-              Slider(
-                value: _weight.toDouble(),
-                min: 1,
-                max: 10,
-                divisions: 9,
-                activeColor: AppTheme.secondary,
-                onChanged: (v) => setState(() => _weight = v.round()),
-              ),
+              StatefulBuilder(builder: (context, setStateSlider) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Peso na prova: $_weight',
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13)),
+                    Slider(
+                      value: _weight.toDouble(),
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      activeColor: AppTheme.secondary,
+                      onChanged: (v) {
+                        setStateSlider(() => _weight = v.round());
+                        setState(() => _weight = v.round());
+                      },
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
         ),

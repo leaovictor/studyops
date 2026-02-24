@@ -279,3 +279,169 @@ class EvolutionLineChart extends StatelessWidget {
     );
   }
 }
+
+// ── Planned Vs Read Bar Chart ─────────────────────────────
+
+class PlannedVsReadChart extends StatelessWidget {
+  /// subjectId → {'planned': x, 'read': y}
+  final Map<String, Map<String, int>> data;
+  final Map<String, String> subjectNames;
+
+  const PlannedVsReadChart({
+    super.key,
+    required this.data,
+    required this.subjectNames,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.isEmpty) {
+      return const Center(
+        child: Text('Sem dados diários',
+            style: TextStyle(color: AppTheme.textMuted)),
+      );
+    }
+
+    final entries = data.entries
+        .where(
+            (e) => (e.value['planned'] ?? 0) > 0 || (e.value['read'] ?? 0) > 0)
+        .toList();
+
+    if (entries.isEmpty) {
+      return const Center(
+        child: Text('Sem planejamento hoje',
+            style: TextStyle(color: AppTheme.textMuted)),
+      );
+    }
+
+    // Find the max Y
+    double maxY = 60.0;
+    for (final e in entries) {
+      final plannedY = (e.value['planned'] ?? 0).toDouble();
+      final readY = (e.value['read'] ?? 0).toDouble();
+      if (plannedY > maxY) maxY = plannedY;
+      if (readY > maxY) maxY = readY;
+    }
+    maxY += 30.0; // Margin top
+
+    final barGroups = List.generate(entries.length, (i) {
+      final entry = entries[i];
+      final p = (entry.value['planned'] ?? 0).toDouble();
+      final r = (entry.value['read'] ?? 0).toDouble();
+
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: p,
+            color: AppTheme.border, // Planned - mute
+            width: 12,
+            borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+          ),
+          BarChartRodData(
+            toY: r,
+            color: p > r
+                ? AppTheme.accent
+                : const Color(0xFF10B981), // Read - active
+            width: 12,
+            borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+          ),
+        ],
+        barsSpace: 4,
+      );
+    });
+
+    return Column(
+      children: [
+        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          const _LegendItem(color: AppTheme.border, label: 'Planejado'),
+          const SizedBox(width: 16),
+          const _LegendItem(color: AppTheme.accent, label: 'Lido Hoje'),
+        ]),
+        const SizedBox(height: 16),
+        Expanded(
+          child: BarChart(
+            BarChartData(
+              maxY: maxY,
+              barGroups: barGroups,
+              backgroundColor: Colors.transparent,
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (_) =>
+                    const FlLine(color: AppTheme.border, strokeWidth: 1),
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(),
+                rightTitles: const AxisTitles(),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 42,
+                    getTitlesWidget: (v, _) => Text(
+                      '${(v / 60).toStringAsFixed(1)}h',
+                      style: const TextStyle(
+                          color: AppTheme.textMuted, fontSize: 10),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, _) {
+                      final i = value.toInt();
+                      if (i < 0 || i >= entries.length)
+                        return const SizedBox.shrink();
+
+                      final subjectName = subjectNames[entries[i].key] ?? '?';
+                      final displayStr = subjectName.length > 8
+                          ? '${subjectName.substring(0, 8)}…'
+                          : subjectName;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          displayStr,
+                          style: const TextStyle(
+                              color: AppTheme.textMuted, fontSize: 10),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 6),
+        Text(label,
+            style:
+                const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+      ],
+    );
+  }
+}

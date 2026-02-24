@@ -9,12 +9,18 @@ class DailyTaskService {
   CollectionReference get _tasks => _db.collection(AppConstants.colDailyTasks);
   CollectionReference get _logs => _db.collection(AppConstants.colStudyLogs);
 
-  Stream<List<DailyTask>> watchTasksForDate(String userId, String dateKey) {
-    return _tasks
+  Stream<List<DailyTask>> watchTasksForDate(String userId, String dateKey,
+      {String? goalId}) {
+    Query query = _tasks
         .where('userId', isEqualTo: userId)
-        .where('date', isEqualTo: dateKey)
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => DailyTask.fromDoc(d)).toList()
+        .where('date', isEqualTo: dateKey);
+
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+
+    return query.snapshots().map((snap) =>
+        snap.docs.map((d) => DailyTask.fromDoc(d)).toList()
           ..sort((a, b) => a.subjectId.compareTo(b.subjectId)));
   }
 

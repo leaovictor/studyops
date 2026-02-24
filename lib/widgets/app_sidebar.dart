@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
 import 'goal_switcher.dart';
+import 'pomodoro_global_listener.dart';
 
 class AppSidebar extends StatelessWidget {
   final Widget child;
@@ -38,37 +39,43 @@ class AppSidebar extends StatelessWidget {
     final isTablet = width >= 600 && width < 900;
 
     if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            const _ExpandedSidebar(destinations: _destinations),
-            Expanded(child: child),
-          ],
+      return PomodoroGlobalListener(
+        child: Scaffold(
+          body: Row(
+            children: [
+              const _ExpandedSidebar(destinations: _destinations),
+              Expanded(child: child),
+            ],
+          ),
         ),
       );
     }
 
     if (isTablet) {
-      return Scaffold(
-        body: Row(
-          children: [
-            const _CompactRail(destinations: _destinations),
-            const VerticalDivider(width: 1),
-            Expanded(child: child),
-          ],
+      return PomodoroGlobalListener(
+        child: Scaffold(
+          body: Row(
+            children: [
+              const _CompactRail(destinations: _destinations),
+              const VerticalDivider(width: 1),
+              Expanded(child: child),
+            ],
+          ),
         ),
       );
     }
 
     // Mobile: drawer + app bar
-    return Scaffold(
-      appBar: AppBar(
-        title: const _Logo(),
-        // Removed explicit IconButton from actions since 'drawer' automatically
-        // adds a hamburger menu as the leading widget.
+    return PomodoroGlobalListener(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const _Logo(),
+          // Removed explicit IconButton from actions since 'drawer' automatically
+          // adds a hamburger menu as the leading widget.
+        ),
+        drawer: const _MobileDrawer(destinations: _destinations),
+        body: child,
       ),
-      drawer: const _MobileDrawer(destinations: _destinations),
-      body: child,
     );
   }
 }

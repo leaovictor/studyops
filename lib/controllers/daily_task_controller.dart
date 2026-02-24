@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/daily_task_model.dart';
 import '../services/daily_task_service.dart';
 import 'auth_controller.dart';
+import 'goal_controller.dart';
 import '../core/utils/app_date_utils.dart';
 
 final dailyTaskServiceProvider =
@@ -14,10 +15,13 @@ final dailyTasksProvider = StreamProvider<List<DailyTask>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   final date = ref.watch(selectedDateProvider);
   if (user == null) return Stream.value([]);
+
+  final goalId = ref.watch(activeGoalIdProvider);
   final dateKey = AppDateUtils.toKey(date);
+
   return ref
       .watch(dailyTaskServiceProvider)
-      .watchTasksForDate(user.uid, dateKey);
+      .watchTasksForDate(user.uid, dateKey, goalId: goalId);
 });
 
 class DailyTaskController extends AsyncNotifier<void> {
