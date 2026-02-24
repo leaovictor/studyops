@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/app_theme.dart';
 import '../controllers/question_controller.dart';
 import '../controllers/subject_controller.dart';
+import 'question_practice_screen.dart';
 
 class QuestionFilterScreen extends ConsumerStatefulWidget {
   const QuestionFilterScreen({super.key});
@@ -212,10 +213,42 @@ class _QuestionFilterScreenState extends ConsumerState<QuestionFilterScreen> {
     );
   }
 
-  void _startTraining(BuildContext context) {
-    // Navigate back or to questions list with current filters
-    Navigator.pop(context);
-    // The questionsProvider will automatically react to the filter update
+  void _startTraining(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Fetch questions using the current filter state
+      final questions = await ref.read(questionsProvider.future);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      if (questions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Nenhuma questão encontrada para este filtro.')),
+        );
+        return;
+      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => QuestionPracticeScreen(questions: questions),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar questões: $e')),
+      );
+    }
   }
 }
 
