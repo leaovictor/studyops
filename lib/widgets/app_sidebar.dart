@@ -24,6 +24,10 @@ class AppSidebar extends StatelessWidget {
     _Dest(icon: Icons.book_rounded, label: 'Caderno', path: '/errors'),
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
     _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
+    _Dest(
+        icon: Icons.help_outline_rounded,
+        label: 'Guia do App',
+        path: '/manual'),
     _Dest(icon: Icons.settings_rounded, label: 'Config', path: '/settings'),
   ];
 
@@ -37,7 +41,7 @@ class AppSidebar extends StatelessWidget {
       return Scaffold(
         body: Row(
           children: [
-            _ExpandedSidebar(destinations: _destinations),
+            const _ExpandedSidebar(destinations: _destinations),
             Expanded(child: child),
           ],
         ),
@@ -48,7 +52,7 @@ class AppSidebar extends StatelessWidget {
       return Scaffold(
         body: Row(
           children: [
-            _CompactRail(destinations: _destinations),
+            const _CompactRail(destinations: _destinations),
             const VerticalDivider(width: 1),
             Expanded(child: child),
           ],
@@ -63,7 +67,7 @@ class AppSidebar extends StatelessWidget {
         // Removed explicit IconButton from actions since 'drawer' automatically
         // adds a hamburger menu as the leading widget.
       ),
-      drawer: _MobileDrawer(destinations: _destinations),
+      drawer: const _MobileDrawer(destinations: _destinations),
       body: child,
     );
   }

@@ -55,5 +55,10 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
+
+    // Pomodoro Settings: user owns docs, docId is userId
+    match /pomodoro_settings/{docId} {
+      allow read, write: if request.auth != null && docId == request.auth.uid;
+    }
   }
 }

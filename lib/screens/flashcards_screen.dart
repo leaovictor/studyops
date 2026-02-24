@@ -117,7 +117,7 @@ class _ReviewTab extends ConsumerWidget {
         }
 
         if (bySubject.isEmpty) {
-          return _EmptyState(
+          return const _EmptyState(
             icon: Icons.check_circle_outline_rounded,
             title: 'Tudo em dia!',
             subtitle: 'Nenhum card para revisar hoje.',
@@ -359,7 +359,7 @@ class _AllCardsTab extends ConsumerWidget {
               ),
 
             if (filtered.isEmpty)
-              Expanded(
+              const Expanded(
                 child: _EmptyState(
                   icon: Icons.style_outlined,
                   title: 'Nenhum flashcard',
@@ -376,7 +376,7 @@ class _AllCardsTab extends ConsumerWidget {
                     final c = filtered[i];
                     final subject = subjects.firstWhere(
                       (s) => s.id == c.subjectId,
-                      orElse: () => Subject(
+                      orElse: () => const Subject(
                           id: '',
                           userId: '',
                           name: 'Matéria',
@@ -621,7 +621,7 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedSubjectId,
+            initialValue: _selectedSubjectId,
             hint: const Text('Matéria',
                 style: TextStyle(color: AppTheme.textMuted)),
             dropdownColor: AppTheme.bg2,
@@ -643,7 +643,7 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
           if (topics.isNotEmpty) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedTopicId,
+              initialValue: _selectedTopicId,
               hint: const Text('Tópico (opcional)',
                   style: TextStyle(color: AppTheme.textMuted)),
               dropdownColor: AppTheme.bg2,

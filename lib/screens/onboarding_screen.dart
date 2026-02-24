@@ -84,7 +84,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
-    if (_currentPage < 3) {
+    if (_currentPage < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -186,6 +186,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       controller: _pageController,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
+                        _Step0Welcome(onNext: _nextPage),
                         _Step1Objective(data: _data, onNext: _nextPage),
                         _Step2Hours(
                             data: _data, onNext: _nextPage, setState: setState),
@@ -285,6 +286,50 @@ class _OnboardingHeader extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Step 0 — Boas-vindas
+// ---------------------------------------------------------------------------
+class _Step0Welcome extends StatelessWidget {
+  final VoidCallback onNext;
+  const _Step0Welcome({required this.onNext});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.auto_awesome_rounded,
+              color: AppTheme.primary, size: 64),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Olá, futuro aprovado! 👋',
+          style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w800),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'O StudyOps é o seu novo quartel-general de estudos. Vamos configurar seu primeiro objetivo em menos de 2 minutos?',
+          style: TextStyle(
+              color: AppTheme.textSecondary, fontSize: 16, height: 1.5),
+          textAlign: TextAlign.center,
+        ),
+        const Spacer(),
+        _ContinueButton(onPressed: onNext, label: 'Começar Jornada! 🚀'),
       ],
     );
   }
@@ -400,6 +445,12 @@ class _Step1ObjectiveState extends State<_Step1Objective> {
           '${widget.data.deadline.difference(DateTime.now()).inDays} dias até o prazo',
           style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
         ),
+        const SizedBox(height: 24),
+        const _GamifiedTip(
+          text:
+              'Dica de Ouro: Ter um objetivo claro e um prazo definido aumenta sua chance de sucesso em até 40%!',
+          icon: Icons.tips_and_updates_rounded,
+        ),
         const Spacer(),
         _ContinueButton(
           onPressed:
@@ -484,6 +535,12 @@ class _Step2Hours extends StatelessWidget {
         _RecommendationChips(
           hours: data.dailyHours,
           onTap: (v) => setState(() => data.dailyHours = v),
+        ),
+        const SizedBox(height: 24),
+        const _GamifiedTip(
+          text:
+              'Menos é Mais: É melhor estudar 1h todo dia com foco total do que 6h uma vez por semana e desistir.',
+          icon: Icons.timer_outlined,
         ),
         const Spacer(),
         _ContinueButton(onPressed: onNext, label: 'Continuar'),
@@ -592,7 +649,13 @@ class _Step3Subjects extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
+        const _GamifiedTip(
+          text:
+              'Poder do Foco: Distribuímos o seu tempo baseando-se no peso de cada matéria. Quanto mais importante, mais você verá ela!',
+          icon: Icons.psychology_rounded,
+        ),
+        const SizedBox(height: 20),
         _ContinueButton(
           onPressed: validCount > 0 ? onNext : null,
           label: 'Gerar meu plano →',
@@ -876,6 +939,44 @@ class _Step4GeneratingState extends State<_Step4Generating>
                       ),
                     ],
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// --------------------------------------------------------------------------
+class _GamifiedTip extends StatelessWidget {
+  final String text;
+  final IconData icon;
+  const _GamifiedTip({required this.text, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.accent.withOpacity(0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.accent, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ),

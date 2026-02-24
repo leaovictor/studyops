@@ -1,5 +1,6 @@
 import 'dart:math' show pi;
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
 import '../controllers/flashcard_controller.dart';
@@ -25,13 +26,22 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
   int _correct = 0;
   int _incorrect = 0;
   bool _sessionDone = false;
+  late ConfettiController _confettiController;
 
   List<Flashcard> _cards = [];
 
   @override
   void initState() {
     super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 3));
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadCards());
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   void _loadCards() {
@@ -62,6 +72,7 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
 
     if (_currentIndex + 1 >= _cards.length) {
       setState(() => _sessionDone = true);
+      _confettiController.play();
     } else {
       setState(() {
         _currentIndex++;
@@ -86,15 +97,34 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
             ? null
             : _ProgressBar(current: _currentIndex + 1, total: _cards.length),
       ),
-      body: _sessionDone || _cards.isEmpty
-          ? _DonePanel(correct: _correct, incorrect: _incorrect)
-          : _StudyPanel(
-              card: _cards[_currentIndex],
-              flipped: _flipped,
-              rated: _rated,
-              onFlip: () => setState(() => _flipped = true),
-              onRate: _rate,
+      body: Stack(
+        children: [
+          _sessionDone || _cards.isEmpty
+              ? _DonePanel(correct: _correct, incorrect: _incorrect)
+              : _StudyPanel(
+                  card: _cards[_currentIndex],
+                  flipped: _flipped,
+                  rated: _rated,
+                  onFlip: () => setState(() => _flipped = true),
+                  onRate: _rate,
+                ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                AppTheme.primary,
+                AppTheme.accent,
+                Colors.orange,
+                Colors.pink,
+                Colors.green,
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

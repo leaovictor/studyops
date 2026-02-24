@@ -338,11 +338,11 @@ class _NoPlanCTA extends StatelessWidget {
                 color: AppTheme.accent, size: 24),
           ),
           const SizedBox(width: 20),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Plano de Estudo não configurado',
                   style: TextStyle(
                     color: AppTheme.textPrimary,

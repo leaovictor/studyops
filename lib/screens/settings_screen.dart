@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
+import '../controllers/pomodoro_settings_controller.dart';
 import '../models/study_plan_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
@@ -246,32 +247,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               // Pomodoro section
               const _SectionHeader(title: 'Pomodoro'),
-              const _SettingsCard(
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          Icon(Icons.timer_rounded, color: AppTheme.primary),
-                      title: Text('Duração do foco',
-                          style: TextStyle(color: AppTheme.textPrimary)),
-                      trailing: Text('25 min',
-                          style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13)),
+              Consumer(builder: (context, ref, _) {
+                final settingsAsync = ref.watch(pomodoroSettingsProvider);
+                final settings = settingsAsync.valueOrNull;
+
+                if (settingsAsync.hasError) {
+                  return _SettingsCard(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Erro ao carregar configurações',
+                          style: const TextStyle(color: AppTheme.error),
+                        ),
+                      ),
                     ),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          Icon(Icons.coffee_rounded, color: AppTheme.accent),
-                      title: Text('Pausa curta',
-                          style: TextStyle(color: AppTheme.textPrimary)),
-                      trailing: Text('5 min',
-                          style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13)),
+                  );
+                }
+
+                if (settings == null) {
+                  return const _SettingsCard(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
-                  ],
-                ),
-              ),
+                  );
+                }
+
+                return _SettingsCard(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.timer_rounded,
+                            color: AppTheme.primary),
+                        title: const Text('Duração do foco',
+                            style: TextStyle(color: AppTheme.textPrimary)),
+                        subtitle: Text('${settings.workMinutes} min',
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary, fontSize: 13)),
+                        trailing: SizedBox(
+                          width: 150,
+                          child: Slider(
+                            value: settings.workMinutes.toDouble(),
+                            min: 5,
+                            max: 90,
+                            divisions: 17,
+                            activeColor: AppTheme.primary,
+                            onChanged: (v) => ref
+                                .read(pomodoroSettingsProvider.notifier)
+                                .updateSettings(
+                                    v.toInt(), settings.breakMinutes),
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.coffee_rounded,
+                            color: AppTheme.accent),
+                        title: const Text('Pausa curta',
+                            style: TextStyle(color: AppTheme.textPrimary)),
+                        subtitle: Text('${settings.breakMinutes} min',
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary, fontSize: 13)),
+                        trailing: SizedBox(
+                          width: 150,
+                          child: Slider(
+                            value: settings.breakMinutes.toDouble(),
+                            min: 1,
+                            max: 30,
+                            divisions: 29,
+                            activeColor: AppTheme.accent,
+                            onChanged: (v) => ref
+                                .read(pomodoroSettingsProvider.notifier)
+                                .updateSettings(
+                                    settings.workMinutes, v.toInt()),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
@@ -22,6 +23,21 @@ class DailyChecklistScreen extends ConsumerStatefulWidget {
 
 class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   String? _pomodoroTaskId;
+  late ConfettiController _confettiController;
+  bool _wasDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 3));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +51,16 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     final total = tasks.length;
     final progress = total > 0 ? done / total : 0.0;
 
+    // Trigger confetti when hitting 100%
+    if (progress == 1.0 && total > 0 && !_wasDone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _confettiController.play();
+      });
+      _wasDone = true;
+    } else if (progress < 1.0) {
+      _wasDone = false;
+    }
+
     final subjectMap = {for (final s in subjects) s.id: s};
     final topicMap = {for (final t in allTopics) t.id: t};
 
@@ -45,137 +71,158 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Tarefa'),
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with date picker
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Checklist Diário',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Date picker
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2030),
-                            builder: (ctx, child) => Theme(
-                              data: Theme.of(ctx),
-                              child: child!,
-                            ),
-                          );
-                          if (picked != null) {
-                            ref.read(selectedDateProvider.notifier).state =
-                                picked;
-                          }
-                        },
-                        icon:
-                            const Icon(Icons.calendar_today_rounded, size: 16),
-                        label: Text(AppDateUtils.displayDate(selectedDate)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Progress bar
-                  Column(
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Header with date picker
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            '$done/$total tarefas concluídas',
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 13,
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Checklist Diário',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          Text(
-                            '${(progress * 100).round()}%',
-                            style: const TextStyle(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                          // Date picker
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime(2030),
+                                builder: (ctx, child) => Theme(
+                                  data: Theme.of(ctx),
+                                  child: child!,
+                                ),
+                              );
+                              if (picked != null) {
+                                ref.read(selectedDateProvider.notifier).state =
+                                    picked;
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today_rounded,
+                                size: 16),
+                            label: Text(AppDateUtils.displayDate(selectedDate)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Progress bar
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '$done/$total tarefas concluídas',
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${(progress * 100).round()}%',
+                                style: const TextStyle(
+                                  color: AppTheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: progress),
+                              duration: const Duration(milliseconds: 600),
+                              builder: (_, value, __) =>
+                                  LinearProgressIndicator(
+                                value: value,
+                                minHeight: 6,
+                                backgroundColor: AppTheme.border,
+                                valueColor: const AlwaysStoppedAnimation(
+                                    AppTheme.primary),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: progress),
-                          duration: const Duration(milliseconds: 600),
-                          builder: (_, value, __) => LinearProgressIndicator(
-                            value: value,
-                            minHeight: 6,
-                            backgroundColor: AppTheme.border,
-                            valueColor:
-                                const AlwaysStoppedAnimation(AppTheme.primary),
-                          ),
+
+                      const SizedBox(height: 24),
+
+                      if (tasks.isEmpty)
+                        _EmptyChecklistState()
+                      else
+                        Column(
+                          children: tasks.map((task) {
+                            final subject = subjectMap[task.subjectId];
+                            final topic = topicMap[task.topicId];
+                            final showPomodoro = _pomodoroTaskId == task.id;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _TaskCard(
+                                task: task,
+                                subject: subject,
+                                topicName: topic?.name ?? 'Tópico',
+                                showPomodoro: showPomodoro,
+                                onTogglePomodoro: () {
+                                  setState(() {
+                                    _pomodoroTaskId =
+                                        showPomodoro ? null : task.id;
+                                  });
+                                },
+                                onToggleDone: (minutes) {
+                                  if (task.done) {
+                                    controller.markUndone(task.id);
+                                  } else {
+                                    controller.markDone(task, minutes);
+                                  }
+                                },
+                                onDelete: () => controller.deleteTask(task.id),
+                              ),
+                            );
+                          }).toList(),
                         ),
-                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  if (tasks.isEmpty)
-                    _EmptyChecklistState()
-                  else
-                    Column(
-                      children: tasks.map((task) {
-                        final subject = subjectMap[task.subjectId];
-                        final topic = topicMap[task.topicId];
-                        final showPomodoro = _pomodoroTaskId == task.id;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _TaskCard(
-                            task: task,
-                            subject: subject,
-                            topicName: topic?.name ?? 'Tópico',
-                            showPomodoro: showPomodoro,
-                            onTogglePomodoro: () {
-                              setState(() {
-                                _pomodoroTaskId = showPomodoro ? null : task.id;
-                              });
-                            },
-                            onToggleDone: (minutes) {
-                              if (task.done) {
-                                controller.markUndone(task.id);
-                              } else {
-                                controller.markDone(task, minutes);
-                              }
-                            },
-                            onDelete: () => controller.deleteTask(task.id),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                ],
+                ),
               ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                AppTheme.primary,
+                AppTheme.accent,
+                Colors.orange,
+                Colors.pink,
+                Colors.green,
+              ],
             ),
           ),
         ],
