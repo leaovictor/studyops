@@ -14,6 +14,8 @@ import 'screens/performance_screen.dart';
 import 'screens/error_notebook_screen.dart';
 import 'screens/subjects_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/flashcards_screen.dart';
+import 'screens/flashcard_study_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -28,31 +30,41 @@ class _ShellPage extends ConsumerWidget {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Track both the auth value AND the loading state
-  final notifier = ValueNotifier<(bool, bool)>((true, false));
+  // Track auth + loading state of data providers to avoid race conditions
+  final notifier = ValueNotifier<Object>(0);
 
-  ref.listen(authStateProvider, (_, next) {
-    notifier.value = (next.isLoading, next.valueOrNull != null);
-  });
+  ref.listen(authStateProvider, (_, __) => notifier.value = Object());
+  ref.listen(subjectsProvider, (_, __) => notifier.value = Object());
+  ref.listen(activePlanProvider, (_, __) => notifier.value = Object());
 
   return GoRouter(
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final (isLoading, loggedIn) = notifier.value;
+      final authAsync = ref.read(authStateProvider);
       final path = state.uri.path;
 
       // While auth is still resolving, stay on splash
-      if (isLoading) return path == '/' ? null : '/';
+      if (authAsync.isLoading) return path == '/' ? null : '/';
 
+      final loggedIn = authAsync.valueOrNull != null;
       final isPublicRoute = path == '/login' || path == '/';
 
       if (!loggedIn && !isPublicRoute) return '/login';
 
       if (loggedIn && isPublicRoute) {
-        // Check if user needs onboarding (no active plan and no subjects)
-        final activePlan = ref.read(activePlanProvider).valueOrNull;
-        final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+        final planAsync = ref.read(activePlanProvider);
+        final subjectsAsync = ref.read(subjectsProvider);
+
+        // Wait for data providers to finish loading before deciding
+        if (planAsync.isLoading || subjectsAsync.isLoading) {
+          return path == '/' ? null : '/';
+        }
+
+        final activePlan = planAsync.valueOrNull;
+        final subjects = subjectsAsync.valueOrNull ?? [];
+
+        // Only redirect to onboarding when data is confirmed empty
         if (activePlan == null && subjects.isEmpty && path != '/onboarding') {
           return '/onboarding';
         }
@@ -91,6 +103,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/errors', builder: (_, __) => const ErrorNotebookScreen()),
           GoRoute(
               path: '/subjects', builder: (_, __) => const SubjectsScreen()),
+          GoRoute(
+              path: '/flashcards',
+              builder: (_, __) => const FlashcardsScreen()),
+          GoRoute(
+              path: '/flashcards/study',
+              builder: (_, state) {
+                final subjectId = state.uri.queryParameters['subjectId'];
+                return FlashcardStudyScreen(subjectId: subjectId);
+              }),
           GoRoute(
               path: '/settings', builder: (_, __) => const SettingsScreen()),
         ],

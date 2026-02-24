@@ -22,19 +22,32 @@ class AppSidebar extends StatelessWidget {
         path: '/performance'),
     _Dest(icon: Icons.book_rounded, label: 'Caderno', path: '/errors'),
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
+    _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
     _Dest(icon: Icons.settings_rounded, label: 'Config', path: '/settings'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 800;
+    final isDesktop = width >= 900;
+    final isTablet = width >= 600 && width < 900;
 
     if (isDesktop) {
       return Scaffold(
         body: Row(
           children: [
-            const _DesktopRail(destinations: _destinations),
+            _ExpandedSidebar(destinations: _destinations),
+            Expanded(child: child),
+          ],
+        ),
+      );
+    }
+
+    if (isTablet) {
+      return Scaffold(
+        body: Row(
+          children: [
+            _CompactRail(destinations: _destinations),
             const VerticalDivider(width: 1),
             Expanded(child: child),
           ],
@@ -42,52 +55,195 @@ class AppSidebar extends StatelessWidget {
       );
     }
 
+    // Mobile: drawer + app bar
     return Scaffold(
       appBar: AppBar(
-        title: const Text('StudyOps'),
-        actions: [
-          Builder(
-            builder: (ctx) => IconButton(
-              icon: const Icon(Icons.menu_rounded),
-              onPressed: () => Scaffold.of(ctx).openDrawer(),
-            ),
-          ),
-        ],
+        title: const _Logo(),
+        // Removed explicit IconButton from actions since 'drawer' automatically
+        // adds a hamburger menu as the leading widget.
       ),
-      drawer: const _MobileDrawer(destinations: _destinations),
+      drawer: _MobileDrawer(destinations: _destinations),
       body: child,
     );
   }
 }
 
-class _DesktopRail extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Desktop: full expanded sidebar (240px)
+// ---------------------------------------------------------------------------
+class _ExpandedSidebar extends StatelessWidget {
   final List<_Dest> destinations;
-  const _DesktopRail({required this.destinations});
+  const _ExpandedSidebar({required this.destinations});
 
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    final selectedIndex =
-        destinations.indexWhere((d) => location.startsWith(d.path));
 
-    return NavigationRail(
-      extended: false,
-      destinations: destinations
-          .map((d) => NavigationRailDestination(
-                icon: Icon(d.icon),
-                label: Text(d.label),
-              ))
-          .toList(),
-      selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-      onDestinationSelected: (i) => context.go(destinations[i].path),
-      leading: const Padding(
-        padding: EdgeInsets.only(top: 16, bottom: 24),
-        child: _Logo(),
+    return Container(
+      width: 240,
+      color: AppTheme.bg1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Logo area
+          const SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: _Logo(),
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.border),
+          const SizedBox(height: 12),
+          // Nav items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: destinations.map((d) {
+                final selected = location.startsWith(d.path);
+                return _SidebarItem(
+                  dest: d,
+                  selected: selected,
+                  onTap: () => context.go(d.path),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 }
 
+class _SidebarItem extends StatelessWidget {
+  final _Dest dest;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.dest,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primary.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            // Left accent bar
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 3,
+              height: 18,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: selected ? AppTheme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            Icon(
+              dest.icon,
+              size: 20,
+              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              dest.label,
+              style: TextStyle(
+                color: selected ? AppTheme.primary : AppTheme.textSecondary,
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tablet: compact icon-only rail (72px)
+// ---------------------------------------------------------------------------
+class _CompactRail extends StatelessWidget {
+  final List<_Dest> destinations;
+  const _CompactRail({required this.destinations});
+
+  @override
+  Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+
+    return Container(
+      width: 72,
+      color: AppTheme.bg1,
+      child: Column(
+        children: [
+          const SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child:
+                  Icon(Icons.school_rounded, color: AppTheme.primary, size: 28),
+            ),
+          ),
+          const Divider(height: 1, color: AppTheme.border),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              children: destinations.map((d) {
+                final selected = location.startsWith(d.path);
+                return Tooltip(
+                  message: d.label,
+                  preferBelow: false,
+                  child: GestureDetector(
+                    onTap: () => context.go(d.path),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 3),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppTheme.primary.withValues(alpha: 0.15)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        d.icon,
+                        size: 22,
+                        color: selected
+                            ? AppTheme.primary
+                            : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mobile: drawer
+// ---------------------------------------------------------------------------
 class _MobileDrawer extends StatelessWidget {
   final List<_Dest> destinations;
   const _MobileDrawer({required this.destinations});
@@ -104,28 +260,22 @@ class _MobileDrawer extends StatelessWidget {
               child: _Logo(),
             ),
             const Divider(),
-            ...destinations.map((d) {
-              final selected = location.startsWith(d.path);
-              return ListTile(
-                leading: Icon(d.icon,
-                    color:
-                        selected ? AppTheme.primary : AppTheme.textSecondary),
-                title: Text(d.label,
-                    style: TextStyle(
-                      color:
-                          selected ? AppTheme.primary : AppTheme.textSecondary,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.normal,
-                    )),
-                tileColor: selected ? AppTheme.primary.withOpacity(0.1) : null,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go(d.path);
-                },
-              );
-            }),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: destinations.map((d) {
+                  final selected = location.startsWith(d.path);
+                  return _SidebarItem(
+                    dest: d,
+                    selected: selected,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.go(d.path);
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -133,36 +283,48 @@ class _MobileDrawer extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Logo
+// ---------------------------------------------------------------------------
 class _Logo extends StatelessWidget {
   const _Logo();
 
   @override
   Widget build(BuildContext context) {
-    return RichText(
-      text: const TextSpan(
-        children: [
-          TextSpan(
-            text: 'Study',
-            style: TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppTheme.primary, AppTheme.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(8),
           ),
-          TextSpan(
-            text: 'Ops',
-            style: TextStyle(
-              color: AppTheme.primary,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
+          child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          'StudyOps',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Data class
+// ---------------------------------------------------------------------------
 class _Dest {
   final IconData icon;
   final String label;

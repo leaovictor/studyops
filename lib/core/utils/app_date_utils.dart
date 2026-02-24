@@ -57,6 +57,32 @@ class AppDateUtils {
 
   static String displayDate(DateTime date) => _displayDate.format(date);
   static String displayTime(DateTime date) => _displayTime.format(date);
+
+  /// Returns a concise relative label for FSRS intervals (e.g., "10m", "1d", "4d")
+  static String formatFsrsInterval(DateTime due) {
+    final now = DateTime.now();
+    final diff = due.difference(now);
+
+    if (diff.isNegative) return 'Agora';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 30) return '${diff.inDays}d';
+    if (diff.inDays < 365) return '${(diff.inDays / 30).floor()}mo';
+    return '${(diff.inDays / 365).floor()}y';
+  }
+
+  /// Returns "Hoje", "Amanhã" or the date for due label
+  static String formatRelativeDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final d = DateTime(date.year, date.month, date.day);
+
+    if (d == today) return 'Hoje';
+    if (d == tomorrow) return 'Amanhã';
+    return _displayDate.format(date);
+  }
+
   static String monthLabel(DateTime date) => _month.format(date);
   static String weekdayLabel(DateTime date) => _weekday.format(date);
   static String shortWeekdayLabel(DateTime date) => _shortWeekday.format(date);

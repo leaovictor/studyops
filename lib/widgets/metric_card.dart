@@ -27,7 +27,7 @@ class MetricCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16), // Reduced from 20
         decoration: BoxDecoration(
           color: AppTheme.bg2,
           borderRadius: BorderRadius.circular(12),
@@ -40,28 +40,34 @@ class MetricCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6), // Reduced from 8
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 20),
+                  child: Icon(icon, color: color, size: 18), // Reduced from 20
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: -0.5,
+            const SizedBox(height: 12), // Reduced from 16
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24, // Reduced from 28
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2), // Reduced from 4
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 13,

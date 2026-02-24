@@ -170,7 +170,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         _Step2Hours(
                             data: _data, onNext: _nextPage, setState: setState),
                         _Step3Subjects(
-                            data: _data, onNext: _nextPage, setState: setState),
+                            data: _data,
+                            onNext: _nextPage,
+                            onSkip: _nextPage,
+                            setState: setState),
                         _Step4Generating(onFinish: _finish),
                       ],
                     ),
@@ -502,11 +505,13 @@ class _RecommendationChips extends StatelessWidget {
 class _Step3Subjects extends StatelessWidget {
   final _OnboardingData data;
   final VoidCallback onNext;
+  final VoidCallback onSkip;
   final void Function(void Function()) setState;
 
   const _Step3Subjects({
     required this.data,
     required this.onNext,
+    required this.onSkip,
     required this.setState,
   });
 
@@ -572,6 +577,16 @@ class _Step3Subjects extends StatelessWidget {
           onPressed: validCount > 0 ? onNext : null,
           label: 'Gerar meu plano →',
           icon: Icons.auto_awesome_rounded,
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: onSkip,
+            child: const Text(
+              'Pular esta etapa',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            ),
+          ),
         ),
       ],
     );
@@ -795,10 +810,10 @@ class _Step4GeneratingState extends State<_Step4Generating>
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 400),
             child: _done
-                ? Column(
-                    key: const ValueKey('done_text'),
+                ? const Column(
+                    key: ValueKey('done_text'),
                     children: [
-                      const Text(
+                      Text(
                         'Plano gerado! 🎉',
                         style: TextStyle(
                           color: AppTheme.textPrimary,
@@ -807,8 +822,8 @@ class _Step4GeneratingState extends State<_Step4Generating>
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12),
+                      Text(
                         'Seu cronograma personalizado está pronto.\nBoa sorte nos estudos!',
                         style: TextStyle(
                             color: AppTheme.textSecondary,
@@ -818,10 +833,10 @@ class _Step4GeneratingState extends State<_Step4Generating>
                       ),
                     ],
                   )
-                : Column(
-                    key: const ValueKey('loading_text'),
+                : const Column(
+                    key: ValueKey('loading_text'),
                     children: [
-                      const Text(
+                      Text(
                         'Gerando seu plano...',
                         style: TextStyle(
                           color: AppTheme.textPrimary,
@@ -830,8 +845,8 @@ class _Step4GeneratingState extends State<_Step4Generating>
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12),
+                      Text(
                         'Distribuindo matérias, calculando\npesos e montando seu cronograma.',
                         style: TextStyle(
                             color: AppTheme.textSecondary,
