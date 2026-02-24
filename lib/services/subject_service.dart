@@ -33,14 +33,16 @@ class SubjectService {
   }
 
   /// Creates a default "Geral" topic for a subject.
-  Future<Topic> createDefaultTopic(String subjectId) async {
-    const topic = Topic(id: '', subjectId: '', name: 'Geral', difficulty: 2);
+  Future<Topic> createDefaultTopic(String userId, String subjectId) async {
+    const topic =
+        Topic(id: '', userId: '', subjectId: '', name: 'Geral', difficulty: 2);
     final ref = await _topics.add({
+      'userId': userId,
       'subjectId': subjectId,
       'name': 'Geral',
       'difficulty': 2,
     });
-    return topic.copyWith(id: ref.id, subjectId: subjectId);
+    return topic.copyWith(id: ref.id, userId: userId, subjectId: subjectId);
   }
 
   Future<void> updateSubject(Subject subject) async {

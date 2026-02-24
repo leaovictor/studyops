@@ -23,6 +23,24 @@
                     "order": "ASCENDING"
                 },
                 {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "date",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "daily_tasks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userId",
+                    "order": "ASCENDING"
+                },
+                {
                     "fieldPath": "date",
                     "order": "ASCENDING"
                 },
@@ -112,6 +130,24 @@
             "fields": [
                 {
                     "fieldPath": "userId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "nextReview",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "error_notebook",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "userId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "goalId",
                     "order": "ASCENDING"
                 },
                 {
@@ -220,6 +256,78 @@
             "collectionGroup": "questions",
             "queryScope": "COLLECTION",
             "fields": [
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "banca",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "ano",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "banca",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "ano",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "goalId",
+                    "order": "ASCENDING"
+                },
                 {
                     "fieldPath": "subjectId",
                     "order": "ASCENDING"

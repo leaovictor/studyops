@@ -178,8 +178,12 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             FilledButton(
               onPressed: () {
                 if (!formKey.currentState!.validate()) return;
+                final user = ref.read(authStateProvider).valueOrNull;
+                if (user == null) return;
+
                 final topic = Topic(
                   id: existing?.id ?? '',
+                  userId: user.uid,
                   subjectId: subjectId,
                   name: nameCtrl.text.trim(),
                   difficulty: difficulty,

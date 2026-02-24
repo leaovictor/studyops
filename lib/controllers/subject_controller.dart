@@ -46,7 +46,9 @@ class SubjectController extends AsyncNotifier<void> {
   }
 
   Future<void> createDefaultTopic(String subjectId) async {
-    await _service.createDefaultTopic(subjectId);
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+    await _service.createDefaultTopic(user.uid, subjectId);
   }
 
   Future<void> updateSubject(Subject subject) async {
