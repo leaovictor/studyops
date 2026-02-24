@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/flashcard_controller.dart';
 import '../controllers/subject_controller.dart';
@@ -124,33 +125,42 @@ class _ReviewTab extends ConsumerWidget {
           );
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SummaryBanner(
-              totalDue: due.length,
-              onStudyAll: () => context.push('/flashcards/study'),
+        return AnimationLimiter(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: AnimationConfiguration.toStaggeredList(
+              duration: const Duration(milliseconds: 375),
+              childAnimationBuilder: (widget) => SlideAnimation(
+                verticalOffset: 50.0,
+                child: FadeInAnimation(child: widget),
+              ),
+              children: [
+                _SummaryBanner(
+                  totalDue: due.length,
+                  onStudyAll: () => context.push('/flashcards/study'),
+                ),
+                const SizedBox(height: 16),
+                ...bySubject.entries.map((e) {
+                  final subject = subjects.firstWhere(
+                    (s) => s.id == e.key,
+                    orElse: () => Subject(
+                        id: e.key,
+                        userId: '',
+                        name: 'Matéria',
+                        color: '#7C6FFF',
+                        priority: 1,
+                        weight: 1),
+                  );
+                  return _DeckCard(
+                    subject: subject,
+                    count: e.value.length,
+                    onStudy: () => context
+                        .push('/flashcards/study?subjectId=${subject.id}'),
+                  );
+                }),
+              ],
             ),
-            const SizedBox(height: 16),
-            ...bySubject.entries.map((e) {
-              final subject = subjects.firstWhere(
-                (s) => s.id == e.key,
-                orElse: () => Subject(
-                    id: e.key,
-                    userId: '',
-                    name: 'Matéria',
-                    color: '#7C6FFF',
-                    priority: 1,
-                    weight: 1),
-              );
-              return _DeckCard(
-                subject: subject,
-                count: e.value.length,
-                onStudy: () =>
-                    context.push('/flashcards/study?subjectId=${subject.id}'),
-              );
-            }),
-          ],
+          ),
         );
       },
     );
@@ -368,30 +378,41 @@ class _AllCardsTab extends ConsumerWidget {
               )
             else
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    final c = filtered[i];
-                    final subject = subjects.firstWhere(
-                      (s) => s.id == c.subjectId,
-                      orElse: () => const Subject(
-                          id: '',
-                          userId: '',
-                          name: 'Matéria',
-                          color: '#7C6FFF',
-                          priority: 1,
-                          weight: 1),
-                    );
-                    return _FlashcardListTile(
-                      card: c,
-                      subject: subject,
-                      onDelete: () => ref
-                          .read(flashcardControllerProvider.notifier)
-                          .delete(c.id),
-                    );
-                  },
+                child: AnimationLimiter(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) {
+                      final c = filtered[i];
+                      final subject = subjects.firstWhere(
+                        (s) => s.id == c.subjectId,
+                        orElse: () => const Subject(
+                            id: '',
+                            userId: '',
+                            name: 'Matéria',
+                            color: '#7C6FFF',
+                            priority: 1,
+                            weight: 1),
+                      );
+                      return AnimationConfiguration.staggeredList(
+                        position: i,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: _FlashcardListTile(
+                              card: c,
+                              subject: subject,
+                              onDelete: () => ref
+                                  .read(flashcardControllerProvider.notifier)
+                                  .delete(c.id),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
           ],

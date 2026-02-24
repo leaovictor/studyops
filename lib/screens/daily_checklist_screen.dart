@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
@@ -173,36 +174,48 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                       if (tasks.isEmpty)
                         _EmptyChecklistState()
                       else
-                        Column(
-                          children: tasks.map((task) {
-                            final subject = subjectMap[task.subjectId];
-                            final topic = topicMap[task.topicId];
-                            final showPomodoro = _pomodoroTaskId == task.id;
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _TaskCard(
-                                task: task,
-                                subject: subject,
-                                topicName: topic?.name ?? 'Tópico',
-                                showPomodoro: showPomodoro,
-                                onTogglePomodoro: () {
-                                  setState(() {
-                                    _pomodoroTaskId =
-                                        showPomodoro ? null : task.id;
-                                  });
-                                },
-                                onToggleDone: (minutes) {
-                                  if (task.done) {
-                                    controller.markUndone(task.id);
-                                  } else {
-                                    controller.markDone(task, minutes);
-                                  }
-                                },
-                                onDelete: () => controller.deleteTask(task.id),
+                        AnimationLimiter(
+                          child: Column(
+                            children: AnimationConfiguration.toStaggeredList(
+                              duration: const Duration(milliseconds: 375),
+                              childAnimationBuilder: (widget) => SlideAnimation(
+                                verticalOffset: 50.0,
+                                child: FadeInAnimation(
+                                  child: widget,
+                                ),
                               ),
-                            );
-                          }).toList(),
+                              children: tasks.map((task) {
+                                final subject = subjectMap[task.subjectId];
+                                final topic = topicMap[task.topicId];
+                                final showPomodoro = _pomodoroTaskId == task.id;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _TaskCard(
+                                    task: task,
+                                    subject: subject,
+                                    topicName: topic?.name ?? 'Tópico',
+                                    showPomodoro: showPomodoro,
+                                    onTogglePomodoro: () {
+                                      setState(() {
+                                        _pomodoroTaskId =
+                                            showPomodoro ? null : task.id;
+                                      });
+                                    },
+                                    onToggleDone: (minutes) {
+                                      if (task.done) {
+                                        controller.markUndone(task.id);
+                                      } else {
+                                        controller.markDone(task, minutes);
+                                      }
+                                    },
+                                    onDelete: () =>
+                                        controller.deleteTask(task.id),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -447,11 +460,7 @@ class _TaskCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 12, left: 40),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: PomodoroTimer(
-                  onSessionComplete: (minutes) {
-                    // Auto-mark done after one full Pomodoro
-                  },
-                ),
+                child: const PomodoroTimer(),
               ),
             ),
         ],

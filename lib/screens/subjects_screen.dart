@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../models/subject_model.dart';
@@ -52,49 +53,65 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
             Expanded(
               child: subjects.isEmpty
                   ? _EmptySubjects()
-                  : ListView.separated(
-                      itemCount: subjects.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) {
-                        final subject = subjects[i];
-                        final isExpanded = _expandedSubjectId == subject.id;
-                        return _SubjectCard(
-                          key: ValueKey(subject.id),
-                          subject: subject,
-                          isExpanded: isExpanded,
-                          onExpand: () => setState(() {
-                            _expandedSubjectId = isExpanded ? null : subject.id;
-                          }),
-                          onEdit: () => _showSubjectDialog(context, subject),
-                          onDelete: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Excluir Matéria'),
-                                content: Text(
-                                    'Excluir "${subject.name}" e todos os seus tópicos?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () {
-                                      controller.deleteSubject(subject.id);
-                                      if (ctx.mounted) Navigator.pop(ctx);
-                                    },
-                                    style: FilledButton.styleFrom(
-                                        backgroundColor: AppTheme.error),
-                                    child: const Text('Excluir'),
-                                  ),
-                                ],
+                  : AnimationLimiter(
+                      child: ListView.separated(
+                        itemCount: subjects.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) {
+                          final subject = subjects[i];
+                          final isExpanded = _expandedSubjectId == subject.id;
+                          return AnimationConfiguration.staggeredList(
+                            position: i,
+                            duration: const Duration(milliseconds: 375),
+                            child: SlideAnimation(
+                              verticalOffset: 50.0,
+                              child: FadeInAnimation(
+                                child: _SubjectCard(
+                                  key: ValueKey(subject.id),
+                                  subject: subject,
+                                  isExpanded: isExpanded,
+                                  onExpand: () => setState(() {
+                                    _expandedSubjectId =
+                                        isExpanded ? null : subject.id;
+                                  }),
+                                  onEdit: () =>
+                                      _showSubjectDialog(context, subject),
+                                  onDelete: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Excluir Matéria'),
+                                        content: Text(
+                                            'Excluir "${subject.name}" e todos os seus tópicos?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () {
+                                              controller
+                                                  .deleteSubject(subject.id);
+                                              if (ctx.mounted)
+                                                Navigator.pop(ctx);
+                                            },
+                                            style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    AppTheme.error),
+                                            child: const Text('Excluir'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  onAddTopic: () => _showTopicDialog(
+                                      context, subject.id, null),
+                                ),
                               ),
-                            );
-                          },
-                          onAddTopic: () =>
-                              _showTopicDialog(context, subject.id, null),
-                        );
-                      },
+                            ),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],

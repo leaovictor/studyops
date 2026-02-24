@@ -24,10 +24,6 @@ class _PomodoroGlobalListenerState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final pomNotifier = ref.read(pomodoroProvider.notifier);
-      pomNotifier.onSessionComplete = _showSaveDialog;
-    });
   }
 
   void _showSaveDialog(int minutes) {
@@ -42,6 +38,13 @@ class _PomodoroGlobalListenerState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<PomodoroState>(pomodoroProvider, (prev, next) {
+      if (prev != null && next.completedSessions > prev.completedSessions) {
+        final workMins = ref.read(pomodoroProvider.notifier).workMins;
+        _showSaveDialog(workMins);
+      }
+    });
+
     return widget.child;
   }
 }
@@ -73,22 +76,17 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            dropdownColor: AppTheme.bg2,
-            value: _selectedSubjectId,
-            hint: const Text('Selecione uma Matéria'),
-            items: subjects.map((sub) {
-              return DropdownMenuItem(
+          DropdownMenu<String>(
+            initialSelection: _selectedSubjectId,
+            hintText: 'Selecione uma Matéria',
+            dropdownMenuEntries: subjects.map((sub) {
+              return DropdownMenuEntry<String>(
                 value: sub.id,
-                child: Text(sub.name),
+                label: sub.name,
               );
             }).toList(),
-            onChanged: (val) => setState(() => _selectedSubjectId = val),
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
+            onSelected: (val) => setState(() => _selectedSubjectId = val),
+            width: 250,
           ),
         ],
       ),

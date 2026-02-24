@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../core/theme/app_theme.dart';
@@ -142,83 +143,98 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               style: TextStyle(color: AppTheme.textMuted),
                             ),
                           )
-                        : ListView.separated(
-                            itemCount: tasks.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (_, i) {
-                              final task = tasks[i];
-                              final subject = subjectMap[task.subjectId];
-                              final topic = topicMap[task.topicId];
-                              final color = subject != null
-                                  ? Color(int.parse(
-                                      'FF${subject.color.replaceAll('#', '')}',
-                                      radix: 16))
-                                  : AppTheme.primary;
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.bg2,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: task.done
-                                        ? AppTheme.border
-                                        : color.withOpacity(0.3),
+                        : AnimationLimiter(
+                            child: ListView.separated(
+                              itemCount: tasks.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (_, i) {
+                                final task = tasks[i];
+                                final subject = subjectMap[task.subjectId];
+                                final topic = topicMap[task.topicId];
+                                final color = subject != null
+                                    ? Color(int.parse(
+                                        'FF${subject.color.replaceAll('#', '')}',
+                                        radix: 16))
+                                    : AppTheme.primary;
+                                return AnimationConfiguration.staggeredList(
+                                  position: i,
+                                  duration: const Duration(milliseconds: 375),
+                                  child: SlideAnimation(
+                                    verticalOffset: 50.0,
+                                    child: FadeInAnimation(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.bg2,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: task.done
+                                                ? AppTheme.border
+                                                : color.withOpacity(0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              task.done
+                                                  ? Icons.check_circle_rounded
+                                                  : Icons.circle_outlined,
+                                              color: task.done
+                                                  ? AppTheme.accent
+                                                  : AppTheme.textMuted,
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: color.withOpacity(0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                subject?.name ?? 'Matéria',
+                                                style: TextStyle(
+                                                  color: color,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                topic?.name ?? 'Tópico',
+                                                style: TextStyle(
+                                                  color: task.done
+                                                      ? AppTheme.textMuted
+                                                      : AppTheme.textPrimary,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              AppDateUtils.formatMinutes(
+                                                  task.plannedMinutes),
+                                              style: const TextStyle(
+                                                color: AppTheme.textMuted,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      task.done
-                                          ? Icons.check_circle_rounded
-                                          : Icons.circle_outlined,
-                                      color: task.done
-                                          ? AppTheme.accent
-                                          : AppTheme.textMuted,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: color.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        subject?.name ?? 'Matéria',
-                                        style: TextStyle(
-                                          color: color,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        topic?.name ?? 'Tópico',
-                                        style: TextStyle(
-                                          color: task.done
-                                              ? AppTheme.textMuted
-                                              : AppTheme.textPrimary,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                    Text(
-                                      AppDateUtils.formatMinutes(
-                                          task.plannedMinutes),
-                                      style: const TextStyle(
-                                        color: AppTheme.textMuted,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                   ),
                 ],

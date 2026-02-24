@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
@@ -127,28 +128,41 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                     return _EmptyNotes(showDueOnly: _showDueOnly);
                   }
 
-                  return ListView.separated(
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) {
-                      final note = filtered[i];
-                      final subject = subjectMap[note.subjectId];
-                      final topic = topicMap[note.topicId];
-                      return _NoteCard(
-                        key: ValueKey(note.id),
-                        note: note,
-                        subject: subject,
-                        topicName: topic?.name ?? 'Tópico',
-                        onMarkReviewed: () => ref
-                            .read(errorNotebookControllerProvider.notifier)
-                            .markReviewed(note),
-                        onEdit: () =>
-                            _showNoteDialog(context, note, subjects, allTopics),
-                        onDelete: () => ref
-                            .read(errorNotebookControllerProvider.notifier)
-                            .deleteNote(note.id),
-                      );
-                    },
+                  return AnimationLimiter(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final note = filtered[i];
+                        final subject = subjectMap[note.subjectId];
+                        final topic = topicMap[note.topicId];
+                        return AnimationConfiguration.staggeredList(
+                          position: i,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              child: _NoteCard(
+                                key: ValueKey(note.id),
+                                note: note,
+                                subject: subject,
+                                topicName: topic?.name ?? 'Tópico',
+                                onMarkReviewed: () => ref
+                                    .read(errorNotebookControllerProvider
+                                        .notifier)
+                                    .markReviewed(note),
+                                onEdit: () => _showNoteDialog(
+                                    context, note, subjects, allTopics),
+                                onDelete: () => ref
+                                    .read(errorNotebookControllerProvider
+                                        .notifier)
+                                    .deleteNote(note.id),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),

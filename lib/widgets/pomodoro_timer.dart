@@ -45,12 +45,10 @@ class PomodoroState {
 
 class PomodoroNotifier extends StateNotifier<PomodoroState> {
   Timer? _timer;
-  void Function(int minutes)? onSessionComplete;
   int workMins;
   int breakMins;
 
   PomodoroNotifier({
-    this.onSessionComplete,
     this.workMins = 25,
     this.breakMins = 5,
   }) : super(PomodoroState.initial(workMins));
@@ -92,7 +90,6 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
       _timer?.cancel();
       if (state.phase == PomodoroPhase.work) {
         final completed = state.completedSessions + 1;
-        onSessionComplete?.call(workMins);
         state = PomodoroState(
           phase: PomodoroPhase.shortBreak,
           secondsLeft: breakMins * 60,
@@ -136,9 +133,7 @@ final pomodoroProvider = StateNotifierProvider<PomodoroNotifier, PomodoroState>(
 );
 
 class PomodoroTimer extends ConsumerWidget {
-  final void Function(int minutes)? onSessionComplete;
-
-  const PomodoroTimer({super.key, this.onSessionComplete});
+  const PomodoroTimer();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -154,13 +149,7 @@ class PomodoroTimer extends ConsumerWidget {
       openColor: AppTheme.bg0,
       closedColor: Colors.transparent,
       closedElevation: 0,
-      openBuilder: (context, _) => _FocusModeScreen(
-        state: state,
-        notifier: notifier,
-        total: total,
-        progress: progress,
-        color: color,
-      ),
+      openBuilder: (context, _) => const _FocusModeScreen(),
       closedBuilder: (context, openContainer) => Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -219,7 +208,13 @@ class PomodoroTimer extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    onPressed: notifier.toggle,
+                    onPressed: () {
+                      final wasRunning = state.running;
+                      notifier.toggle();
+                      if (!wasRunning) {
+                        openContainer();
+                      }
+                    },
                     icon: Icon(
                       state.running
                           ? Icons.pause_rounded
@@ -260,45 +255,21 @@ class PomodoroTimer extends ConsumerWidget {
   }
 }
 
-class _FocusModeScreen extends StatefulWidget {
-  final PomodoroState state;
-  final PomodoroNotifier notifier;
-  final int total;
-  final double progress;
-  final Color color;
-
-  const _FocusModeScreen({
-    required this.state,
-    required this.notifier,
-    required this.total,
-    required this.progress,
-    required this.color,
-  });
+class _FocusModeScreen extends ConsumerStatefulWidget {
+  const _FocusModeScreen();
 
   @override
-  State<_FocusModeScreen> createState() => _FocusModeScreenState();
+  ConsumerState<_FocusModeScreen> createState() => _FocusModeScreenState();
 }
 
-class _FocusModeScreenState extends State<_FocusModeScreen> {
+class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
   late ConfettiController _confettiController;
-  bool _wasWork = true;
 
   @override
   void initState() {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
-    _wasWork = widget.state.phase == PomodoroPhase.work;
-  }
-
-  @override
-  void didUpdateWidget(_FocusModeScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final isWork = widget.state.phase == PomodoroPhase.work;
-    if (_wasWork && !isWork && widget.state.secondsLeft > 0) {
-      _confettiController.play();
-    }
-    _wasWork = isWork;
   }
 
   @override
@@ -309,112 +280,140 @@ class _FocusModeScreenState extends State<_FocusModeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWork = widget.state.phase == PomodoroPhase.work;
+    final state = ref.watch(pomodoroProvider);
+    final notifier = ref.read(pomodoroProvider.notifier);
+    final isWork = state.phase == PomodoroPhase.work;
+    final color = isWork ? AppTheme.primary : AppTheme.accent;
+    final total = isWork ? notifier.workMins * 60 : notifier.breakMins * 60;
+    final progress = 1 - (state.secondsLeft / total);
 
-    return Scaffold(
-      backgroundColor: AppTheme.bg0,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                      icon: const Icon(Icons.fullscreen_exit_rounded,
-                          color: AppTheme.textSecondary, size: 32),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    isWork ? 'EM FOCO' : 'HORA DO DESCANSO',
-                    style: TextStyle(
-                      color: widget.color,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: 250,
-                    height: 250,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CircularProgressIndicator(
-                          value: widget.progress,
-                          backgroundColor: AppTheme.border,
-                          valueColor: AlwaysStoppedAnimation(widget.color),
-                          strokeWidth: 8,
+    ref.listen<PomodoroState>(pomodoroProvider, (previous, next) {
+      if (previous != null) {
+        final wasWork = previous.phase == PomodoroPhase.work;
+        final isNowWork = next.phase == PomodoroPhase.work;
+        if (wasWork && !isNowWork && next.secondsLeft > 0) {
+          _confettiController.play();
+        }
+      }
+    });
+
+    return PopScope(
+        canPop: !state.running,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Pause o temporizador antes de sair do modo Foco.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppTheme.bg0,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: const Icon(Icons.fullscreen_exit_rounded,
+                              color: AppTheme.textSecondary, size: 32),
+                          onPressed: () => Navigator.maybePop(context),
                         ),
-                        Center(
-                          child: Text(
-                            AppDateUtils.formatCountdown(
-                                widget.state.secondsLeft),
-                            style: const TextStyle(
-                              fontSize: 64,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.textPrimary,
+                      ),
+                      const Spacer(),
+                      Text(
+                        isWork ? 'EM FOCO' : 'HORA DO DESCANSO',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: 250,
+                        height: 250,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CircularProgressIndicator(
+                              value: progress,
+                              backgroundColor: AppTheme.border,
+                              valueColor: AlwaysStoppedAnimation(color),
+                              strokeWidth: 8,
+                            ),
+                            Center(
+                              child: Text(
+                                AppDateUtils.formatCountdown(state.secondsLeft),
+                                style: const TextStyle(
+                                  fontSize: 64,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 60),
+                      _MotivationalQuote(
+                          isWork: isWork, secondsLeft: state.secondsLeft),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FloatingActionButton.large(
+                            onPressed: notifier.toggle,
+                            backgroundColor: color,
+                            child: Icon(
+                              state.running
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.white,
+                              size: 40,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 60),
-                  _MotivationalQuote(
-                      isWork: isWork, secondsLeft: widget.state.secondsLeft),
-                  const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FloatingActionButton.large(
-                        onPressed: widget.notifier.toggle,
-                        backgroundColor: widget.color,
-                        child: Icon(
-                          widget.state.running
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                          size: 40,
-                        ),
+                          const SizedBox(width: 32),
+                          FloatingActionButton(
+                            onPressed: notifier.reset,
+                            backgroundColor: AppTheme.bg2,
+                            child: const Icon(Icons.refresh_rounded,
+                                color: AppTheme.textSecondary),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 32),
-                      FloatingActionButton(
-                        onPressed: widget.notifier.reset,
-                        backgroundColor: AppTheme.bg2,
-                        child: const Icon(Icons.refresh_rounded,
-                            color: AppTheme.textSecondary),
-                      ),
+                      const SizedBox(height: 40),
                     ],
                   ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    shouldLoop: false,
+                    colors: const [
+                      AppTheme.primary,
+                      AppTheme.accent,
+                      Colors.orange,
+                      Colors.pink,
+                      Colors.green,
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Align(
-              alignment: Alignment.topCenter,
-              child: ConfettiWidget(
-                confettiController: _confettiController,
-                blastDirectionality: BlastDirectionality.explosive,
-                shouldLoop: false,
-                colors: const [
-                  AppTheme.primary,
-                  AppTheme.accent,
-                  Colors.orange,
-                  Colors.pink,
-                  Colors.green,
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        ));
   }
 }
 

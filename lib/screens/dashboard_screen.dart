@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
@@ -12,6 +13,7 @@ import '../core/utils/app_date_utils.dart';
 import '../models/subject_model.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/app_charts.dart';
+import '../widgets/goal_switcher.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -22,7 +24,6 @@ class DashboardScreen extends ConsumerWidget {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final dueNotes = ref.watch(dueTodayNotesProvider).valueOrNull ?? [];
     final dueFlashcards = ref.watch(dueFlashcardsProvider).valueOrNull ?? [];
-    final goalsAsync = ref.watch(goalsProvider);
     final activeId = ref.watch(activeGoalIdProvider);
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
@@ -50,193 +51,184 @@ class DashboardScreen extends ConsumerWidget {
               horizontal: isDesktop ? 40 : 20,
               vertical: 32,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _Header(userName: 'Victor'), // Mocked name
-                const SizedBox(height: 32),
+            child: AnimationLimiter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: AnimationConfiguration.toStaggeredList(
+                  duration: const Duration(milliseconds: 375),
+                  childAnimationBuilder: (widget) => SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(
+                      child: widget,
+                    ),
+                  ),
+                  children: [
+                    const _Header(userName: 'Victor'), // Mocked name
+                    const SizedBox(height: 32),
 
-                // Top Metrics
-                _TopMetricsRow(
-                  data: data,
-                  isDesktop: isDesktop,
-                  isTablet: isTablet,
-                ),
-                const SizedBox(height: 32),
+                    // Top Metrics
+                    _TopMetricsRow(
+                      data: data,
+                      isDesktop: isDesktop,
+                      isTablet: isTablet,
+                    ),
+                    const SizedBox(height: 32),
 
-                // Empty Goals CTA
-                goalsAsync.when(
-                  data: (goals) => goals.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(bottom: 32),
-                          child: _EmptyGoalsCTA(
-                            onAdd: () {
-                              // We can't directly access _showAddGoalDialog from GoalSwitcher
-                              // but we can use the same logic here or refactor.
-                              // Actually, the goal_switcher.dart doesn't export the dialog logic easily.
-                              // I'll implement a simple dialog trigger here as well for now or refactor GoalSwitcher later.
-                              _showAddGoalDialog(context, ref);
-                            },
+                    // No Active Plan CTA
+                    if (activeId != null && activePlan == null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: _NoPlanCTA(
+                          onTap: () => context.go('/settings'),
+                        ),
+                      ),
+
+                    // Suggested Study Subject
+                    if (activeId != null &&
+                        activePlan != null &&
+                        data.suggestedSubjectId != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: _SuggestedSubjectCTA(
+                          subjectId: data.suggestedSubjectId!,
+                          suggestedMinutes: data.suggestedMinutes,
+                          subjects: subjects,
+                          onTap: () => context.go('/subjects'),
+                        ),
+                      ),
+
+                    // Main Content (Charts)
+                    if (isDesktop || isTablet)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _ChartCard(
+                              title: 'Progresso Semanal (horas)',
+                              height: 300,
+                              child: data.weeklyTrend.isEmpty
+                                  ? _emptyChart()
+                                  : WeeklyBarChart(data: data.weeklyTrend),
+                            ),
                           ),
-                        )
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-
-                // No Active Plan CTA
-                if (activeId != null && activePlan == null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 32),
-                    child: _NoPlanCTA(
-                      onTap: () => context.go('/settings'),
-                    ),
-                  ),
-
-                // Suggested Study Subject
-                if (activeId != null &&
-                    activePlan != null &&
-                    data.suggestedSubjectId != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 32),
-                    child: _SuggestedSubjectCTA(
-                      subjectId: data.suggestedSubjectId!,
-                      suggestedMinutes: data.suggestedMinutes,
-                      subjects: subjects,
-                      onTap: () => context.go('/subjects'),
-                    ),
-                  ),
-
-                // Main Content (Charts)
-                if (isDesktop || isTablet)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: _ChartCard(
-                          title: 'Progresso Semanal (horas)',
-                          height: 300,
-                          child: data.weeklyTrend.isEmpty
-                              ? _emptyChart()
-                              : WeeklyBarChart(data: data.weeklyTrend),
-                        ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            flex: 2,
+                            child: _ChartCard(
+                              title: 'Foco por Matéria',
+                              height: 300,
+                              child: subjects.isEmpty
+                                  ? _emptyChart()
+                                  : SubjectPieChart(
+                                      data: data.minutesBySubject,
+                                      subjectColors: subjectColorMap,
+                                      subjectNames: subjectNameMap,
+                                    ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          _ChartCard(
+                            title: 'Progresso Semanal (horas)',
+                            height: 240,
+                            child: data.weeklyTrend.isEmpty
+                                ? _emptyChart()
+                                : WeeklyBarChart(data: data.weeklyTrend),
+                          ),
+                          const SizedBox(height: 24),
+                          _ChartCard(
+                            title: 'Foco por Matéria',
+                            height: 240,
+                            child: subjects.isEmpty
+                                ? _emptyChart()
+                                : SubjectPieChart(
+                                    data: data.minutesBySubject,
+                                    subjectColors: subjectColorMap,
+                                    subjectNames: subjectNameMap,
+                                  ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 2,
-                        child: _ChartCard(
-                          title: 'Foco por Matéria',
-                          height: 300,
-                          child: subjects.isEmpty
-                              ? _emptyChart()
-                              : SubjectPieChart(
-                                  data: data.minutesBySubject,
-                                  subjectColors: subjectColorMap,
-                                  subjectNames: subjectNameMap,
-                                ),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _ChartCard(
-                        title: 'Progresso Semanal (horas)',
-                        height: 240,
-                        child: data.weeklyTrend.isEmpty
-                            ? _emptyChart()
-                            : WeeklyBarChart(data: data.weeklyTrend),
-                      ),
-                      const SizedBox(height: 24),
-                      _ChartCard(
-                        title: 'Foco por Matéria',
-                        height: 240,
-                        child: subjects.isEmpty
-                            ? _emptyChart()
-                            : SubjectPieChart(
-                                data: data.minutesBySubject,
-                                subjectColors: subjectColorMap,
+
+                    const SizedBox(height: 24),
+
+                    // Planned vs Read Row
+                    if (isDesktop || isTablet)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: _ChartCard(
+                              title: 'Planejado vs Lido Hoje',
+                              height: 280,
+                              child: PlannedVsReadChart(
+                                data: data.plannedVsRead,
                                 subjectNames: subjectNameMap,
                               ),
-                      ),
-                    ],
-                  ),
-
-                const SizedBox(height: 24),
-
-                // Planned vs Read Row
-                if (isDesktop || isTablet)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: _ChartCard(
-                          title: 'Planejado vs Lido Hoje',
-                          height: 280,
-                          child: PlannedVsReadChart(
-                            data: data.plannedVsRead,
-                            subjectNames: subjectNameMap,
+                            ),
                           ),
+                        ],
+                      )
+                    else
+                      _ChartCard(
+                        title: 'Planejado vs Lido Hoje',
+                        height: 240,
+                        child: PlannedVsReadChart(
+                          data: data.plannedVsRead,
+                          subjectNames: subjectNameMap,
                         ),
                       ),
-                    ],
-                  )
-                else
-                  _ChartCard(
-                    title: 'Planejado vs Lido Hoje',
-                    height: 240,
-                    child: PlannedVsReadChart(
-                      data: data.plannedVsRead,
-                      subjectNames: subjectNameMap,
-                    ),
-                  ),
 
-                const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                // Bottom Section: Activities & Summary
-                if (isDesktop)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _SectionCard(
-                          title: 'Pendências de Hoje',
-                          child: _TodaySummary(
-                            dueNotesCount: dueNotes.length,
-                            dueFlashcardsCount: dueFlashcards.length,
+                    // Bottom Section: Activities & Summary
+                    if (isDesktop)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _SectionCard(
+                              title: 'Pendências de Hoje',
+                              child: _TodaySummary(
+                                dueNotesCount: dueNotes.length,
+                                dueFlashcardsCount: dueFlashcards.length,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 24),
+                          Expanded(
+                            child: _SectionCard(
+                              title: 'Últimas Conquistas',
+                              child: _AchievementsList(streak: data.streakDays),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Column(
+                        children: [
+                          _SectionCard(
+                            title: 'Pendências de Hoje',
+                            child: _TodaySummary(
+                              dueNotesCount: dueNotes.length,
+                              dueFlashcardsCount: dueFlashcards.length,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _SectionCard(
+                            title: 'Últimas Conquistas',
+                            child: _AchievementsList(streak: data.streakDays),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: _SectionCard(
-                          title: 'Últimas Conquistas',
-                          child: _AchievementsList(streak: data.streakDays),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _SectionCard(
-                        title: 'Pendências de Hoje',
-                        child: _TodaySummary(
-                          dueNotesCount: dueNotes.length,
-                          dueFlashcardsCount: dueFlashcards.length,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _SectionCard(
-                        title: 'Últimas Conquistas',
-                        child: _AchievementsList(streak: data.streakDays),
-                      ),
-                    ],
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -251,110 +243,6 @@ class DashboardScreen extends ConsumerWidget {
           style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
         ),
       );
-
-  void _showAddGoalDialog(BuildContext context, WidgetRef ref) {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.bg1,
-        title: const Text('Novo Objetivo'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Ex: Medicina 2026, Concurso...',
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                ref
-                    .read(goalControllerProvider.notifier)
-                    .createGoal(controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Criar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyGoalsCTA extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyGoalsCTA({required this.onAdd});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primary.withValues(alpha: 0.15),
-            AppTheme.secondary.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.rocket_launch_rounded,
-                color: AppTheme.primary, size: 32),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Bem-vindo ao StudyOps!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Para começar, adicione seu primeiro objetivo de estudo\n(como um concurso ou vestibular específico).',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppTheme.textSecondary,
-              fontSize: 14,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Adicionar Primeiro Objetivo'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _NoPlanCTA extends StatelessWidget {
@@ -549,6 +437,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
@@ -570,6 +459,12 @@ class _Header extends StatelessWidget {
                   color: AppTheme.textSecondary,
                   fontSize: 15,
                 ),
+              ),
+              const SizedBox(height: 16),
+              // Render the GoalSwitcher inline on the dashboard
+              const SizedBox(
+                width: 250,
+                child: GoalSwitcher(),
               ),
             ],
           ),
