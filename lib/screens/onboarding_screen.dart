@@ -5,8 +5,10 @@ import 'package:uuid/uuid.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/study_plan_model.dart';
 import '../models/subject_model.dart';
+import '../models/goal_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
 
@@ -20,9 +22,9 @@ class _OnboardingData {
   List<_OnboardingSubject> subjects;
 
   _OnboardingData({
-    this.objective = '',
+    required this.objective,
     required this.deadline,
-    this.dailyHours = 3.0,
+    required this.dailyHours,
     required this.subjects,
   });
 }
@@ -61,6 +63,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void initState() {
     super.initState();
     _data = _OnboardingData(
+      objective: '',
+      dailyHours: 3.0,
       deadline: DateTime.now().add(const Duration(days: 60)),
       subjects: [
         _OnboardingSubject(
@@ -103,26 +107,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) return;
 
-    // Filter valid subjects
+    // 1. Create the Goal
+    final goalName =
+        _data.objective.trim().isNotEmpty ? _data.objective.trim() : 'Geral';
+
+    // We need to create the goal and get its ID
+    final goalService = ref.read(goalServiceProvider);
+    final goal = await goalService.createGoal(Goal(
+      id: '',
+      userId: user.uid,
+      name: goalName,
+      createdAt: DateTime.now(),
+    ));
+
+    // Set as active goal
+    ref.read(activeGoalIdProvider.notifier).state = goal.id;
+
+    // 2. Filter valid subjects and link to the goal
     final validSubjects =
         _data.subjects.where((s) => s.name.trim().isNotEmpty).toList();
 
-    // Save subjects first (and create a default "Geral" topic for each)
-    final controller = ref.read(subjectControllerProvider.notifier);
+    final subjectController = ref.read(subjectControllerProvider.notifier);
     for (final s in validSubjects) {
       final subject = Subject(
         id: s.id,
         userId: user.uid,
+        goalId: goal.id, // Linked to the new goal
         name: s.name.trim(),
         color: s.color,
         priority: s.priority,
         weight: s.priority, // default weight = priority
       );
-      await controller.createSubjectWithId(subject);
-      await controller.createDefaultTopic(s.id);
+      await subjectController.createSubjectWithId(subject);
+      await subjectController.createDefaultTopic(s.id);
     }
 
-    // Create study plan
+    // 3. Create study plan
     final durationDays =
         _data.deadline.difference(DateTime.now()).inDays.clamp(7, 365);
     final plan = StudyPlan(

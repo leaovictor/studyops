@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Flashcard {
   final String id;
   final String userId;
+  final String? goalId; // New field
   final String subjectId;
   final String topicId;
   final String front;
@@ -18,6 +19,7 @@ class Flashcard {
   const Flashcard({
     required this.id,
     required this.userId,
+    this.goalId,
     required this.subjectId,
     required this.topicId,
     required this.front,
@@ -35,6 +37,7 @@ class Flashcard {
   Flashcard copyWith({
     String? id,
     String? userId,
+    String? goalId,
     String? subjectId,
     String? topicId,
     String? front,
@@ -46,6 +49,7 @@ class Flashcard {
     return Flashcard(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      goalId: goalId ?? this.goalId,
       subjectId: subjectId ?? this.subjectId,
       topicId: topicId ?? this.topicId,
       front: front ?? this.front,
@@ -58,6 +62,7 @@ class Flashcard {
 
   Map<String, dynamic> toMap() => {
         'userId': userId,
+        'goalId': goalId,
         'subjectId': subjectId,
         'topicId': topicId,
         'front': front,
@@ -76,6 +81,7 @@ class Flashcard {
     return Flashcard(
       id: id,
       userId: map['userId'] as String? ?? '',
+      goalId: map['goalId'] as String?,
       subjectId: map['subjectId'] as String? ?? '',
       topicId: map['topicId'] as String? ?? '',
       front: map['front'] as String? ?? '',

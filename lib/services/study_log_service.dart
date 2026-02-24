@@ -10,25 +10,33 @@ class StudyLogService {
   Stream<List<StudyLog>> watchLogsForPeriod(
     String userId,
     String startDateKey,
-    String endDateKey,
-  ) {
-    return _logs
-        .where('userId', isEqualTo: userId)
+    String endDateKey, {
+    String? goalId,
+  }) {
+    Query query = _logs.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query
         .where('date', isGreaterThanOrEqualTo: startDateKey)
         .where('date', isLessThanOrEqualTo: endDateKey)
         .snapshots()
         .map((snap) => snap.docs.map((d) => StudyLog.fromDoc(d)).toList());
   }
 
-  Future<List<StudyLog>> getLogsForMonth(
-      String userId, int year, int month) async {
+  Future<List<StudyLog>> getLogsForMonth(String userId, int year, int month,
+      {String? goalId}) async {
     final start = '$year-${month.toString().padLeft(2, '0')}-01';
     final lastDay = DateTime(year, month + 1, 0).day;
     final end =
         '$year-${month.toString().padLeft(2, '0')}-${lastDay.toString().padLeft(2, '0')}';
 
-    final snap = await _logs
-        .where('userId', isEqualTo: userId)
+    Query query = _logs.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+
+    final snap = await query
         .where('date', isGreaterThanOrEqualTo: start)
         .where('date', isLessThanOrEqualTo: end)
         .get();

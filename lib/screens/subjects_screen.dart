@@ -59,6 +59,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                         final subject = subjects[i];
                         final isExpanded = _expandedSubjectId == subject.id;
                         return _SubjectCard(
+                          key: ValueKey(subject.id),
                           subject: subject,
                           isExpanded: isExpanded,
                           onExpand: () => setState(() {
@@ -189,6 +190,7 @@ class _SubjectCard extends ConsumerWidget {
   final VoidCallback onAddTopic;
 
   const _SubjectCard({
+    super.key,
     required this.subject,
     required this.isExpanded,
     required this.onExpand,

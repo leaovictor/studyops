@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
+import 'goal_switcher.dart';
 
 class AppSidebar extends StatelessWidget {
   final Widget child;
@@ -99,14 +100,21 @@ class _ExpandedSidebar extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: destinations.map((d) {
-                final selected = location.startsWith(d.path);
-                return _SidebarItem(
-                  dest: d,
-                  selected: selected,
-                  onTap: () => context.go(d.path),
-                );
-              }).toList(),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: GoalSwitcher(),
+                ),
+                const SizedBox(height: 8),
+                ...destinations.map((d) {
+                  final selected = location.startsWith(d.path);
+                  return _SidebarItem(
+                    dest: d,
+                    selected: selected,
+                    onTap: () => context.go(d.path),
+                  );
+                }),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -201,6 +209,8 @@ class _CompactRail extends StatelessWidget {
           ),
           const Divider(height: 1, color: AppTheme.border),
           const SizedBox(height: 8),
+          const GoalSwitcher(compact: true),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -263,17 +273,24 @@ class _MobileDrawer extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: destinations.map((d) {
-                  final selected = location.startsWith(d.path);
-                  return _SidebarItem(
-                    dest: d,
-                    selected: selected,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.go(d.path);
-                    },
-                  );
-                }).toList(),
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: GoalSwitcher(),
+                  ),
+                  const Divider(),
+                  ...destinations.map((d) {
+                    final selected = location.startsWith(d.path);
+                    return _SidebarItem(
+                      dest: d,
+                      selected: selected,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go(d.path);
+                      },
+                    );
+                  }),
+                ],
               ),
             ),
           ],

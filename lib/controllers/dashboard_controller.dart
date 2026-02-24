@@ -3,6 +3,7 @@ import '../services/study_log_service.dart';
 import '../core/utils/app_date_utils.dart';
 import 'auth_controller.dart';
 import 'subject_controller.dart';
+import 'goal_controller.dart';
 
 final studyLogServiceProvider =
     Provider<StudyLogService>((ref) => StudyLogService());
@@ -43,10 +44,12 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return DashboardData.empty;
 
+  final activeGoalId = ref.watch(activeGoalIdProvider);
   final service = ref.watch(studyLogServiceProvider);
   final now = DateTime.now();
 
-  final logs = await service.getLogsForMonth(user.uid, now.year, now.month);
+  final logs = await service.getLogsForMonth(user.uid, now.year, now.month,
+      goalId: activeGoalId);
 
   final todayKey = AppDateUtils.todayKey();
   final (weekStart, weekEnd) = AppDateUtils.currentWeekRange();

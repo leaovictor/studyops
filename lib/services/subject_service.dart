@@ -11,9 +11,13 @@ class SubjectService {
 
   // ── Subjects ──────────────────────────────────
 
-  Stream<List<Subject>> watchSubjects(String userId) {
-    return _subjects.where('userId', isEqualTo: userId).snapshots().map(
-        (snap) => snap.docs.map((d) => Subject.fromDoc(d)).toList()
+  Stream<List<Subject>> watchSubjects(String userId, {String? goalId}) {
+    Query query = _subjects.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query.snapshots().map((snap) =>
+        snap.docs.map((d) => Subject.fromDoc(d)).toList()
           ..sort((a, b) => b.priority.compareTo(a.priority)));
   }
 

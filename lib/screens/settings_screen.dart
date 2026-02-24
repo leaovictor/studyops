@@ -17,6 +17,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _selectedDuration = 30;
   double _dailyHours = 3.0;
+  String? _loadedPlanId;
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +27,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final planCtrl = ref.read(studyPlanControllerProvider.notifier);
     final planState = ref.watch(studyPlanControllerProvider);
 
-    if (activePlan != null) {
+    // Only update local state if a DIFFERENT plan is loaded
+    if (activePlan != null && activePlan.id != _loadedPlanId) {
       _selectedDuration = activePlan.durationDays;
       _dailyHours = activePlan.dailyHours;
+      _loadedPlanId = activePlan.id;
     }
 
     return Scaffold(
@@ -140,7 +143,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             label: Text('$d dias'),
                             selected: selected,
                             onSelected: (_) =>
-                                setState(() => _selectedDuration = d),
+                                setS(() => _selectedDuration = d),
                             selectedColor: AppTheme.primary.withOpacity(0.2),
                             labelStyle: TextStyle(
                               color: selected
@@ -178,7 +181,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         max: 12,
                         divisions: 22,
                         activeColor: AppTheme.primary,
-                        onChanged: (v) => setState(() => _dailyHours = v),
+                        onChanged: (v) => setS(() => _dailyHours = v),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(

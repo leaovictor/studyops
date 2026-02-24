@@ -3,6 +3,7 @@ import 'package:fsrs/fsrs.dart';
 import '../models/flashcard_model.dart';
 import '../services/flashcard_service.dart';
 import 'auth_controller.dart';
+import 'goal_controller.dart';
 
 final flashcardServiceProvider =
     Provider<FlashcardService>((ref) => FlashcardService());
@@ -11,14 +12,18 @@ final flashcardServiceProvider =
 final flashcardsProvider = StreamProvider<List<Flashcard>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
-  return ref.watch(flashcardServiceProvider).watchAll(user.uid);
+  final goalId = ref.watch(activeGoalIdProvider);
+  return ref.watch(flashcardServiceProvider).watchAll(user.uid, goalId: goalId);
 });
 
 /// Only cards due today (or overdue).
 final dueFlashcardsProvider = StreamProvider<List<Flashcard>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
-  return ref.watch(flashcardServiceProvider).watchDueToday(user.uid);
+  final goalId = ref.watch(activeGoalIdProvider);
+  return ref
+      .watch(flashcardServiceProvider)
+      .watchDueToday(user.uid, goalId: goalId);
 });
 
 /// Cards due today grouped by subjectId.

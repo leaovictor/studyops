@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/error_note_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -134,6 +135,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                       final subject = subjectMap[note.subjectId];
                       final topic = topicMap[note.topicId];
                       return _NoteCard(
+                        key: ValueKey(note.id),
                         note: note,
                         subject: subject,
                         topicName: topic?.name ?? 'Tópico',
@@ -164,6 +166,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
     List<Topic> allTopics,
   ) async {
     final user = ref.read(authStateProvider).valueOrNull;
+    final activeGoalId = ref.read(activeGoalIdProvider);
     if (user == null || subjects.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Cadastre matérias primeiro')));
@@ -275,6 +278,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                     final note = ErrorNote(
                       id: existing?.id ?? const Uuid().v4(),
                       userId: user.uid,
+                      goalId: existing?.goalId ?? activeGoalId,
                       subjectId: selectedSubject!.id,
                       topicId: selectedTopic?.id ?? '',
                       question: questionCtrl.text,
@@ -315,6 +319,7 @@ class _NoteCard extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _NoteCard({
+    super.key,
     required this.note,
     required this.subject,
     required this.topicName,

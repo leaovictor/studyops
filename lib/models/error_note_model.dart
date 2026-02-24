@@ -4,6 +4,7 @@ import '../core/constants/app_constants.dart';
 class ErrorNote {
   final String id;
   final String userId;
+  final String? goalId; // New field
   final String subjectId;
   final String topicId;
   final String question;
@@ -15,6 +16,7 @@ class ErrorNote {
   const ErrorNote({
     required this.id,
     required this.userId,
+    this.goalId,
     required this.subjectId,
     required this.topicId,
     required this.question,
@@ -45,6 +47,7 @@ class ErrorNote {
   ErrorNote copyWith({
     String? id,
     String? userId,
+    String? goalId,
     String? subjectId,
     String? topicId,
     String? question,
@@ -56,6 +59,7 @@ class ErrorNote {
     return ErrorNote(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      goalId: goalId ?? this.goalId,
       subjectId: subjectId ?? this.subjectId,
       topicId: topicId ?? this.topicId,
       question: question ?? this.question,
@@ -68,6 +72,7 @@ class ErrorNote {
 
   Map<String, dynamic> toMap() => {
         'userId': userId,
+        'goalId': goalId,
         'subjectId': subjectId,
         'topicId': topicId,
         'question': question,
@@ -88,6 +93,7 @@ class ErrorNote {
     return ErrorNote(
       id: id,
       userId: map['userId'] as String? ?? '',
+      goalId: map['goalId'] as String?,
       subjectId: map['subjectId'] as String? ?? '',
       topicId: map['topicId'] as String? ?? '',
       question: map['question'] as String? ?? '',

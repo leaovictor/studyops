@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../controllers/dashboard_controller.dart';
+import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/flashcard_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../widgets/metric_card.dart';
@@ -19,6 +21,9 @@ class DashboardScreen extends ConsumerWidget {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final dueNotes = ref.watch(dueTodayNotesProvider).valueOrNull ?? [];
     final dueFlashcards = ref.watch(dueFlashcardsProvider).valueOrNull ?? [];
+    final goalsAsync = ref.watch(goalsProvider);
+    final activeId = ref.watch(activeGoalIdProvider);
+    final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1100;
@@ -57,6 +62,35 @@ class DashboardScreen extends ConsumerWidget {
                   isTablet: isTablet,
                 ),
                 const SizedBox(height: 32),
+
+                // Empty Goals CTA
+                goalsAsync.when(
+                  data: (goals) => goals.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: _EmptyGoalsCTA(
+                            onAdd: () {
+                              // We can't directly access _showAddGoalDialog from GoalSwitcher
+                              // but we can use the same logic here or refactor.
+                              // Actually, the goal_switcher.dart doesn't export the dialog logic easily.
+                              // I'll implement a simple dialog trigger here as well for now or refactor GoalSwitcher later.
+                              _showAddGoalDialog(context, ref);
+                            },
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+
+                // No Active Plan CTA
+                if (activeId != null && activePlan == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: _NoPlanCTA(
+                      onTap: () => context.go('/settings'),
+                    ),
+                  ),
 
                 // Main Content (Charts)
                 if (isDesktop || isTablet)
@@ -172,6 +206,174 @@ class DashboardScreen extends ConsumerWidget {
           style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
         ),
       );
+
+  void _showAddGoalDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.bg1,
+        title: const Text('Novo Objetivo'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Ex: Medicina 2026, Concurso...',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                ref
+                    .read(goalControllerProvider.notifier)
+                    .createGoal(controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Criar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyGoalsCTA extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyGoalsCTA({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.15),
+            AppTheme.secondary.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.rocket_launch_rounded,
+                color: AppTheme.primary, size: 32),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Bem-vindo ao StudyOps!',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Para começar, adicione seu primeiro objetivo de estudo\n(como um concurso ou vestibular específico).',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Adicionar Primeiro Objetivo'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoPlanCTA extends StatelessWidget {
+  final VoidCallback onTap;
+  const _NoPlanCTA({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.accent.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.calendar_month_rounded,
+                color: AppTheme.accent, size: 24),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Plano de Estudo não configurado',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  'Gere seu cronograma para começar a estudar hoje!',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          FilledButton(
+            onPressed: onTap,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.accent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Configurar'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Header extends StatelessWidget {

@@ -3,6 +3,7 @@ import '../models/subject_model.dart';
 import '../models/topic_model.dart';
 import '../services/subject_service.dart';
 import 'auth_controller.dart';
+import 'goal_controller.dart';
 
 final subjectServiceProvider =
     Provider<SubjectService>((ref) => SubjectService());
@@ -10,7 +11,10 @@ final subjectServiceProvider =
 final subjectsProvider = StreamProvider<List<Subject>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
-  return ref.watch(subjectServiceProvider).watchSubjects(user.uid);
+  final activeGoalId = ref.watch(activeGoalIdProvider);
+  return ref
+      .watch(subjectServiceProvider)
+      .watchSubjects(user.uid, goalId: activeGoalId);
 });
 
 final topicsForSubjectProvider =

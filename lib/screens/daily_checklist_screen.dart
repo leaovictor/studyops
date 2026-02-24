@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
@@ -422,23 +423,34 @@ class _EmptyChecklistState extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.border),
       ),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.checklist_rounded, color: AppTheme.textMuted, size: 48),
-          SizedBox(height: 16),
-          Text(
+          const Icon(Icons.checklist_rounded,
+              color: AppTheme.textMuted, size: 48),
+          const SizedBox(height: 16),
+          const Text(
             'Nenhuma tarefa para hoje',
             style: TextStyle(
               color: AppTheme.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Crie um plano de estudo em Configurações\nou adicione uma tarefa manualmente.',
+          const SizedBox(height: 8),
+          const Text(
+            'Crie um plano de estudo para gerar seu cronograma\nou adicione uma tarefa manualmente.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/settings'),
+            icon: const Icon(Icons.calendar_month_rounded, size: 16),
+            label: const Text('Configurar Plano de Estudo'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              side: const BorderSide(color: AppTheme.primary),
+            ),
           ),
         ],
       ),

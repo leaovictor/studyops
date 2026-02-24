@@ -8,22 +8,29 @@ class ErrorNotebookService {
   CollectionReference get _notes =>
       _db.collection(AppConstants.colErrorNotebook);
 
-  Stream<List<ErrorNote>> watchAllNotes(String userId) {
-    return _notes.where('userId', isEqualTo: userId).snapshots().map((snap) =>
+  Stream<List<ErrorNote>> watchAllNotes(String userId, {String? goalId}) {
+    Query query = _notes.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query.snapshots().map((snap) =>
         snap.docs.map((d) => ErrorNote.fromDoc(d)).toList()
           ..sort((a, b) => a.nextReview.compareTo(b.nextReview)));
   }
 
-  Future<List<ErrorNote>> getDueToday(String userId) async {
+  Future<List<ErrorNote>> getDueToday(String userId, {String? goalId}) async {
     final now = DateTime.now();
     final todayEnd = Timestamp.fromDate(
       DateTime(now.year, now.month, now.day, 23, 59, 59),
     );
 
-    final snap = await _notes
-        .where('userId', isEqualTo: userId)
-        .where('nextReview', isLessThanOrEqualTo: todayEnd)
-        .get();
+    Query query = _notes.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+
+    final snap =
+        await query.where('nextReview', isLessThanOrEqualTo: todayEnd).get();
 
     return snap.docs.map((d) => ErrorNote.fromDoc(d)).toList();
   }
