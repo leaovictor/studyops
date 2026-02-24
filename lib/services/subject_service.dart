@@ -44,14 +44,54 @@ class SubjectService {
   }
 
   Future<void> deleteSubject(String subjectId) async {
-    // Also delete all topics in this subject
+    final batch = _db.batch();
+
+    // 1. Delete all topics
     final topicSnap =
         await _topics.where('subjectId', isEqualTo: subjectId).get();
-    final batch = _db.batch();
     for (final doc in topicSnap.docs) {
       batch.delete(doc.reference);
     }
+
+    // 2. Delete all flashcards
+    final cardSnap = await _db
+        .collection(AppConstants.colFlashcards)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    for (final doc in cardSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 3. Delete all error notes
+    final errorSnap = await _db
+        .collection(AppConstants.colErrorNotebook)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    for (final doc in errorSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 4. Delete all study logs
+    final logSnap = await _db
+        .collection(AppConstants.colStudyLogs)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    for (final doc in logSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 5. Delete all daily tasks
+    final taskSnap = await _db
+        .collection(AppConstants.colDailyTasks)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
+    for (final doc in taskSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 6. Delete the subject itself
     batch.delete(_subjects.doc(subjectId));
+
     await batch.commit();
   }
 

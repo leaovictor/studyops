@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/study_log_service.dart';
 import '../core/utils/app_date_utils.dart';
 import 'auth_controller.dart';
+import 'subject_controller.dart';
 
 final studyLogServiceProvider =
     Provider<StudyLogService>((ref) => StudyLogService());
@@ -56,7 +57,12 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final minutesBySubject = <String, int>{};
   final dailyMap = <String, int>{};
 
+  final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+  final activeSubjectIds = subjects.map((s) => s.id).toSet();
+
   for (final log in logs) {
+    if (!activeSubjectIds.contains(log.subjectId)) continue; // Filter deleted
+
     monthMinutes += log.minutes;
     minutesBySubject[log.subjectId] =
         (minutesBySubject[log.subjectId] ?? 0) + log.minutes;

@@ -104,133 +104,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
 
   Future<void> _showSubjectDialog(
       BuildContext context, Subject? existing) async {
-    final user = ref.read(authStateProvider).valueOrNull;
-    if (user == null) return;
-
-    final nameCtrl = TextEditingController(text: existing?.name ?? '');
-    String selectedColor =
-        existing?.color ?? AppConstants.defaultSubjectColors.first;
-    int priority = existing?.priority ?? 3;
-    int weight = existing?.weight ?? 5;
-    final formKey = GlobalKey<FormState>();
-
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
-        return AlertDialog(
-          title: Text(existing == null ? 'Nova Matéria' : 'Editar Matéria'),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    controller: nameCtrl,
-                    decoration:
-                        const InputDecoration(labelText: 'Nome da Matéria'),
-                    validator: (v) =>
-                        (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
-                  ),
-                  const SizedBox(height: 16),
-                  // Color picker
-                  const Text('Cor',
-                      style: TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: AppConstants.defaultSubjectColors.map((hex) {
-                      final color = Color(
-                          int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
-                      final isSelected = hex == selectedColor;
-                      return GestureDetector(
-                        onTap: () => setS(() => selectedColor = hex),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              width: 2.5,
-                            ),
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                        color: color.withOpacity(0.5),
-                                        blurRadius: 6)
-                                  ]
-                                : null,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  // Priority
-                  Text(
-                      'Prioridade: ${AppConstants.priorityLabels[priority - 1]}',
-                      style: const TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 13)),
-                  Slider(
-                    value: priority.toDouble(),
-                    min: 1,
-                    max: 5,
-                    divisions: 4,
-                    activeColor: AppTheme.primary,
-                    onChanged: (v) => setS(() => priority = v.round()),
-                  ),
-                  // Weight
-                  Text('Peso na prova: $weight',
-                      style: const TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 13)),
-                  Slider(
-                    value: weight.toDouble(),
-                    min: 1,
-                    max: 10,
-                    divisions: 9,
-                    activeColor: AppTheme.secondary,
-                    onChanged: (v) => setS(() => weight = v.round()),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) return;
-                final subject = Subject(
-                  id: existing?.id ?? '',
-                  userId: user.uid,
-                  name: nameCtrl.text.trim(),
-                  color: selectedColor,
-                  priority: priority,
-                  weight: weight,
-                );
-                final controller = ref.read(subjectControllerProvider.notifier);
-                if (existing == null) {
-                  controller.createSubject(subject);
-                } else {
-                  controller.updateSubject(subject);
-                }
-                Navigator.pop(ctx);
-              },
-              child: Text(existing == null ? 'Criar' : 'Salvar'),
-            ),
-          ],
-        );
-      }),
+      builder: (ctx) => _SubjectDialog(existing: existing),
     );
   }
 
@@ -487,6 +363,154 @@ class _TopicRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SubjectDialog extends ConsumerStatefulWidget {
+  final Subject? existing;
+  const _SubjectDialog({this.existing});
+
+  @override
+  ConsumerState<_SubjectDialog> createState() => _SubjectDialogState();
+}
+
+class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
+  late final TextEditingController _nameCtrl;
+  late String _selectedColor;
+  late int _priority;
+  late int _weight;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
+    _selectedColor =
+        widget.existing?.color ?? AppConstants.defaultSubjectColors.first;
+    _priority = widget.existing?.priority ?? 3;
+    _weight = widget.existing?.weight ?? 5;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.read(authStateProvider).valueOrNull;
+
+    return AlertDialog(
+      title: Text(widget.existing == null ? 'Nova Matéria' : 'Editar Matéria'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nome da Matéria'),
+                validator: (v) =>
+                    (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
+              ),
+              const SizedBox(height: 16),
+              // Color picker
+              const Text('Cor',
+                  style:
+                      TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: AppConstants.defaultSubjectColors.map((hex) {
+                  final color = Color(
+                      int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+                  final isSelected = hex == _selectedColor;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedColor = hex),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.transparent,
+                          width: 2.5,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                    color: color.withOpacity(0.5),
+                                    blurRadius: 6)
+                              ]
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              // Priority
+              Text('Prioridade: ${AppConstants.priorityLabels[_priority - 1]}',
+                  style: const TextStyle(
+                      color: AppTheme.textSecondary, fontSize: 13)),
+              Slider(
+                value: _priority.toDouble(),
+                min: 1,
+                max: 5,
+                divisions: 4,
+                activeColor: AppTheme.primary,
+                onChanged: (v) => setState(() => _priority = v.round()),
+              ),
+              // Weight
+              Text('Peso na prova: $_weight',
+                  style: const TextStyle(
+                      color: AppTheme.textSecondary, fontSize: 13)),
+              Slider(
+                value: _weight.toDouble(),
+                min: 1,
+                max: 10,
+                divisions: 9,
+                activeColor: AppTheme.secondary,
+                onChanged: (v) => setState(() => _weight = v.round()),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (user == null) return;
+            if (!_formKey.currentState!.validate()) return;
+            final subject = Subject(
+              id: widget.existing?.id ?? '',
+              userId: user.uid,
+              name: _nameCtrl.text.trim(),
+              color: _selectedColor,
+              priority: _priority,
+              weight: _weight,
+            );
+            final controller = ref.read(subjectControllerProvider.notifier);
+            if (widget.existing == null) {
+              controller.createSubject(subject);
+            } else {
+              controller.updateSubject(subject);
+            }
+            Navigator.pop(context);
+          },
+          child: Text(widget.existing == null ? 'Criar' : 'Salvar'),
+        ),
+      ],
     );
   }
 }
