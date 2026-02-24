@@ -5,6 +5,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/flashcard_controller.dart';
 import '../controllers/subject_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/flashcard_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -502,8 +503,9 @@ class _FlashcardListTile extends StatelessWidget {
           color: AppTheme.bg2,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color:
-                  isDue ? AppTheme.primary.withValues(alpha: 0.3) : AppTheme.border),
+              color: isDue
+                  ? AppTheme.primary.withValues(alpha: 0.3)
+                  : AppTheme.border),
         ),
         child: Row(
           children: [
@@ -714,9 +716,11 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) return;
 
+    final activeGoalId = ref.read(activeGoalIdProvider);
     final card = Flashcard(
       id: '',
       userId: user.uid,
+      goalId: activeGoalId,
       subjectId: _selectedSubjectId!,
       topicId: _selectedTopicId ?? '',
       front: _frontCtrl.text.trim(),

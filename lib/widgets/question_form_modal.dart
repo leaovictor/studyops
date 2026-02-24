@@ -24,6 +24,8 @@ class _QuestionFormModalState extends State<QuestionFormModal> {
   late TextEditingController _textController;
   late TextEditingController _explanationController;
   late List<TextEditingController> _optionControllers;
+  late TextEditingController _bancaController;
+  late TextEditingController _anoController;
   int _correctOptionIndex = 0;
   int _difficulty = 3;
 
@@ -34,6 +36,10 @@ class _QuestionFormModalState extends State<QuestionFormModal> {
         TextEditingController(text: widget.initialQuestion?.text ?? '');
     _explanationController =
         TextEditingController(text: widget.initialQuestion?.explanation ?? '');
+    _bancaController =
+        TextEditingController(text: widget.initialQuestion?.banca ?? '');
+    _anoController = TextEditingController(
+        text: widget.initialQuestion?.ano.toString() ?? '2024');
 
     _optionControllers = List.generate(
       4,
@@ -55,6 +61,8 @@ class _QuestionFormModalState extends State<QuestionFormModal> {
   void dispose() {
     _textController.dispose();
     _explanationController.dispose();
+    _bancaController.dispose();
+    _anoController.dispose();
     for (var c in _optionControllers) {
       c.dispose();
     }
@@ -71,6 +79,8 @@ class _QuestionFormModalState extends State<QuestionFormModal> {
         explanation: _explanationController.text,
         subjectId: widget.subjectId,
         goalId: widget.goalId,
+        banca: _bancaController.text.trim(),
+        ano: int.tryParse(_anoController.text) ?? 2024,
         difficulty: _difficulty,
         tags: widget.initialQuestion?.tags ?? [], // Keep old tags or add logic
         ownerId: widget.initialQuestion?.ownerId ?? '', // Fill at call site
@@ -171,6 +181,31 @@ class _QuestionFormModalState extends State<QuestionFormModal> {
                           labelText: 'Explicação / Comentário',
                           border: OutlineInputBorder(),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _bancaController,
+                              decoration: const InputDecoration(
+                                labelText: 'Banca (ex: CESGRANRIO)',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _anoController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Ano',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Row(

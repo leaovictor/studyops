@@ -13,6 +13,10 @@ class QuestionService {
   Future<List<Question>> fetchQuestions({
     required String subjectId,
     String? goalId,
+    String? banca,
+    int? ano,
+    List<String>? tags,
+    int limit = 10,
     bool forceServer = false,
   }) async {
     Query query = _questionsRef.where('subjectId', isEqualTo: subjectId);
@@ -20,35 +24,34 @@ class QuestionService {
     if (goalId != null) {
       query = query.where('goalId', isEqualTo: goalId);
     }
+    if (banca != null && banca.isNotEmpty) {
+      query = query.where('banca', isEqualTo: banca);
+    }
+    if (ano != null) {
+      query = query.where('ano', isEqualTo: ano);
+    }
+    if (tags != null && tags.isNotEmpty) {
+      query = query.where('tags', arrayContainsAny: tags);
+    }
+
+    // Limit to limit * 2 for shuffle engine
+    query = query.limit(limit * 2);
 
     try {
-      if (forceServer) {
-        final serverSnapshot =
-            await query.get(const GetOptions(source: Source.server));
-        return serverSnapshot.docs.map((doc) => Question.fromDoc(doc)).toList();
-      }
+      final snapshot = await query.get(
+        forceServer ? const GetOptions(source: Source.server) : null,
+      );
 
-      // Try Cache First
-      final cacheSnapshot =
-          await query.get(const GetOptions(source: Source.cache));
+      final questions =
+          snapshot.docs.map((doc) => Question.fromDoc(doc)).toList();
 
-      if (cacheSnapshot.docs.isEmpty) {
-        // Fallback to Server if empty
-        final serverSnapshot =
-            await query.get(const GetOptions(source: Source.server));
-        return serverSnapshot.docs.map((doc) => Question.fromDoc(doc)).toList();
-      }
+      // Shuffle engine logic
+      questions.shuffle();
 
-      return cacheSnapshot.docs.map((doc) => Question.fromDoc(doc)).toList();
+      // Return requested limit
+      return questions.take(limit).toList();
     } catch (e) {
-      // If an error happens while requesting cache, fetch from Server
-      try {
-        final serverSnapshot =
-            await query.get(const GetOptions(source: Source.server));
-        return serverSnapshot.docs.map((doc) => Question.fromDoc(doc)).toList();
-      } catch (_) {
-        return [];
-      }
+      return [];
     }
   }
 

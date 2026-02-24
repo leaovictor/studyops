@@ -187,6 +187,52 @@
                     "order": "ASCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "banca",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "ano",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "questions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "subjectId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "banca",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "ano",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []

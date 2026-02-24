@@ -8,6 +8,8 @@ class Question {
   final String explanation;
   final String subjectId;
   final String? goalId;
+  final String banca;
+  final int ano;
   final int difficulty; // 1-5
   final List<String> tags;
   final String ownerId; // "admin" or userId
@@ -20,6 +22,8 @@ class Question {
     required this.explanation,
     required this.subjectId,
     this.goalId,
+    required this.banca,
+    required this.ano,
     required this.difficulty,
     required this.tags,
     required this.ownerId,
@@ -35,6 +39,8 @@ class Question {
     String? explanation,
     String? subjectId,
     String? goalId,
+    String? banca,
+    int? ano,
     int? difficulty,
     List<String>? tags,
     String? ownerId,
@@ -47,6 +53,8 @@ class Question {
       explanation: explanation ?? this.explanation,
       subjectId: subjectId ?? this.subjectId,
       goalId: goalId ?? this.goalId,
+      banca: banca ?? this.banca,
+      ano: ano ?? this.ano,
       difficulty: difficulty ?? this.difficulty,
       tags: tags ?? this.tags,
       ownerId: ownerId ?? this.ownerId,
@@ -61,6 +69,8 @@ class Question {
       'explanation': explanation,
       'subjectId': subjectId,
       'goalId': goalId,
+      'banca': banca,
+      'ano': ano,
       'difficulty': difficulty,
       'tags': tags,
       'ownerId': ownerId,
@@ -76,6 +86,8 @@ class Question {
       explanation: map['explanation'] as String? ?? '',
       subjectId: map['subjectId'] as String? ?? '',
       goalId: map['goalId'] as String?,
+      banca: map['banca'] as String? ?? '',
+      ano: (map['ano'] as num?)?.toInt() ?? 2024,
       difficulty: (map['difficulty'] as num?)?.toInt() ?? 1,
       tags: List<String>.from(map['tags'] ?? []),
       ownerId: map['ownerId'] as String? ?? 'admin',

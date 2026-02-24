@@ -5,6 +5,7 @@ import '../controllers/question_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/auth_controller.dart';
+import 'question_filter_screen.dart';
 import '../models/subject_model.dart';
 import '../widgets/question_form_modal.dart';
 import '../core/theme/app_theme.dart';
@@ -85,6 +86,18 @@ class QuestionBankScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.tune_rounded, color: AppTheme.primary),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const QuestionFilterScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
                 if (subjects.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
