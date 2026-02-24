@@ -153,10 +153,38 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                                     .markReviewed(note),
                                 onEdit: () => _showNoteDialog(
                                     context, note, subjects, allTopics),
-                                onDelete: () => ref
-                                    .read(errorNotebookControllerProvider
-                                        .notifier)
-                                    .deleteNote(note.id),
+                                onDelete: () async {
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Excluir Erro'),
+                                      content: const Text(
+                                          'Tem certeza que deseja excluir este erro?\nEsta ação não pode ser desfeita.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text('Cancelar'),
+                                        ),
+                                        FilledButton(
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: AppTheme.error,
+                                            foregroundColor: Colors.white,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          child: const Text('Excluir'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirm == true) {
+                                    ref
+                                        .read(errorNotebookControllerProvider
+                                            .notifier)
+                                        .deleteNote(note.id);
+                                  }
+                                },
                               ),
                             ),
                           ),

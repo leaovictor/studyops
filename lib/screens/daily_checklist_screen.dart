@@ -209,8 +209,35 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                         controller.markDone(task, minutes);
                                       }
                                     },
-                                    onDelete: () =>
-                                        controller.deleteTask(task.id),
+                                    onDelete: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Excluir Tarefa'),
+                                          content: const Text(
+                                              'Tem certeza que deseja excluir esta tarefa?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            FilledButton(
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: AppTheme.error,
+                                                foregroundColor: Colors.white,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Excluir'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        controller.deleteTask(task.id);
+                                      }
+                                    },
                                   ),
                                 );
                               }).toList(),
