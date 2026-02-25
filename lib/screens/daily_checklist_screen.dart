@@ -14,6 +14,7 @@ import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../widgets/pomodoro_timer.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class DailyChecklistScreen extends ConsumerStatefulWidget {
   const DailyChecklistScreen({super.key});
@@ -27,6 +28,18 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   String? _pomodoroTaskId;
   late ConfettiController _confettiController;
   bool _wasDone = false;
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dailyTasksProvider);
+    ref.invalidate(subjectsProvider);
+    ref.invalidate(allTopicsProvider);
+    try {
+      await ref.read(dailyTasksProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
 
   @override
   void initState() {
@@ -37,6 +50,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
   @override
   void dispose() {
+    _refreshController.dispose();
     _confettiController.dispose();
     super.dispose();
   }
@@ -75,181 +89,193 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
       ),
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header with date picker
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+          SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _onRefresh,
+            header: const WaterDropMaterialHeader(
+              backgroundColor: AppTheme.primary,
+            ),
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header with date picker
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Checklist Diário',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Date picker
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2030),
+                                  builder: (ctx, child) => Theme(
+                                    data: Theme.of(ctx),
+                                    child: child!,
+                                  ),
+                                );
+                                if (picked != null) {
+                                  ref
+                                      .read(selectedDateProvider.notifier)
+                                      .state = picked;
+                                }
+                              },
+                              icon: const Icon(Icons.calendar_today_rounded,
+                                  size: 16),
+                              label:
+                                  Text(AppDateUtils.displayDate(selectedDate)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Progress bar
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Checklist Diário',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.textPrimary,
+                                  '$done/$total tarefas concluídas',
+                                  style: const TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  '${(progress * 100).round()}%',
+                                  style: const TextStyle(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                          // Date picker
-                          OutlinedButton.icon(
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: selectedDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2030),
-                                builder: (ctx, child) => Theme(
-                                  data: Theme.of(ctx),
-                                  child: child!,
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0, end: progress),
+                                duration: const Duration(milliseconds: 600),
+                                builder: (_, value, __) =>
+                                    LinearProgressIndicator(
+                                  value: value,
+                                  minHeight: 6,
+                                  backgroundColor: AppTheme.border,
+                                  valueColor: const AlwaysStoppedAnimation(
+                                      AppTheme.primary),
                                 ),
-                              );
-                              if (picked != null) {
-                                ref.read(selectedDateProvider.notifier).state =
-                                    picked;
-                              }
-                            },
-                            icon: const Icon(Icons.calendar_today_rounded,
-                                size: 16),
-                            label: Text(AppDateUtils.displayDate(selectedDate)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Progress bar
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '$done/$total tarefas concluídas',
-                                style: const TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                '${(progress * 100).round()}%',
-                                style: const TextStyle(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0, end: progress),
-                              duration: const Duration(milliseconds: 600),
-                              builder: (_, value, __) =>
-                                  LinearProgressIndicator(
-                                value: value,
-                                minHeight: 6,
-                                backgroundColor: AppTheme.border,
-                                valueColor: const AlwaysStoppedAnimation(
-                                    AppTheme.primary),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      if (tasks.isEmpty)
-                        _EmptyChecklistState()
-                      else
-                        AnimationLimiter(
-                          child: Column(
-                            children: AnimationConfiguration.toStaggeredList(
-                              duration: const Duration(milliseconds: 375),
-                              childAnimationBuilder: (widget) => SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: widget,
-                                ),
-                              ),
-                              children: tasks.map((task) {
-                                final subject = subjectMap[task.subjectId];
-                                final topic = topicMap[task.topicId];
-                                final showPomodoro = _pomodoroTaskId == task.id;
-
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _TaskCard(
-                                    task: task,
-                                    subject: subject,
-                                    topicName: topic?.name ?? 'Tópico',
-                                    showPomodoro: showPomodoro,
-                                    onTogglePomodoro: () {
-                                      setState(() {
-                                        _pomodoroTaskId =
-                                            showPomodoro ? null : task.id;
-                                      });
-                                    },
-                                    onToggleDone: (minutes) {
-                                      if (task.done) {
-                                        controller.markUndone(task.id);
-                                      } else {
-                                        controller.markDone(task, minutes);
-                                      }
-                                    },
-                                    onDelete: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Excluir Tarefa'),
-                                          content: const Text(
-                                              'Tem certeza que deseja excluir esta tarefa?'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            FilledButton(
-                                              style: FilledButton.styleFrom(
-                                                backgroundColor: AppTheme.error,
-                                                foregroundColor: Colors.white,
-                                              ),
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                              child: const Text('Excluir'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        controller.deleteTask(task.id);
-                                      }
-                                    },
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
+                          ],
                         ),
-                    ],
+
+                        const SizedBox(height: 24),
+
+                        if (tasks.isEmpty)
+                          _EmptyChecklistState()
+                        else
+                          AnimationLimiter(
+                            child: Column(
+                              children: AnimationConfiguration.toStaggeredList(
+                                duration: const Duration(milliseconds: 375),
+                                childAnimationBuilder: (widget) =>
+                                    SlideAnimation(
+                                  verticalOffset: 50.0,
+                                  child: FadeInAnimation(
+                                    child: widget,
+                                  ),
+                                ),
+                                children: tasks.map((task) {
+                                  final subject = subjectMap[task.subjectId];
+                                  final topic = topicMap[task.topicId];
+                                  final showPomodoro =
+                                      _pomodoroTaskId == task.id;
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: _TaskCard(
+                                      task: task,
+                                      subject: subject,
+                                      topicName: topic?.name ?? 'Tópico',
+                                      showPomodoro: showPomodoro,
+                                      onTogglePomodoro: () {
+                                        setState(() {
+                                          _pomodoroTaskId =
+                                              showPomodoro ? null : task.id;
+                                        });
+                                      },
+                                      onToggleDone: (minutes) {
+                                        if (task.done) {
+                                          controller.markUndone(task.id);
+                                        } else {
+                                          controller.markDone(task, minutes);
+                                        }
+                                      },
+                                      onDelete: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Excluir Tarefa'),
+                                            content: const Text(
+                                                'Tem certeza que deseja excluir esta tarefa?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(
+                                                    context, false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              FilledButton(
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor:
+                                                      AppTheme.error,
+                                                  foregroundColor: Colors.white,
+                                                ),
+                                                onPressed: () => Navigator.pop(
+                                                    context, true),
+                                                child: const Text('Excluir'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          controller.deleteTask(task.id);
+                                        }
+                                      },
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Align(
             alignment: Alignment.topCenter,

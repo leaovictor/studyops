@@ -17,11 +17,40 @@ import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
 import '../widgets/goal_switcher.dart';
 
-class DashboardScreen extends ConsumerWidget {
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(subjectsProvider);
+    ref.invalidate(dueTodayNotesProvider);
+    ref.invalidate(dueFlashcardsProvider);
+
+    try {
+      await ref.read(dashboardProvider.future);
+    } catch (_) {}
+
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dashAsync = ref.watch(dashboardProvider);
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final dueNotes = ref.watch(dueTodayNotesProvider).valueOrNull ?? [];
@@ -48,89 +77,120 @@ class DashboardScreen extends ConsumerWidget {
             for (final s in subjects) s.id: s.name,
           };
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 40 : 20,
-              vertical: 32,
+          return SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _onRefresh,
+            header: const WaterDropMaterialHeader(
+              backgroundColor: AppTheme.primary,
             ),
-            child: AnimationLimiter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: AnimationConfiguration.toStaggeredList(
-                  duration: const Duration(milliseconds: 375),
-                  childAnimationBuilder: (widget) => SlideAnimation(
-                    verticalOffset: 50.0,
-                    child: FadeInAnimation(
-                      child: widget,
-                    ),
-                  ),
-                  children: [
-                    const _Header(userName: 'Victor'), // Mocked name
-                    const SizedBox(height: 32),
-
-                    // Top Metrics
-                    _TopMetricsRow(
-                      data: data,
-                      isDesktop: isDesktop,
-                      isTablet: isTablet,
-                    ),
-                    const SizedBox(height: 32),
-
-                    // No Active Plan CTA
-                    if (activeId != null && activePlan == null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: _NoPlanCTA(
-                          onTap: () => context.go('/settings'),
-                        ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 40 : 20,
+                vertical: 32,
+              ),
+              child: AnimationLimiter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: AnimationConfiguration.toStaggeredList(
+                    duration: const Duration(milliseconds: 375),
+                    childAnimationBuilder: (widget) => SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: widget,
                       ),
+                    ),
+                    children: [
+                      const _Header(userName: 'Victor'), // Mocked name
+                      const SizedBox(height: 32),
 
-                    // Suggested Study Subject
-                    if (activeId != null &&
-                        activePlan != null &&
-                        data.suggestedSubjectId != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: _SuggestedSubjectCTA(
-                          subject: subjects.firstWhere(
-                            (s) => s.id == data.suggestedSubjectId,
-                            orElse: () => subjects.isNotEmpty
-                                ? subjects.first
-                                : const Subject(
-                                    id: '',
-                                    userId: '',
-                                    name: 'Desconhecida',
-                                    color: '#7C6FFF',
-                                    priority: 3,
-                                    weight: 5,
-                                    difficulty: 3),
+                      // Top Metrics
+                      _TopMetricsRow(
+                        data: data,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
+                      ),
+                      const SizedBox(height: 32),
+
+                      // No Active Plan CTA
+                      if (activeId != null && activePlan == null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: _NoPlanCTA(
+                            onTap: () => context.go('/settings'),
                           ),
-                          suggestedMinutes: data.suggestedMinutes,
-                          onTap: () => context.go('/subjects'),
                         ),
-                      ),
 
-                    // Main Content (Charts)
-                    if (isDesktop || isTablet)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: _ChartCard(
+                      // Suggested Study Subject
+                      if (activeId != null &&
+                          activePlan != null &&
+                          data.suggestedSubjectId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: _SuggestedSubjectCTA(
+                            subject: subjects.firstWhere(
+                              (s) => s.id == data.suggestedSubjectId,
+                              orElse: () => subjects.isNotEmpty
+                                  ? subjects.first
+                                  : const Subject(
+                                      id: '',
+                                      userId: '',
+                                      name: 'Desconhecida',
+                                      color: '#7C6FFF',
+                                      priority: 3,
+                                      weight: 5,
+                                      difficulty: 3),
+                            ),
+                            suggestedMinutes: data.suggestedMinutes,
+                            onTap: () => context.go('/subjects'),
+                          ),
+                        ),
+
+                      // Main Content (Charts)
+                      if (isDesktop || isTablet)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: _ChartCard(
+                                title: 'Progresso Semanal (horas)',
+                                height: 300,
+                                child: data.weeklyTrend.isEmpty
+                                    ? _emptyChart()
+                                    : WeeklyBarChart(data: data.weeklyTrend),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              flex: 2,
+                              child: _ChartCard(
+                                title: 'Foco por Matéria',
+                                height: 300,
+                                child: subjects.isEmpty
+                                    ? _emptyChart()
+                                    : SubjectPieChart(
+                                        data: data.minutesBySubject,
+                                        subjectColors: subjectColorMap,
+                                        subjectNames: subjectNameMap,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          children: [
+                            _ChartCard(
                               title: 'Progresso Semanal (horas)',
-                              height: 300,
+                              height: 240,
                               child: data.weeklyTrend.isEmpty
                                   ? _emptyChart()
                                   : WeeklyBarChart(data: data.weeklyTrend),
                             ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            flex: 2,
-                            child: _ChartCard(
+                            const SizedBox(height: 24),
+                            _ChartCard(
                               title: 'Foco por Matéria',
-                              height: 300,
+                              height: 240,
                               child: subjects.isEmpty
                                   ? _emptyChart()
                                   : SubjectPieChart(
@@ -139,107 +199,84 @@ class DashboardScreen extends ConsumerWidget {
                                       subjectNames: subjectNameMap,
                                     ),
                             ),
-                          ),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          _ChartCard(
-                            title: 'Progresso Semanal (horas)',
-                            height: 240,
-                            child: data.weeklyTrend.isEmpty
-                                ? _emptyChart()
-                                : WeeklyBarChart(data: data.weeklyTrend),
-                          ),
-                          const SizedBox(height: 24),
-                          _ChartCard(
-                            title: 'Foco por Matéria',
-                            height: 240,
-                            child: subjects.isEmpty
-                                ? _emptyChart()
-                                : SubjectPieChart(
-                                    data: data.minutesBySubject,
-                                    subjectColors: subjectColorMap,
-                                    subjectNames: subjectNameMap,
-                                  ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Planned vs Read Row
-                    if (isDesktop || isTablet)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: _ChartCard(
-                              title: 'Planejado vs Lido Hoje',
-                              height: 280,
-                              child: PlannedVsReadChart(
-                                data: data.plannedVsRead,
-                                subjectNames: subjectNameMap,
+                      // Planned vs Read Row
+                      if (isDesktop || isTablet)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: _ChartCard(
+                                title: 'Planejado vs Lido Hoje',
+                                height: 280,
+                                child: PlannedVsReadChart(
+                                  data: data.plannedVsRead,
+                                  subjectNames: subjectNameMap,
+                                ),
                               ),
                             ),
+                          ],
+                        )
+                      else
+                        _ChartCard(
+                          title: 'Planejado vs Lido Hoje',
+                          height: 240,
+                          child: PlannedVsReadChart(
+                            data: data.plannedVsRead,
+                            subjectNames: subjectNameMap,
                           ),
-                        ],
-                      )
-                    else
-                      _ChartCard(
-                        title: 'Planejado vs Lido Hoje',
-                        height: 240,
-                        child: PlannedVsReadChart(
-                          data: data.plannedVsRead,
-                          subjectNames: subjectNameMap,
                         ),
-                      ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                    // Bottom Section: Activities & Summary
-                    if (isDesktop)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _SectionCard(
+                      // Bottom Section: Activities & Summary
+                      if (isDesktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _SectionCard(
+                                title: 'Pendências de Hoje',
+                                child: _TodaySummary(
+                                  dueNotesCount: dueNotes.length,
+                                  dueFlashcardsCount: dueFlashcards.length,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              child: _SectionCard(
+                                title: 'Últimas Conquistas',
+                                child:
+                                    _AchievementsList(streak: data.streakDays),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          children: [
+                            _SectionCard(
                               title: 'Pendências de Hoje',
                               child: _TodaySummary(
                                 dueNotesCount: dueNotes.length,
                                 dueFlashcardsCount: dueFlashcards.length,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: _SectionCard(
+                            const SizedBox(height: 24),
+                            _SectionCard(
                               title: 'Últimas Conquistas',
                               child: _AchievementsList(streak: data.streakDays),
                             ),
-                          ),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: [
-                          _SectionCard(
-                            title: 'Pendências de Hoje',
-                            child: _TodaySummary(
-                              dueNotesCount: dueNotes.length,
-                              dueFlashcardsCount: dueFlashcards.length,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _SectionCard(
-                            title: 'Últimas Conquistas',
-                            child: _AchievementsList(streak: data.streakDays),
-                          ),
-                        ],
-                      ),
-                  ],
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

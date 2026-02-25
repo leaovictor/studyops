@@ -11,6 +11,7 @@ import '../models/subject_model.dart';
 import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class FlashcardsScreen extends ConsumerStatefulWidget {
   const FlashcardsScreen({super.key});
@@ -102,69 +103,104 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
 // ---------------------------------------------------------------------------
 // Review Tab — decks grouped by subject
 // ---------------------------------------------------------------------------
-class _ReviewTab extends ConsumerWidget {
+class _ReviewTab extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReviewTab> createState() => _ReviewTabState();
+}
+
+class _ReviewTabState extends ConsumerState<_ReviewTab> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dueFlashcardsProvider);
+    ref.invalidate(subjectsProvider);
+    try {
+      await ref.read(dueFlashcardsProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dueAsync = ref.watch(dueFlashcardsProvider);
     final subjectsAsync = ref.watch(subjectsProvider);
 
-    return dueAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
-      data: (due) {
-        final subjects = subjectsAsync.valueOrNull ?? [];
-        final bySubject = <String, List<Flashcard>>{};
-        for (final c in due) {
-          bySubject.putIfAbsent(c.subjectId, () => []).add(c);
-        }
+    return SmartRefresher(
+      controller: _refreshController,
+      onRefresh: _onRefresh,
+      header: const WaterDropMaterialHeader(
+        backgroundColor: AppTheme.primary,
+      ),
+      child: dueAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(child: Text('Erro: $e'))),
+        data: (due) {
+          final subjects = subjectsAsync.valueOrNull ?? [];
+          final bySubject = <String, List<Flashcard>>{};
+          for (final c in due) {
+            bySubject.putIfAbsent(c.subjectId, () => []).add(c);
+          }
 
-        if (bySubject.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.check_circle_outline_rounded,
-            title: 'Tudo em dia!',
-            subtitle: 'Nenhum card para revisar hoje.',
-          );
-        }
-
-        return AnimationLimiter(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: AnimationConfiguration.toStaggeredList(
-              duration: const Duration(milliseconds: 375),
-              childAnimationBuilder: (widget) => SlideAnimation(
-                verticalOffset: 50.0,
-                child: FadeInAnimation(child: widget),
+          if (bySubject.isEmpty) {
+            return const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: _EmptyState(
+                icon: Icons.check_circle_outline_rounded,
+                title: 'Tudo em dia!',
+                subtitle: 'Nenhum card para revisar hoje.',
               ),
-              children: [
-                _SummaryBanner(
-                  totalDue: due.length,
-                  onStudyAll: () => context.push('/flashcards/study'),
+            );
+          }
+
+          return AnimationLimiter(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) => SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(child: widget),
                 ),
-                const SizedBox(height: 16),
-                ...bySubject.entries.map((e) {
-                  final subject = subjects.firstWhere(
-                    (s) => s.id == e.key,
-                    orElse: () => Subject(
-                        id: e.key,
-                        userId: '',
-                        name: 'Matéria',
-                        color: '#7C6FFF',
-                        priority: 1,
-                        weight: 1,
-                        difficulty: 3),
-                  );
-                  return _DeckCard(
-                    subject: subject,
-                    count: e.value.length,
-                    onStudy: () => context
-                        .push('/flashcards/study?subjectId=${subject.id}'),
-                  );
-                }),
-              ],
+                children: [
+                  _SummaryBanner(
+                    totalDue: due.length,
+                    onStudyAll: () => context.push('/flashcards/study'),
+                  ),
+                  const SizedBox(height: 16),
+                  ...bySubject.entries.map((e) {
+                    final subject = subjects.firstWhere(
+                      (s) => s.id == e.key,
+                      orElse: () => Subject(
+                          id: e.key,
+                          userId: '',
+                          name: 'Matéria',
+                          color: '#7C6FFF',
+                          priority: 1,
+                          weight: 1,
+                          difficulty: 3),
+                    );
+                    return _DeckCard(
+                      subject: subject,
+                      count: e.value.length,
+                      onStudy: () => context
+                          .push('/flashcards/study?subjectId=${subject.id}'),
+                    );
+                  }),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -315,7 +351,7 @@ class _DeckCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // All Cards Tab
 // ---------------------------------------------------------------------------
-class _AllCardsTab extends ConsumerWidget {
+class _AllCardsTab extends ConsumerStatefulWidget {
   final String? filterSubjectId;
   final void Function(String?) onFilterChanged;
 
@@ -325,102 +361,140 @@ class _AllCardsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AllCardsTab> createState() => _AllCardsTabState();
+}
+
+class _AllCardsTabState extends ConsumerState<_AllCardsTab> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(flashcardsProvider);
+    ref.invalidate(subjectsProvider);
+    try {
+      await ref.read(flashcardsProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final allAsync = ref.watch(flashcardsProvider);
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
 
-    return allAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
-      data: (all) {
-        final filtered = filterSubjectId == null
-            ? all
-            : all.where((c) => c.subjectId == filterSubjectId).toList();
+    return SmartRefresher(
+      controller: _refreshController,
+      onRefresh: _onRefresh,
+      header: const WaterDropMaterialHeader(
+        backgroundColor: AppTheme.primary,
+      ),
+      child: allAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(child: Text('Erro: $e'))),
+        data: (all) {
+          final filtered = widget.filterSubjectId == null
+              ? all
+              : all
+                  .where((c) => c.subjectId == widget.filterSubjectId)
+                  .toList();
 
-        return Column(
-          children: [
-            // Filter chips
-            if (subjects.isNotEmpty)
-              SizedBox(
-                height: 52,
-                child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _FilterChip(
-                      label: 'Todas',
-                      selected: filterSubjectId == null,
-                      color: AppTheme.primary,
-                      onTap: () => onFilterChanged(null),
-                    ),
-                    ...subjects.map((s) {
-                      final color = Color(int.parse(
-                          'FF${s.color.replaceAll('#', '')}',
-                          radix: 16));
-                      return _FilterChip(
-                        label: s.name,
-                        selected: filterSubjectId == s.id,
-                        color: color,
-                        onTap: () => onFilterChanged(
-                            filterSubjectId == s.id ? null : s.id),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-
-            if (filtered.isEmpty)
-              const Expanded(
-                child: _EmptyState(
-                  icon: Icons.style_outlined,
-                  title: 'Nenhum flashcard',
-                  subtitle: 'Crie seu primeiro card clicando em "+ Novo card".',
-                ),
-              )
-            else
-              Expanded(
-                child: AnimationLimiter(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) {
-                      final c = filtered[i];
-                      final subject = subjects.firstWhere(
-                        (s) => s.id == c.subjectId,
-                        orElse: () => const Subject(
-                            id: '',
-                            userId: '',
-                            name: 'Matéria',
-                            color: '#7C6FFF',
-                            priority: 1,
-                            weight: 1,
-                            difficulty: 3),
-                      );
-                      return AnimationConfiguration.staggeredList(
-                        position: i,
-                        duration: const Duration(milliseconds: 375),
-                        child: SlideAnimation(
-                          verticalOffset: 50.0,
-                          child: FadeInAnimation(
-                            child: _FlashcardListTile(
-                              card: c,
-                              subject: subject,
-                              onDelete: () => ref
-                                  .read(flashcardControllerProvider.notifier)
-                                  .delete(c.id),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+          return Column(
+            children: [
+              // Filter chips
+              if (subjects.isNotEmpty)
+                SizedBox(
+                  height: 52,
+                  child: ListView(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _FilterChip(
+                        label: 'Todas',
+                        selected: widget.filterSubjectId == null,
+                        color: AppTheme.primary,
+                        onTap: () => widget.onFilterChanged(null),
+                      ),
+                      ...subjects.map((s) {
+                        final color = Color(int.parse(
+                            'FF${s.color.replaceAll('#', '')}',
+                            radix: 16));
+                        return _FilterChip(
+                          label: s.name,
+                          selected: widget.filterSubjectId == s.id,
+                          color: color,
+                          onTap: () => widget.onFilterChanged(
+                              widget.filterSubjectId == s.id ? null : s.id),
+                        );
+                      }),
+                    ],
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+
+              if (filtered.isEmpty)
+                const Expanded(
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: _EmptyState(
+                      icon: Icons.style_outlined,
+                      title: 'Nenhum flashcard',
+                      subtitle:
+                          'Crie seu primeiro card clicando em "+ Novo card".',
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: AnimationLimiter(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final c = filtered[i];
+                        final subject = subjects.firstWhere(
+                          (s) => s.id == c.subjectId,
+                          orElse: () => const Subject(
+                              id: '',
+                              userId: '',
+                              name: 'Matéria',
+                              color: '#7C6FFF',
+                              priority: 1,
+                              weight: 1,
+                              difficulty: 3),
+                        );
+                        return AnimationConfiguration.staggeredList(
+                          position: i,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              child: _FlashcardListTile(
+                                card: c,
+                                subject: subject,
+                                onDelete: () => ref
+                                    .read(flashcardControllerProvider.notifier)
+                                    .delete(c.id),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

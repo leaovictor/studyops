@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../controllers/goal_controller.dart';
 import '../models/goal_model.dart';
 import '../core/theme/app_theme.dart';
@@ -119,7 +120,8 @@ class GoalSwitcher extends ConsumerWidget {
       },
       loading: () =>
           const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (e, st) =>
+          Text('Error: $e', style: const TextStyle(color: Colors.red)),
     );
   }
 
@@ -199,6 +201,7 @@ class GoalSwitcher extends ConsumerWidget {
                               .read(goalControllerProvider.notifier)
                               .setActiveGoal(goal.id);
                           Navigator.pop(context);
+                          context.go('/subjects');
                         },
                       );
                     },
@@ -294,7 +297,8 @@ class GoalSwitcher extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.error,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppTheme.error.withValues(alpha: 0.2),
+                    disabledBackgroundColor:
+                        AppTheme.error.withValues(alpha: 0.2),
                   ),
                   child: const Text('Excluir Definitivamente'),
                 );

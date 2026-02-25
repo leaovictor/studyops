@@ -7,6 +7,7 @@ import '../controllers/subject_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../models/topic_model.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -18,11 +19,29 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dailyTasksProvider);
+    ref.invalidate(subjectsProvider);
+    ref.invalidate(allTopicsProvider);
+    try {
+      await ref.read(dailyTasksProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
   }
 
   @override
@@ -136,106 +155,120 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: tasks.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Sem tarefas neste dia',
-                              style: TextStyle(color: AppTheme.textMuted),
-                            ),
-                          )
-                        : AnimationLimiter(
-                            child: ListView.separated(
-                              itemCount: tasks.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 8),
-                              itemBuilder: (_, i) {
-                                final task = tasks[i];
-                                final subject = subjectMap[task.subjectId];
-                                final topic = topicMap[task.topicId];
-                                final color = subject != null
-                                    ? Color(int.parse(
-                                        'FF${subject.color.replaceAll('#', '')}',
-                                        radix: 16))
-                                    : AppTheme.primary;
-                                return AnimationConfiguration.staggeredList(
-                                  position: i,
-                                  duration: const Duration(milliseconds: 375),
-                                  child: SlideAnimation(
-                                    verticalOffset: 50.0,
-                                    child: FadeInAnimation(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.bg2,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          border: Border.all(
-                                            color: task.done
-                                                ? AppTheme.border
-                                                : color.withValues(alpha: 0.3),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              task.done
-                                                  ? Icons.check_circle_rounded
-                                                  : Icons.circle_outlined,
+                    child: SmartRefresher(
+                      controller: _refreshController,
+                      onRefresh: _onRefresh,
+                      header: const WaterDropMaterialHeader(
+                        backgroundColor: AppTheme.primary,
+                      ),
+                      child: tasks.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                height: 200,
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Sem tarefas neste dia',
+                                  style: TextStyle(color: AppTheme.textMuted),
+                                ),
+                              ),
+                            )
+                          : AnimationLimiter(
+                              child: ListView.separated(
+                                itemCount: tasks.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (_, i) {
+                                  final task = tasks[i];
+                                  final subject = subjectMap[task.subjectId];
+                                  final topic = topicMap[task.topicId];
+                                  final color = subject != null
+                                      ? Color(int.parse(
+                                          'FF${subject.color.replaceAll('#', '')}',
+                                          radix: 16))
+                                      : AppTheme.primary;
+                                  return AnimationConfiguration.staggeredList(
+                                    position: i,
+                                    duration: const Duration(milliseconds: 375),
+                                    child: SlideAnimation(
+                                      verticalOffset: 50.0,
+                                      child: FadeInAnimation(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.bg2,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            border: Border.all(
                                               color: task.done
-                                                  ? AppTheme.accent
-                                                  : AppTheme.textMuted,
-                                              size: 18,
+                                                  ? AppTheme.border
+                                                  : color.withValues(
+                                                      alpha: 0.3),
                                             ),
-                                            const SizedBox(width: 12),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: color.withValues(alpha: 0.15),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                task.done
+                                                    ? Icons.check_circle_rounded
+                                                    : Icons.circle_outlined,
+                                                color: task.done
+                                                    ? AppTheme.accent
+                                                    : AppTheme.textMuted,
+                                                size: 18,
                                               ),
-                                              child: Text(
-                                                subject?.name ?? 'Matéria',
-                                                style: TextStyle(
-                                                  color: color,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                              const SizedBox(width: 12),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: color.withValues(
+                                                      alpha: 0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  subject?.name ?? 'Matéria',
+                                                  style: TextStyle(
+                                                    color: color,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                topic?.name ?? 'Tópico',
-                                                style: TextStyle(
-                                                  color: task.done
-                                                      ? AppTheme.textMuted
-                                                      : AppTheme.textPrimary,
-                                                  fontSize: 13,
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  topic?.name ?? 'Tópico',
+                                                  style: TextStyle(
+                                                    color: task.done
+                                                        ? AppTheme.textMuted
+                                                        : AppTheme.textPrimary,
+                                                    fontSize: 13,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            Text(
-                                              AppDateUtils.formatMinutes(
-                                                  task.plannedMinutes),
-                                              style: const TextStyle(
-                                                color: AppTheme.textMuted,
-                                                fontSize: 12,
+                                              Text(
+                                                AppDateUtils.formatMinutes(
+                                                    task.plannedMinutes),
+                                                style: const TextStyle(
+                                                  color: AppTheme.textMuted,
+                                                  fontSize: 12,
+                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
-                          ),
+                    ),
                   ),
                 ],
               ),

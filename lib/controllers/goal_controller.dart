@@ -122,7 +122,9 @@ class GoalController extends AsyncNotifier<void> {
   }
 
   Future<void> deleteGoal(String goalId) async {
-    await _service.deleteGoal(goalId);
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+    await _service.deleteGoal(goalId, user.uid);
     if (ref.read(activeGoalIdProvider) == goalId) {
       ref.read(activeGoalIdProvider.notifier).state = null;
     }

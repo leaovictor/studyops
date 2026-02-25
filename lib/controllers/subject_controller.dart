@@ -38,37 +38,93 @@ class SubjectController extends AsyncNotifier<void> {
   Future<void> build() async {}
 
   Future<void> createSubject(Subject subject) async {
-    await _service.createSubject(subject);
+    state = const AsyncLoading();
+    try {
+      await _service.createSubject(subject);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> createSubjectWithId(Subject subject) async {
-    await _service.createSubjectWithId(subject);
+    state = const AsyncLoading();
+    try {
+      await _service.createSubjectWithId(subject);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> createDefaultTopic(String subjectId) async {
-    final user = ref.read(authStateProvider).valueOrNull;
-    if (user == null) return;
-    await _service.createDefaultTopic(user.uid, subjectId);
+    state = const AsyncLoading();
+    try {
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) throw Exception('Usuário não autenticado');
+      await _service.createDefaultTopic(user.uid, subjectId);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> updateSubject(Subject subject) async {
-    await _service.updateSubject(subject);
+    state = const AsyncLoading();
+    try {
+      await _service.updateSubject(subject);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> deleteSubject(String subjectId) async {
-    await _service.deleteSubject(subjectId);
+    state = const AsyncLoading();
+    try {
+      await _service.deleteSubject(subjectId);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> createTopic(Topic topic) async {
-    await _service.createTopic(topic);
+    state = const AsyncLoading();
+    try {
+      await _service.createTopic(topic);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> updateTopic(Topic topic) async {
-    await _service.updateTopic(topic);
+    state = const AsyncLoading();
+    try {
+      await _service.updateTopic(topic);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 
   Future<void> deleteTopic(String topicId) async {
-    await _service.deleteTopic(topicId);
+    state = const AsyncLoading();
+    try {
+      await _service.deleteTopic(topicId);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
   }
 }
 

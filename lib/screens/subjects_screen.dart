@@ -9,6 +9,9 @@ import '../widgets/relevance_tooltip.dart';
 import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/constants/app_constants.dart';
+import '../controllers/goal_controller.dart';
+
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class SubjectsScreen extends ConsumerStatefulWidget {
   const SubjectsScreen({super.key});
@@ -19,10 +22,26 @@ class SubjectsScreen extends ConsumerStatefulWidget {
 
 class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
   String? _expandedSubjectId;
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(subjectsProvider);
+    try {
+      await ref.read(subjectsProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+    final subjectsAsync = ref.watch(subjectsProvider);
     final controller = ref.read(subjectControllerProvider.notifier);
 
     return Scaffold(
@@ -46,76 +65,176 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${subjects.length} matéria(s) cadastrada(s)',
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            subjectsAsync.maybeWhen(
+              data: (subjects) => Text(
+                '${subjects.length} matéria(s) cadastrada(s)',
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13),
+              ),
+              orElse: () => const SizedBox.shrink(),
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: subjects.isEmpty
-                  ? _EmptySubjects()
-                  : AnimationLimiter(
-                      child: ListView.separated(
-                        itemCount: subjects.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final subject = subjects[i];
-                          final isExpanded = _expandedSubjectId == subject.id;
-                          return AnimationConfiguration.staggeredList(
-                            position: i,
-                            duration: const Duration(milliseconds: 375),
-                            child: SlideAnimation(
-                              verticalOffset: 50.0,
-                              child: FadeInAnimation(
-                                child: _SubjectCard(
-                                  key: ValueKey(subject.id),
-                                  subject: subject,
-                                  isExpanded: isExpanded,
-                                  onExpand: () => setState(() {
-                                    _expandedSubjectId =
-                                        isExpanded ? null : subject.id;
-                                  }),
-                                  onEdit: () =>
-                                      _showSubjectDialog(context, subject),
-                                  onDelete: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('Excluir Matéria'),
-                                        content: Text(
-                                            'Excluir "${subject.name}" e todos os seus tópicos?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () {
-                                              controller
-                                                  .deleteSubject(subject.id);
-                                              if (ctx.mounted) {
-                                                Navigator.pop(ctx);
-                                              }
-                                            },
-                                            style: FilledButton.styleFrom(
-                                                backgroundColor:
-                                                    AppTheme.error),
-                                            child: const Text('Excluir'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                  onAddTopic: () => _showTopicDialog(
-                                      context, subject.id, null),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+              child: SmartRefresher(
+                controller: _refreshController,
+                onRefresh: _onRefresh,
+                header: const WaterDropMaterialHeader(
+                  backgroundColor: AppTheme.primary,
+                ),
+                child: subjectsAsync.when(
+                  loading: () => const Center(
+                      child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+                  )),
+                  error: (e, _) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.error_outline_rounded,
+                              color: AppTheme.error, size: 48),
+                          const SizedBox(height: 16),
+                          const Text('Erro ao carregar matérias',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          Text(e.toString(),
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppTheme.textMuted)),
+                          const SizedBox(height: 16),
+                          TextButton(
+                              onPressed: _onRefresh,
+                              child: const Text('Tentar novamente')),
+                        ],
                       ),
                     ),
+                  ),
+                  data: (subjects) => subjects.isEmpty
+                      ? SingleChildScrollView(child: _EmptySubjects())
+                      : AnimationLimiter(
+                          child: ListView.separated(
+                            itemCount: subjects.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) {
+                              final subject = subjects[i];
+                              final isExpanded =
+                                  _expandedSubjectId == subject.id;
+                              return AnimationConfiguration.staggeredList(
+                                position: i,
+                                duration: const Duration(milliseconds: 375),
+                                child: SlideAnimation(
+                                  verticalOffset: 50.0,
+                                  child: FadeInAnimation(
+                                    child: _SubjectCard(
+                                      key: ValueKey(subject.id),
+                                      subject: subject,
+                                      isExpanded: isExpanded,
+                                      onExpand: () => setState(() {
+                                        _expandedSubjectId =
+                                            isExpanded ? null : subject.id;
+                                      }),
+                                      onEdit: () =>
+                                          _showSubjectDialog(context, subject),
+                                      onDelete: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) {
+                                            bool isDeleting = false;
+                                            return StatefulBuilder(
+                                              builder: (ctx, setS) {
+                                                return AlertDialog(
+                                                  title: const Text(
+                                                      'Excluir Matéria'),
+                                                  content: Text(
+                                                      'Excluir "${subject.name}" e todos os seus tópicos?'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: isDeleting
+                                                          ? null
+                                                          : () => Navigator.pop(
+                                                              ctx),
+                                                      child: const Text(
+                                                          'Cancelar'),
+                                                    ),
+                                                    FilledButton(
+                                                      onPressed: isDeleting
+                                                          ? null
+                                                          : () async {
+                                                              setS(() =>
+                                                                  isDeleting =
+                                                                      true);
+                                                              try {
+                                                                await controller
+                                                                    .deleteSubject(
+                                                                        subject
+                                                                            .id);
+                                                                if (ctx
+                                                                    .mounted) {
+                                                                  Navigator.pop(
+                                                                      ctx);
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    const SnackBar(
+                                                                        content:
+                                                                            Text('Matéria excluída')),
+                                                                  );
+                                                                }
+                                                              } catch (e) {
+                                                                if (ctx
+                                                                    .mounted) {
+                                                                  setS(() =>
+                                                                      isDeleting =
+                                                                          false);
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                        content:
+                                                                            Text('Erro ao excluir: $e')),
+                                                                  );
+                                                                }
+                                                              }
+                                                            },
+                                                      style: FilledButton
+                                                          .styleFrom(
+                                                              backgroundColor:
+                                                                  AppTheme
+                                                                      .error),
+                                                      child: isDeleting
+                                                          ? const SizedBox(
+                                                              width: 20,
+                                                              height: 20,
+                                                              child:
+                                                                  CircularProgressIndicator(
+                                                                strokeWidth: 2,
+                                                                valueColor:
+                                                                    AlwaysStoppedAnimation(
+                                                                        Colors
+                                                                            .white),
+                                                              ),
+                                                            )
+                                                          : const Text(
+                                                              'Excluir'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                      onAddTopic: () => _showTopicDialog(
+                                          context, subject.id, null),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                ),
+              ),
             ),
           ],
         ),
@@ -139,68 +258,105 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
 
     await showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
-        return AlertDialog(
-          title: Text(existing == null ? 'Novo Tópico' : 'Editar Tópico'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameCtrl,
-                  decoration:
-                      const InputDecoration(labelText: 'Nome do Tópico'),
-                  validator: (v) =>
-                      (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
+      builder: (context) {
+        bool isLoading = false;
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return AlertDialog(
+              title: Text(existing == null ? 'Novo Tópico' : 'Editar Tópico'),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration:
+                          const InputDecoration(labelText: 'Nome do Tópico'),
+                      validator: (v) =>
+                          (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                        'Dificuldade: ${AppConstants.difficultyLabels[difficulty - 1]}',
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13)),
+                    Slider(
+                      value: difficulty.toDouble(),
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                      activeColor: AppTheme.error,
+                      onChanged: (v) => setS(() => difficulty = v.round()),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                    'Dificuldade: ${AppConstants.difficultyLabels[difficulty - 1]}',
-                    style: const TextStyle(
-                        color: AppTheme.textSecondary, fontSize: 13)),
-                Slider(
-                  value: difficulty.toDouble(),
-                  min: 1,
-                  max: 5,
-                  divisions: 4,
-                  activeColor: AppTheme.error,
-                  onChanged: (v) => setS(() => difficulty = v.round()),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final user = ref.read(authStateProvider).valueOrNull;
+                          if (user == null) return;
+
+                          setS(() => isLoading = true);
+
+                          final topic = Topic(
+                            id: existing?.id ?? '',
+                            userId: user.uid,
+                            subjectId: subjectId,
+                            name: nameCtrl.text.trim(),
+                            difficulty: difficulty,
+                          );
+                          final controller =
+                              ref.read(subjectControllerProvider.notifier);
+                          try {
+                            if (existing == null) {
+                              await controller.createTopic(topic);
+                            } else {
+                              await controller.updateTopic(topic);
+                            }
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(existing == null
+                                        ? 'Tópico criado'
+                                        : 'Tópico atualizado')),
+                              );
+                            }
+                          } catch (e) {
+                            if (ctx.mounted) {
+                              setS(() => isLoading = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Erro ao salvar tópico: $e')),
+                              );
+                            }
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        )
+                      : Text(existing == null ? 'Criar' : 'Salvar'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) return;
-                final user = ref.read(authStateProvider).valueOrNull;
-                if (user == null) return;
-
-                final topic = Topic(
-                  id: existing?.id ?? '',
-                  userId: user.uid,
-                  subjectId: subjectId,
-                  name: nameCtrl.text.trim(),
-                  difficulty: difficulty,
-                );
-                final controller = ref.read(subjectControllerProvider.notifier);
-                if (existing == null) {
-                  controller.createTopic(topic);
-                } else {
-                  controller.updateTopic(topic);
-                }
-                Navigator.pop(ctx);
-              },
-              child: Text(existing == null ? 'Criar' : 'Salvar'),
-            ),
-          ],
+            );
+          },
         );
-      }),
+      },
     );
   }
 }
@@ -424,6 +580,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
   late String _selectedColor;
   late int _priority;
   late int _weight;
+  bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -554,27 +711,63 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
           child: const Text('Cancelar'),
         ),
         FilledButton(
-          onPressed: () {
-            if (user == null) return;
-            if (!_formKey.currentState!.validate()) return;
-            final subject = Subject(
-              id: widget.existing?.id ?? '',
-              userId: user.uid,
-              name: _nameCtrl.text.trim(),
-              color: _selectedColor,
-              priority: _priority,
-              weight: _weight,
-              difficulty: widget.existing?.difficulty ?? 3,
-            );
-            final controller = ref.read(subjectControllerProvider.notifier);
-            if (widget.existing == null) {
-              controller.createSubject(subject);
-            } else {
-              controller.updateSubject(subject);
-            }
-            Navigator.pop(context);
-          },
-          child: Text(widget.existing == null ? 'Criar' : 'Salvar'),
+          onPressed: _isLoading
+              ? null
+              : () async {
+                  if (user == null) return;
+                  if (!_formKey.currentState!.validate()) return;
+
+                  setState(() => _isLoading = true);
+
+                  final subject = Subject(
+                    id: widget.existing?.id ?? '',
+                    userId: user.uid,
+                    goalId: widget.existing?.goalId ??
+                        ref.read(activeGoalIdProvider),
+                    name: _nameCtrl.text.trim(),
+                    color: _selectedColor,
+                    priority: _priority,
+                    weight: _weight,
+                    difficulty: widget.existing?.difficulty ?? 3,
+                  );
+                  final controller =
+                      ref.read(subjectControllerProvider.notifier);
+
+                  try {
+                    if (widget.existing == null) {
+                      await controller.createSubject(subject);
+                    } else {
+                      await controller.updateSubject(subject);
+                    }
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(widget.existing == null
+                                ? 'Matéria criada'
+                                : 'Matéria atualizada')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() => _isLoading = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao salvar: $e')),
+                      );
+                    }
+                  }
+                },
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                )
+              : Text(widget.existing == null ? 'Criar' : 'Salvar'),
         ),
       ],
     );

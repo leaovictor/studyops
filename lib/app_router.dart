@@ -18,7 +18,6 @@ import 'screens/settings_screen.dart';
 import 'screens/manual_screen.dart';
 import 'screens/flashcards_screen.dart';
 import 'screens/flashcard_study_screen.dart';
-import 'screens/question_bank_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -106,9 +105,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/errors', builder: (_, __) => const ErrorNotebookScreen()),
           GoRoute(
               path: '/subjects', builder: (_, __) => const SubjectsScreen()),
-          GoRoute(
-              path: '/questions',
-              builder: (_, __) => const QuestionBankScreen()),
           GoRoute(
               path: '/flashcards',
               builder: (_, __) => const FlashcardsScreen()),

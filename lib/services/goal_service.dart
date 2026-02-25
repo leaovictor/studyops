@@ -23,12 +23,13 @@ class GoalService {
     await _goals.doc(goal.id).update(goal.toMap());
   }
 
-  Future<void> deleteGoal(String goalId) async {
+  Future<void> deleteGoal(String goalId, String userId) async {
     final batch = _db.batch();
 
     // 1. Get and delete all subjects
     final subjectSnap = await _db
         .collection(AppConstants.colSubjects)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in subjectSnap.docs) {
@@ -37,6 +38,7 @@ class GoalService {
       // Also delete topics for these subjects (since topics don't have goalId)
       final topicSnap = await _db
           .collection(AppConstants.colTopics)
+          .where('userId', isEqualTo: userId)
           .where('subjectId', isEqualTo: doc.id)
           .get();
       for (final tDoc in topicSnap.docs) {
@@ -47,6 +49,7 @@ class GoalService {
     // 2. Delete all flashcards
     final cardSnap = await _db
         .collection(AppConstants.colFlashcards)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in cardSnap.docs) {
@@ -56,6 +59,7 @@ class GoalService {
     // 3. Delete all error notebook entries
     final errorSnap = await _db
         .collection(AppConstants.colErrorNotebook)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in errorSnap.docs) {
@@ -65,6 +69,7 @@ class GoalService {
     // 4. Delete all study logs
     final logSnap = await _db
         .collection(AppConstants.colStudyLogs)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in logSnap.docs) {
@@ -74,6 +79,7 @@ class GoalService {
     // 5. Delete all study plans
     final planSnap = await _db
         .collection(AppConstants.colStudyPlans)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in planSnap.docs) {
@@ -83,6 +89,7 @@ class GoalService {
     // 6. Delete all daily tasks
     final taskSnap = await _db
         .collection(AppConstants.colDailyTasks)
+        .where('userId', isEqualTo: userId)
         .where('goalId', isEqualTo: goalId)
         .get();
     for (final doc in taskSnap.docs) {

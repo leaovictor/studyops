@@ -24,10 +24,6 @@ class AppSidebar extends StatelessWidget {
         path: '/performance'),
     _Dest(icon: Icons.book_rounded, label: 'Caderno', path: '/errors'),
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
-    _Dest(
-        icon: Icons.source_rounded,
-        label: 'Banco de Questões',
-        path: '/questions'),
     _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
     _Dest(
         icon: Icons.help_outline_rounded,

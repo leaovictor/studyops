@@ -42,7 +42,9 @@ class _PomodoroGlobalListenerState
     ref.listen<PomodoroState>(pomodoroProvider, (prev, next) {
       if (prev != null && next.completedSessions > prev.completedSessions) {
         final workMins = ref.read(pomodoroProvider.notifier).workMins;
-        _showSaveDialog(workMins);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showSaveDialog(workMins);
+        });
       }
     });
 
