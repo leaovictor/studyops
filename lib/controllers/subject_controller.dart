@@ -19,7 +19,9 @@ final subjectsProvider = StreamProvider<List<Subject>>((ref) {
 
 final topicsForSubjectProvider =
     StreamProvider.family<List<Topic>, String>((ref, subjectId) {
-  return ref.watch(subjectServiceProvider).watchTopics(subjectId);
+  final user = ref.watch(authStateProvider).valueOrNull;
+  if (user == null) return Stream.value([]);
+  return ref.watch(subjectServiceProvider).watchTopics(user.uid, subjectId);
 });
 
 // All topics across all user subjects — used by schedule generator and selects
@@ -86,7 +88,9 @@ class SubjectController extends AsyncNotifier<void> {
   Future<void> deleteSubject(String subjectId) async {
     state = const AsyncLoading();
     try {
-      await _service.deleteSubject(subjectId);
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) throw Exception('Usuário não autenticado');
+      await _service.deleteSubject(user.uid, subjectId);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

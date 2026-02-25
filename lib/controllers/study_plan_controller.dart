@@ -28,10 +28,14 @@ class StudyPlanController extends AsyncNotifier<void> {
   Future<void> createPlanAndGenerate(StudyPlan plan) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) throw Exception('Usuário não autenticado');
+
       final saved = await _planService.createPlan(plan);
 
       final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
       final topics = await _subjectService.getTopicsForSubjects(
+        user.uid,
         subjects.map((s) => s.id).toList(),
       );
 
@@ -46,8 +50,12 @@ class StudyPlanController extends AsyncNotifier<void> {
   Future<void> regenerateTasks(StudyPlan plan) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) throw Exception('Usuário não autenticado');
+
       final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
       final topics = await _subjectService.getTopicsForSubjects(
+        user.uid,
         subjects.map((s) => s.id).toList(),
       );
       await _planService.generateAndSaveTasks(

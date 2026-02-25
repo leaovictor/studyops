@@ -49,12 +49,14 @@ class SubjectService {
     await _subjects.doc(subject.id).update(subject.toMap());
   }
 
-  Future<void> deleteSubject(String subjectId) async {
+  Future<void> deleteSubject(String userId, String subjectId) async {
     final batch = _db.batch();
 
     // 1. Delete all topics
-    final topicSnap =
-        await _topics.where('subjectId', isEqualTo: subjectId).get();
+    final topicSnap = await _topics
+        .where('userId', isEqualTo: userId)
+        .where('subjectId', isEqualTo: subjectId)
+        .get();
     for (final doc in topicSnap.docs) {
       batch.delete(doc.reference);
     }
@@ -62,6 +64,7 @@ class SubjectService {
     // 2. Delete all flashcards
     final cardSnap = await _db
         .collection(AppConstants.colFlashcards)
+        .where('userId', isEqualTo: userId)
         .where('subjectId', isEqualTo: subjectId)
         .get();
     for (final doc in cardSnap.docs) {
@@ -71,6 +74,7 @@ class SubjectService {
     // 3. Delete all error notes
     final errorSnap = await _db
         .collection(AppConstants.colErrorNotebook)
+        .where('userId', isEqualTo: userId)
         .where('subjectId', isEqualTo: subjectId)
         .get();
     for (final doc in errorSnap.docs) {
@@ -80,6 +84,7 @@ class SubjectService {
     // 4. Delete all study logs
     final logSnap = await _db
         .collection(AppConstants.colStudyLogs)
+        .where('userId', isEqualTo: userId)
         .where('subjectId', isEqualTo: subjectId)
         .get();
     for (final doc in logSnap.docs) {
@@ -89,6 +94,7 @@ class SubjectService {
     // 5. Delete all daily tasks
     final taskSnap = await _db
         .collection(AppConstants.colDailyTasks)
+        .where('userId', isEqualTo: userId)
         .where('subjectId', isEqualTo: subjectId)
         .get();
     for (final doc in taskSnap.docs) {
@@ -99,7 +105,7 @@ class SubjectService {
     final fsrsSnap = await _db
         .collection('fsrs_review_logs')
         .where('subjectId', isEqualTo: subjectId)
-        .get();
+        .get(); // FSRS Review Logs has general authenticated access, no userId filter required for rules.
     for (final doc in fsrsSnap.docs) {
       batch.delete(doc.reference);
     }
@@ -112,9 +118,12 @@ class SubjectService {
 
   // ── Topics ──────────────────────────────────
 
-  Stream<List<Topic>> watchTopics(String subjectId) {
-    return _topics.where('subjectId', isEqualTo: subjectId).snapshots().map(
-        (snap) => snap.docs.map((d) => Topic.fromDoc(d)).toList()
+  Stream<List<Topic>> watchTopics(String userId, String subjectId) {
+    return _topics
+        .where('userId', isEqualTo: userId)
+        .where('subjectId', isEqualTo: subjectId)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => Topic.fromDoc(d)).toList()
           ..sort((a, b) => b.difficulty.compareTo(a.difficulty)));
   }
 
@@ -122,6 +131,7 @@ class SubjectService {
       String userId, List<String> subjectIds) {
     if (subjectIds.isEmpty) return Stream.value([]);
     return _topics
+        .where('userId', isEqualTo: userId)
         .where('subjectId', whereIn: subjectIds)
         .snapshots()
         .map((snap) => snap.docs.map((d) => Topic.fromDoc(d)).toList());
@@ -140,9 +150,13 @@ class SubjectService {
     await _topics.doc(topicId).delete();
   }
 
-  Future<List<Topic>> getTopicsForSubjects(List<String> subjectIds) async {
+  Future<List<Topic>> getTopicsForSubjects(
+      String userId, List<String> subjectIds) async {
     if (subjectIds.isEmpty) return [];
-    final snap = await _topics.where('subjectId', whereIn: subjectIds).get();
+    final snap = await _topics
+        .where('userId', isEqualTo: userId)
+        .where('subjectId', whereIn: subjectIds)
+        .get();
     return snap.docs.map((d) => Topic.fromDoc(d)).toList();
   }
 }
