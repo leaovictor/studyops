@@ -7,6 +7,9 @@ import '../controllers/subject_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../models/topic_model.dart';
+import '../controllers/study_plan_controller.dart';
+import '../widgets/study_plan_wizard_dialog.dart';
+import '../controllers/quote_controller.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
@@ -50,6 +53,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final subjectMap = {for (final s in subjects) s.id: s};
     final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? <Topic>[];
     final topicMap = {for (final t in allTopics) t.id: t};
+    final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
     // Watch tasks for selected day
     final tasks = ref.watch(dailyTasksProvider).valueOrNull ?? [];
@@ -61,14 +65,111 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Cronograma',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Cronograma',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (activePlan != null)
+                  FilledButton.tonalIcon(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (context) =>
+                          StudyPlanWizardDialog(activePlan: activePlan),
+                    ),
+                    icon: const Icon(Icons.settings_suggest_rounded, size: 18),
+                    label: const Text('Ajustar Plano'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primary.withOpacity(0.1),
+                    ),
+                  ),
+              ],
             ),
+
+            if (activePlan == null)
+              Container(
+                margin: const EdgeInsets.only(top: 20),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primary,
+                      AppTheme.primary.withOpacity(0.8)
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.auto_awesome_rounded,
+                          color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Comece com um Plano',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Organize seus estudos gerando um plano.',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    FilledButton(
+                      onPressed: () => showDialog(
+                        context: context,
+                        builder: (context) => const StudyPlanWizardDialog(),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppTheme.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                      ),
+                      child: const Text('Criar Agora',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ),
+
             const SizedBox(height: 20),
 
             // Calendar
@@ -162,17 +263,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                         backgroundColor: AppTheme.primary,
                       ),
                       child: tasks.isEmpty
-                          ? SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              child: Container(
-                                height: 200,
-                                alignment: Alignment.center,
-                                child: const Text(
-                                  'Sem tarefas neste dia',
-                                  style: TextStyle(color: AppTheme.textMuted),
-                                ),
-                              ),
-                            )
+                          ? const _EmptyScheduleQuote()
                           : AnimationLimiter(
                               child: ListView.separated(
                                 itemCount: tasks.length,
@@ -274,6 +365,81 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyScheduleQuote extends ConsumerWidget {
+  const _EmptyScheduleQuote();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final quoteAsync = ref.watch(quoteProvider);
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.bg2,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: const Icon(
+                  Icons.coffee_rounded,
+                  color: AppTheme.textMuted,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Nenhuma tarefa planejada.',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              quoteAsync.when(
+                loading: () => const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+                ),
+                error: (e, _) => const SizedBox(),
+                data: (quote) => Column(
+                  children: [
+                    Text(
+                      '"${quote.text}"',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "- ${quote.author}",
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

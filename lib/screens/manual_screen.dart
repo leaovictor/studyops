@@ -60,6 +60,17 @@ class ManualScreen extends StatelessWidget {
                   ],
                 ),
                 _ManualCard(
+                  title: 'Cronograma: Seu Planejamento Mágico',
+                  description:
+                      'Crie um Plano de Estudos personalizado definindo quantos dias até a prova e quantas horas quer estudar por dia. O app distribui as matérias magicamente.',
+                  icon: Icons.calendar_month_rounded,
+                  color: Colors.indigo,
+                  tips: [
+                    'O wizard visual calcula tudo para você.',
+                    'Ajuste o plano aqui a qualquer momento se sua rotina mudar.'
+                  ],
+                ),
+                _ManualCard(
                   title: 'Caderno de Erros: Sua Arma Secreta',
                   description:
                       'Errou uma questão no simulado? Salve aqui! O sistema vai agendar revisões automáticas para garantir que você não erre o mesmo assunto na prova.',
@@ -89,7 +100,7 @@ class ManualScreen extends StatelessWidget {
                   color: AppTheme.primary,
                   tips: [
                     'Troque de objetivo rapidamente no menu lateral.',
-                    'Ajuste seu ritmo nas Configurações sempre que precisar.'
+                    'Gerencie os Assuntos do seu concurso na aba Matérias.'
                   ],
                 ),
                 SizedBox(height: 40),

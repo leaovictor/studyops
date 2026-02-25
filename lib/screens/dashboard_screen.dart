@@ -16,6 +16,7 @@ import '../widgets/metric_card.dart';
 import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
 import '../widgets/goal_switcher.dart';
+import '../controllers/quote_controller.dart';
 
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -109,6 +110,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         isDesktop: isDesktop,
                         isTablet: isTablet,
                       ),
+                      const SizedBox(height: 32),
+
+                      // Motivational Quote
+                      const _MotivationalQuoteCard(),
                       const SizedBox(height: 32),
 
                       // No Active Plan CTA
@@ -293,6 +298,87 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
         ),
       );
+}
+
+class _MotivationalQuoteCard extends ConsumerWidget {
+  const _MotivationalQuoteCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final quoteAsync = ref.watch(quoteProvider);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      decoration: BoxDecoration(
+        color: AppTheme.bg1,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: quoteAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+          ),
+        ),
+        error: (_, __) => const SizedBox(),
+        data: (quote) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.format_quote_rounded,
+                  color: AppTheme.accent, size: 28),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '"${quote.text}"',
+                    style: const TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '- ${quote.author}',
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () => ref.read(quoteProvider.notifier).fetchQuote(),
+              icon: const Icon(Icons.refresh_rounded),
+              color: AppTheme.textMuted,
+              tooltip: 'Nova frase',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NoPlanCTA extends StatelessWidget {
