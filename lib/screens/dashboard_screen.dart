@@ -64,7 +64,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isTablet = width >= 700 && width < 1100;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: dashAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(
@@ -291,11 +291,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Widget _emptyChart() => const Center(
+  Widget _emptyChart() => Center(
         child: Text(
           'Sem dados ainda.\nEstude e registre suas sessões!',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+          style: TextStyle(
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              fontSize: 13),
         ),
       );
 }
@@ -311,9 +314,9 @@ class _MotivationalQuoteCard extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -348,8 +351,9 @@ class _MotivationalQuoteCard extends ConsumerWidget {
                 children: [
                   Text(
                     '"${quote.text}"',
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       height: 1.4,
@@ -359,8 +363,9 @@ class _MotivationalQuoteCard extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     '- ${quote.author}',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -371,7 +376,8 @@ class _MotivationalQuoteCard extends ConsumerWidget {
             IconButton(
               onPressed: () => ref.read(quoteProvider.notifier).fetchQuote(),
               icon: const Icon(Icons.refresh_rounded),
-              color: AppTheme.textMuted,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
               tooltip: 'Nova frase',
             ),
           ],
@@ -407,14 +413,15 @@ class _NoPlanCTA extends StatelessWidget {
                 color: AppTheme.accent, size: 24),
           ),
           const SizedBox(width: 20),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Plano de Estudo não configurado',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -422,7 +429,8 @@ class _NoPlanCTA extends StatelessWidget {
                 Text(
                   'Gere seu cronograma para começar a estudar hoje!',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
                     fontSize: 12,
                   ),
                 ),
@@ -595,17 +603,21 @@ class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
                 RichText(
                   text: TextSpan(
                     children: [
-                      const TextSpan(
+                      TextSpan(
                         text: 'Sua prioridade agora é  ',
                         style: TextStyle(
-                          color: AppTheme.textSecondary,
+                          color:
+                              (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
                           fontSize: 16,
                         ),
                       ),
                       TextSpan(
                         text: subject.name,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
+                        style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white),
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                         ),
@@ -616,8 +628,9 @@ class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
                 const SizedBox(height: 6),
                 Text(
                   'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
-                  style: const TextStyle(
-                    color: AppTheme.textMuted,
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
                     fontSize: 14,
                   ),
                 ),
@@ -626,7 +639,9 @@ class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
           ),
           const SizedBox(width: 16),
           Icon(Icons.arrow_forward_rounded,
-              color: AppTheme.textMuted.withValues(alpha: 0.5)),
+              color:
+                  (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey)
+                      .withValues(alpha: 0.5)),
         ],
       ),
     );
@@ -648,20 +663,26 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'Olá, $userName 👋',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   letterSpacing: -0.5,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
                 AppDateUtils.weekdayLabel(DateTime.now()),
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
                   fontSize: 15,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 16),
               // Render the GoalSwitcher inline on the dashboard
@@ -775,9 +796,9 @@ class _ChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -794,13 +815,16 @@ class _ChartCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
               ),
-              const Icon(Icons.more_horiz_rounded, color: AppTheme.textMuted),
+              Icon(Icons.more_horiz_rounded,
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey)),
             ],
           ),
           const SizedBox(height: 24),
@@ -821,17 +845,18 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -918,8 +943,9 @@ class _SummaryTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -1002,16 +1028,18 @@ class _AchievementRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
               ),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   fontSize: 12,
                 ),
               ),

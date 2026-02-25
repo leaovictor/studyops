@@ -43,7 +43,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SmartRefresher(
         controller: _refreshController,
         onRefresh: _onRefresh,
@@ -99,19 +99,28 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                             child: FadeInAnimation(child: widget),
                           ),
                           children: [
-                            const Text(
+                            Text(
                               'Performance',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.textPrimary,
+                                color: (Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color ??
+                                    Colors.white),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'Análise detalhada do seu desempenho de estudos',
                               style: TextStyle(
-                                  color: AppTheme.textSecondary, fontSize: 13),
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color ??
+                                      Colors.grey),
+                                  fontSize: 13),
                             ),
                             const SizedBox(height: 20),
 
@@ -192,10 +201,14 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                               child: SizedBox(
                                 height: 200,
                                 child: trend.isEmpty
-                                    ? const Center(
+                                    ? Center(
                                         child: Text('Sem dados ainda',
                                             style: TextStyle(
-                                                color: AppTheme.textMuted)))
+                                                color: (Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.color ??
+                                                    Colors.grey))))
                                     : WeeklyBarChart(data: trend),
                               ),
                             ),
@@ -208,11 +221,15 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                 child: SizedBox(
                                   height: 180,
                                   child: subjects.isEmpty
-                                      ? const Center(
+                                      ? Center(
                                           child: Text(
                                               'Sem matérias cadastradas',
                                               style: TextStyle(
-                                                  color: AppTheme.textMuted)))
+                                                  color: (Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.color ??
+                                                      Colors.grey))))
                                       : SubjectPieChart(
                                           data: data.minutesBySubject,
                                           subjectColors: subjectColorMap,
@@ -226,11 +243,15 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                 child: Column(
                                   children: [
                                     if (data.minutesBySubject.isEmpty)
-                                      const Padding(
-                                        padding: EdgeInsets.all(24),
+                                      Padding(
+                                        padding: const EdgeInsets.all(24),
                                         child: Text('Sem registros',
                                             style: TextStyle(
-                                                color: AppTheme.textMuted)),
+                                                color: (Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.color ??
+                                                    Colors.grey))),
                                       )
                                     else
                                       ...data.minutesBySubject.entries.map((e) {
@@ -257,26 +278,38 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                                     MainAxisAlignment
                                                         .spaceBetween,
                                                 children: [
-                                                  Row(children: [
-                                                    Container(
-                                                        width: 8,
-                                                        height: 8,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: color,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        )),
-                                                    const SizedBox(width: 8),
-                                                    Text(subject.name,
-                                                        style: const TextStyle(
-                                                          color: AppTheme
-                                                              .textPrimary,
-                                                          fontSize: 13,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        )),
-                                                  ]),
+                                                  Expanded(
+                                                    child: Row(children: [
+                                                      Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: color,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                          )),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                            subject.name,
+                                                            style:
+                                                                const TextStyle(
+                                                              color: AppTheme
+                                                                  .textPrimary,
+                                                              fontSize: 13,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis),
+                                                      ),
+                                                    ]),
+                                                  ),
+                                                  const SizedBox(width: 8),
                                                   Text(
                                                     AppDateUtils.formatMinutes(
                                                         e.value),
@@ -296,7 +329,8 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                                   value: pct,
                                                   minHeight: 5,
                                                   backgroundColor:
-                                                      AppTheme.border,
+                                                      Theme.of(context)
+                                                          .dividerColor,
                                                   valueColor:
                                                       AlwaysStoppedAnimation(
                                                           color),
@@ -352,17 +386,19 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontWeight: FontWeight.w600,
               fontSize: 14,
             ),
@@ -397,9 +433,10 @@ class _KpiCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,8 +448,10 @@ class _KpiCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style:
-                      const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 11),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -422,14 +461,19 @@ class _KpiCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? AppTheme.textPrimary,
+              color: valueColor ??
+                  (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
               fontWeight: FontWeight.w800,
               fontSize: 22,
             ),
           ),
           Text(
             subtitle,
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey),
+                fontSize: 11),
           ),
         ],
       ),

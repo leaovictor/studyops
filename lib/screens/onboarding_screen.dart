@@ -165,7 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -234,8 +234,8 @@ class _OnboardingHeader extends StatelessWidget {
             if (onBack != null)
               IconButton(
                 onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: AppTheme.textSecondary),
+                icon: Icon(Icons.arrow_back_rounded,
+                    color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey)),
                 visualDensity: VisualDensity.compact,
               )
             else
@@ -243,16 +243,16 @@ class _OnboardingHeader extends StatelessWidget {
             const Spacer(),
             // Logo
             RichText(
-              text: const TextSpan(
+              text: TextSpan(
                 children: [
                   TextSpan(
                     text: 'Study',
                     style: TextStyle(
-                        color: AppTheme.textPrimary,
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                         fontSize: 20,
                         fontWeight: FontWeight.w800),
                   ),
-                  TextSpan(
+                  const TextSpan(
                     text: 'Ops',
                     style: TextStyle(
                         color: AppTheme.primary,
@@ -267,7 +267,7 @@ class _OnboardingHeader extends StatelessWidget {
               width: 40,
               child: Text(
                 '${currentPage + 1}/$totalPages',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 13),
                 textAlign: TextAlign.right,
               ),
             ),
@@ -286,7 +286,7 @@ class _OnboardingHeader extends StatelessWidget {
                   builder: (_, v, __) => LinearProgressIndicator(
                     value: v,
                     minHeight: 3,
-                    backgroundColor: AppTheme.border,
+                    backgroundColor: Theme.of(context).dividerColor,
                     valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
                   ),
                 ),
@@ -302,10 +302,10 @@ class _OnboardingHeader extends StatelessWidget {
                 }
               },
               borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(4.0),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
                 child: Icon(Icons.close_rounded,
-                    color: AppTheme.textMuted, size: 24),
+                    color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), size: 24),
               ),
             ),
           ],
@@ -337,19 +337,19 @@ class _Step0Welcome extends StatelessWidget {
               color: AppTheme.primary, size: 64),
         ),
         const SizedBox(height: 32),
-        const Text(
+        Text(
           'Olá, futuro aprovado! 👋',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 28,
               fontWeight: FontWeight.w800),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'O StudyOps é o seu novo quartel-general de estudos. Vamos configurar seu primeiro objetivo em menos de 2 minutos?',
           style: TextStyle(
-              color: AppTheme.textSecondary, fontSize: 16, height: 1.5),
+              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 16, height: 1.5),
           textAlign: TextAlign.center,
         ),
         const Spacer(),
@@ -401,17 +401,17 @@ class _Step1ObjectiveState extends State<_Step1Objective> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '🎯 Qual é o seu objetivo?',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 24,
               fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Isso vai guiar toda a sua estratégia de estudos.',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
         ),
         const SizedBox(height: 32),
         TextField(
@@ -421,7 +421,7 @@ class _Step1ObjectiveState extends State<_Step1Objective> {
             labelText: 'Ex: ENEM 2025, Concurso INSS, OAB...',
             prefixIcon: Icon(Icons.flag_rounded),
           ),
-          style: const TextStyle(color: AppTheme.textPrimary),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white)),
         ),
         const SizedBox(height: 20),
         // Deadline picker
@@ -431,35 +431,35 @@ class _Step1ObjectiveState extends State<_Step1Objective> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppTheme.bg3,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppTheme.border),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today_rounded,
-                    color: AppTheme.textMuted, size: 20),
+                Icon(Icons.calendar_today_rounded,
+                    color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Prazo (data da prova)',
+                      Text('Prazo (data da prova)',
                           style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 12)),
+                              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 12)),
                       Text(
                         '${widget.data.deadline.day.toString().padLeft(2, '0')}/'
                         '${widget.data.deadline.month.toString().padLeft(2, '0')}/'
                         '${widget.data.deadline.year}',
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary,
+                        style: TextStyle(
+                            color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                             fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppTheme.textMuted),
+                Icon(Icons.chevron_right_rounded,
+                    color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey)),
               ],
             ),
           ),
@@ -467,7 +467,7 @@ class _Step1ObjectiveState extends State<_Step1Objective> {
         const SizedBox(height: 8),
         Text(
           '${widget.data.deadline.difference(DateTime.now()).inDays} dias até o prazo',
-          style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+          style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12),
         ),
         const SizedBox(height: 24),
         const _GamifiedTip(
@@ -505,17 +505,17 @@ class _Step2Hours extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '⏰ Quantas horas por dia?',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 24,
               fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Seja realista — consistência vale mais que volume.',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
         ),
         const SizedBox(height: 48),
         Center(
@@ -529,9 +529,9 @@ class _Step2Hours extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const Text(
+              Text(
                 'por dia',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
+                style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 16),
               ),
             ],
           ),
@@ -545,13 +545,13 @@ class _Step2Hours extends StatelessWidget {
           activeColor: AppTheme.primary,
           onChanged: (v) => setState(() => data.dailyHours = v),
         ),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('30 min',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12)),
             Text('12h',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12)),
           ],
         ),
         const SizedBox(height: 24),
@@ -591,7 +591,7 @@ class _RecommendationChips extends StatelessWidget {
           onSelected: (_) => onTap(h),
           selectedColor: AppTheme.primary.withValues(alpha: 0.2),
           labelStyle: TextStyle(
-            color: selected ? AppTheme.primary : AppTheme.textSecondary,
+            color: selected ? AppTheme.primary : (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
         );
@@ -624,17 +624,17 @@ class _Step3Subjects extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '📚 Suas matérias',
           style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 24,
               fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Adicione as matérias do seu estudo. Você pode editar depois.',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
         ),
         const SizedBox(height: 20),
         Expanded(
@@ -689,9 +689,9 @@ class _Step3Subjects extends StatelessWidget {
         Center(
           child: TextButton(
             onPressed: onSkip,
-            child: const Text(
+            child: Text(
               'Pular esta etapa',
-              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+              style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 13),
             ),
           ),
         ),
@@ -742,7 +742,7 @@ class _SubjectRowState extends State<_SubjectRow> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
@@ -775,15 +775,15 @@ class _SubjectRowState extends State<_SubjectRow> {
                 contentPadding: EdgeInsets.zero,
                 isDense: true,
               ),
-              style: const TextStyle(
-                  color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white), fontWeight: FontWeight.w500),
             ),
           ),
           if (widget.onDelete != null)
             IconButton(
               onPressed: widget.onDelete,
-              icon: const Icon(Icons.close_rounded,
-                  size: 16, color: AppTheme.textMuted),
+              icon: Icon(Icons.close_rounded,
+                  size: 16, color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey)),
               visualDensity: VisualDensity.compact,
             ),
         ],
@@ -917,46 +917,46 @@ class _Step4GeneratingState extends State<_Step4Generating>
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 400),
             child: _done
-                ? const Column(
-                    key: ValueKey('done_text'),
+                ? Column(
+                    key: const ValueKey('done_text'),
                     children: [
                       Text(
                         'Plano gerado! 🎉',
                         style: TextStyle(
-                          color: AppTheme.textPrimary,
+                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Seu cronograma personalizado está pronto.\nBoa sorte nos estudos!',
                         style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
                             fontSize: 15,
                             height: 1.5),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   )
-                : const Column(
-                    key: ValueKey('loading_text'),
+                : Column(
+                    key: const ValueKey('loading_text'),
                     children: [
                       Text(
                         'Gerando seu plano...',
                         style: TextStyle(
-                          color: AppTheme.textPrimary,
+                          color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Distribuindo matérias, calculando\npesos e montando seu cronograma.',
                         style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
                             fontSize: 15,
                             height: 1.5),
                         textAlign: TextAlign.center,
@@ -994,8 +994,8 @@ class _GamifiedTip extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
                 height: 1.4,

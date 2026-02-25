@@ -29,9 +29,10 @@ class MetricCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16), // Reduced from 20
         decoration: BoxDecoration(
-          color: AppTheme.bg2,
+          color: (Theme.of(context).cardTheme.color ??
+              Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,8 +69,9 @@ class MetricCard extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -78,10 +80,13 @@ class MetricCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   fontSize: 11,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ],

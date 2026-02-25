@@ -8,10 +8,10 @@ class ManualScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Guia do Estudante 📖'),
-        backgroundColor: AppTheme.bg1,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -23,21 +23,21 @@ class ManualScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _WelcomeSection(),
-                SizedBox(height: 32),
+                const _WelcomeSection(),
+                const SizedBox(height: 32),
                 Text(
                   'Explore as Funcionalidades',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                SizedBox(height: 16),
-                _ManualCard(
+                const SizedBox(height: 16),
+                const _ManualCard(
                   title: 'Dashboard: Seu Centro de Comando',
                   description:
                       'Aqui você vê o panorama geral da sua evolução. Acompanhe sua consistência (o fogo que não pode apagar!) e sua ofensiva de dias seguidos.',
@@ -48,7 +48,7 @@ class ManualScreen extends StatelessWidget {
                     'A barra de progresso semanal mostra se você está no ritmo certo.'
                   ],
                 ),
-                _ManualCard(
+                const _ManualCard(
                   title: 'Checklist: Sua Missão Diária',
                   description:
                       'O coração do app. Aqui aparecem as matérias que você precisa estudar hoje, calculadas pelo nosso algoritmo inteligente.',
@@ -59,7 +59,7 @@ class ManualScreen extends StatelessWidget {
                     'Use o timer Pomodoro para manter o foco total.'
                   ],
                 ),
-                _ManualCard(
+                const _ManualCard(
                   title: 'Cronograma: Seu Planejamento Mágico',
                   description:
                       'Crie um Plano de Estudos personalizado definindo quantos dias até a prova e quantas horas quer estudar por dia. O app distribui as matérias magicamente.',
@@ -70,7 +70,7 @@ class ManualScreen extends StatelessWidget {
                     'Ajuste o plano aqui a qualquer momento se sua rotina mudar.'
                   ],
                 ),
-                _ManualCard(
+                const _ManualCard(
                   title: 'Caderno de Erros: Sua Arma Secreta',
                   description:
                       'Errou uma questão no simulado? Salve aqui! O sistema vai agendar revisões automáticas para garantir que você não erre o mesmo assunto na prova.',
@@ -81,7 +81,7 @@ class ManualScreen extends StatelessWidget {
                     'Revise os itens pendentes todos os dias para máxima memorização.'
                   ],
                 ),
-                _ManualCard(
+                const _ManualCard(
                   title: 'Flashcards: Memória de Elefante',
                   description:
                       'Use a Repetição Espaçada (SRS) para decorar conceitos, fórmulas e leis. É a forma mais eficiente de memorização de longo prazo.',
@@ -92,7 +92,7 @@ class ManualScreen extends StatelessWidget {
                     'O algoritmo FSRS cuida de quando você deve ver a carta novamente.'
                   ],
                 ),
-                _ManualCard(
+                const _ManualCard(
                   title: 'Objetivos e Planos',
                   description:
                       'Você pode gerenciar múltiplos concursos ao mesmo tempo. Cada um tem seu próprio cronograma e matérias.',
@@ -103,8 +103,8 @@ class ManualScreen extends StatelessWidget {
                     'Gerencie os Assuntos do seu concurso na aba Matérias.'
                   ],
                 ),
-                SizedBox(height: 40),
-                _GamificationFooter(),
+                const SizedBox(height: 40),
+                const _GamificationFooter(),
               ],
             ),
           ),
@@ -131,22 +131,22 @@ class _WelcomeSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Text(
             'Bem-vindo ao seu Guia de Sobrevivência!',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'O StudyOps foi criado para que você não precise pensar no "o que estudar", apenas no "estudar". Aqui está como tirar o máximo proveito de cada ferramenta.',
             style: TextStyle(
-              color: AppTheme.textSecondary,
+              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 15,
               height: 1.5,
             ),
@@ -179,9 +179,9 @@ class _ManualCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,8 +200,8 @@ class _ManualCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -212,8 +212,8 @@ class _ManualCard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             description,
-            style: const TextStyle(
-              color: AppTheme.textSecondary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 14,
               height: 1.6,
             ),
@@ -229,8 +229,8 @@ class _ManualCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         tip,
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
+                        style: TextStyle(
+                          color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey),
                           fontSize: 13,
                           fontStyle: FontStyle.italic,
                         ),
@@ -258,23 +258,23 @@ class _GamificationFooter extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 40),
-          SizedBox(height: 16),
+          const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 40),
+          const SizedBox(height: 16),
           Text(
             'Vire um Mestre nos Estudos!',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Quanto mais você estuda e revisa, mais pontos você ganha. Não quebre sua ofensiva (streak) — a consistência é a chave da aprovação!',
             style: TextStyle(
-              color: AppTheme.textSecondary,
+              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 13,
               height: 1.5,
             ),

@@ -85,12 +85,12 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bg0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+          icon: Icon(Icons.close_rounded, color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey)),
           onPressed: () => Navigator.pop(context),
         ),
         title: _sessionDone || _cards.isEmpty
@@ -144,7 +144,7 @@ class _ProgressBar extends StatelessWidget {
       children: [
         Text(
           '$current / $total',
-          style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+          style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 13),
         ),
         const SizedBox(height: 4),
         ClipRRect(
@@ -155,7 +155,7 @@ class _ProgressBar extends StatelessWidget {
             builder: (_, v, __) => LinearProgressIndicator(
               value: v,
               minHeight: 3,
-              backgroundColor: AppTheme.border,
+              backgroundColor: Theme.of(context).dividerColor,
               valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
             ),
           ),
@@ -290,7 +290,7 @@ class _CardFace extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
@@ -324,8 +324,8 @@ class _CardFace extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 20,
               fontWeight: FontWeight.w600,
               height: 1.4,
@@ -335,7 +335,7 @@ class _CardFace extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               hint!,
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12),
             ),
           ],
         ],
@@ -492,25 +492,25 @@ class _DonePanel extends StatelessWidget {
                   color: AppTheme.accent, size: 56),
             ),
             const SizedBox(height: 28),
-            const Text(
+            Text(
               'Sessão concluída!',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
             if (total == 0)
-              const Text(
+              Text(
                 'Nenhum card para revisar hoje.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
               )
             else ...[
               Text(
                 '$total cards revisados',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 14),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
               ),
               const SizedBox(height: 28),
               Row(
@@ -569,7 +569,7 @@ class _Stat extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 13),
         ),
       ],
     );

@@ -66,10 +66,19 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final service = ref.watch(studyLogServiceProvider);
   final now = DateTime.now();
 
-  final logs = await service.getLogsForMonth(user.uid, now.year, now.month,
+  // Fetch at least 32 days back to cover streak and month transitions
+  final streakLookback = now.subtract(const Duration(days: 32));
+  final startOfMonth = DateTime(now.year, now.month, 1);
+  final queryStart =
+      streakLookback.isBefore(startOfMonth) ? streakLookback : startOfMonth;
+
+  final logs = await service.getLogsForRange(
+      user.uid, AppDateUtils.toKey(queryStart), AppDateUtils.toKey(now),
       goalId: activeGoalId);
 
   final todayKey = AppDateUtils.todayKey();
+  final currentMonthPrefix =
+      "${now.year}-${now.month.toString().padLeft(2, '0')}";
   final (weekStart, weekEnd) = AppDateUtils.currentWeekRange();
 
   int todayMinutes = 0;
@@ -85,9 +94,11 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   for (final log in logs) {
     if (!activeSubjectIds.contains(log.subjectId)) continue; // Filter deleted
 
-    monthMinutes += log.minutes;
-    minutesBySubject[log.subjectId] =
-        (minutesBySubject[log.subjectId] ?? 0) + log.minutes;
+    if (log.date.startsWith(currentMonthPrefix)) {
+      monthMinutes += log.minutes;
+      minutesBySubject[log.subjectId] =
+          (minutesBySubject[log.subjectId] ?? 0) + log.minutes;
+    }
     dailyMap[log.date] = (dailyMap[log.date] ?? 0) + log.minutes;
 
     if (log.date == todayKey) todayMinutes += log.minutes;

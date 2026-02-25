@@ -7,16 +7,23 @@ class RelevanceInfoDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppTheme.bg2,
+      backgroundColor: (Theme.of(context).cardTheme.color ??
+          Theme.of(context).colorScheme.surface),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.psychology_alt_rounded, color: AppTheme.primary),
-          SizedBox(width: 12),
-          Text(
-            'Lógica de Relevância',
-            style: TextStyle(
-                color: AppTheme.textPrimary, fontWeight: FontWeight.w800),
+          const Icon(Icons.psychology_alt_rounded, color: AppTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Lógica de Relevância',
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
+                  fontWeight: FontWeight.w800),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -24,9 +31,12 @@ class RelevanceInfoDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'O StudyOps utiliza uma fórmula matemática para priorizar o que você deve estudar hoje:',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+                fontSize: 14),
           ),
           const SizedBox(height: 20),
           Container(
@@ -50,27 +60,31 @@ class RelevanceInfoDialog extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildInfoRow(
+            context,
             Icons.star_rounded,
             'Prioridade (1-5)',
             'Sua importância pessoal para a matéria agora.',
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
+            context,
             Icons.fitness_center_rounded,
             'Peso (1-10)',
             'Importância da matéria no edital ou prova.',
           ),
           const SizedBox(height: 12),
           _buildInfoRow(
+            context,
             Icons.speed_rounded,
             'Dificuldade (1-5)',
             'Média de dificuldade dos tópicos da matéria.',
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'O tempo total do seu plano é distribuído proporcionalmente ao score resultante de cada matéria.',
             style: TextStyle(
-              color: AppTheme.textMuted,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
               fontSize: 12,
               fontStyle: FontStyle.italic,
             ),
@@ -87,11 +101,15 @@ class RelevanceInfoDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String title, String desc) {
+  Widget _buildInfoRow(
+      BuildContext context, IconData icon, String title, String desc) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppTheme.textSecondary, size: 18),
+        Icon(icon,
+            color:
+                (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+            size: 18),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -99,15 +117,19 @@ class RelevanceInfoDialog extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),
               ),
               Text(
                 desc,
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
+                    fontSize: 12),
               ),
             ],
           ),

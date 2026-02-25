@@ -40,16 +40,17 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [
           SliverAppBar(
-            backgroundColor: AppTheme.bg0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             pinned: true,
-            title: const Text(
+            title: Text(
               'Flashcards',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontWeight: FontWeight.w800,
                 fontSize: 22,
               ),
@@ -59,7 +60,9 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
               indicatorColor: AppTheme.primary,
               indicatorSize: TabBarIndicatorSize.label,
               labelColor: AppTheme.primary,
-              unselectedLabelColor: AppTheme.textMuted,
+              unselectedLabelColor:
+                  (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
               tabs: const [
                 Tab(text: 'Revisar Hoje'),
                 Tab(text: 'Todos'),
@@ -91,7 +94,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.bg1,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -239,16 +242,20 @@ class _SummaryBanner extends StatelessWidget {
                   children: [
                     Text(
                       '$totalDue cards para revisar',
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'Mantenha sua sequência de estudos!',
                       style: TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 12),
+                          color:
+                              (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -296,7 +303,8 @@ class _DeckCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
@@ -318,16 +326,21 @@ class _DeckCard extends StatelessWidget {
               children: [
                 Text(
                   subject.name,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   '$count card${count != 1 ? 's' : ''} para revisar',
-                  style:
-                      const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 12),
                 ),
               ],
             ),
@@ -521,16 +534,21 @@ class _FilterChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.2) : AppTheme.bg2,
+          color: selected
+              ? color.withValues(alpha: 0.2)
+              : (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : AppTheme.border,
+            color: selected ? color : Theme.of(context).dividerColor,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : AppTheme.textSecondary,
+            color: selected
+                ? color
+                : (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -574,12 +592,13 @@ class _FlashcardListTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.bg2,
+          color: (Theme.of(context).cardTheme.color ??
+              Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: isDue
                   ? AppTheme.primary.withValues(alpha: 0.3)
-                  : AppTheme.border),
+                  : Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -600,8 +619,9 @@ class _FlashcardListTile extends StatelessWidget {
                     card.front,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -609,8 +629,10 @@ class _FlashcardListTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Próxima revisão: ${AppDateUtils.formatRelativeDate(card.due)}',
-                    style: const TextStyle(
-                        color: AppTheme.textMuted, fontSize: 11),
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 11),
                   ),
                 ],
               ),
@@ -688,10 +710,11 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Novo flashcard',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -704,7 +727,9 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               labelText: 'Frente (pergunta)',
               prefixIcon: Icon(Icons.help_outline_rounded),
             ),
-            style: const TextStyle(color: AppTheme.textPrimary),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white)),
             maxLines: 2,
           ),
           const SizedBox(height: 12),
@@ -715,15 +740,20 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               labelText: 'Verso (resposta)',
               prefixIcon: Icon(Icons.lightbulb_outline_rounded),
             ),
-            style: const TextStyle(color: AppTheme.textPrimary),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white)),
             maxLines: 2,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _selectedSubjectId,
-            hint: const Text('Matéria',
-                style: TextStyle(color: AppTheme.textMuted)),
-            dropdownColor: AppTheme.bg2,
+            hint: Text('Matéria',
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey))),
+            dropdownColor: (Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.book_rounded),
             ),
@@ -731,7 +761,9 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               return DropdownMenuItem(
                 value: s.id,
                 child: Text(s.name,
-                    style: const TextStyle(color: AppTheme.textPrimary)),
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white))),
               );
             }).toList(),
             onChanged: (v) => setState(() {
@@ -743,9 +775,12 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _selectedTopicId,
-              hint: const Text('Tópico (opcional)',
-                  style: TextStyle(color: AppTheme.textMuted)),
-              dropdownColor: AppTheme.bg2,
+              hint: Text('Tópico (opcional)',
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey))),
+              dropdownColor: (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.topic_rounded),
               ),
@@ -753,7 +788,10 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
                 return DropdownMenuItem(
                   value: t.id,
                   child: Text(t.name,
-                      style: const TextStyle(color: AppTheme.textPrimary)),
+                      style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white))),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _selectedTopicId = v),
@@ -832,12 +870,16 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppTheme.textMuted),
+            Icon(icon,
+                size: 64,
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey)),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -846,8 +888,10 @@ class _EmptyState extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 13),
             ),
           ],
         ),

@@ -41,7 +41,7 @@ class _PomodoroGlobalListenerState
   Widget build(BuildContext context) {
     ref.listen<PomodoroState>(pomodoroProvider, (prev, next) {
       if (prev != null && next.completedSessions > prev.completedSessions) {
-        final workMins = ref.read(pomodoroProvider.notifier).workMins;
+        final workMins = next.currentSessionMinutes;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showSaveDialog(workMins);
         });
@@ -69,14 +69,17 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
 
     return AlertDialog(
-      backgroundColor: AppTheme.bg1,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       title: const Text('🎉 Pomodoro Finalizado!'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'Você focou por ${widget.minutesCompleted} minutos. Onde devemos alocar este estudo?',
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+                fontSize: 14),
           ),
           const SizedBox(height: 20),
           DropdownMenu<String>(

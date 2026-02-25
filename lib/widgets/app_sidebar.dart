@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/theme_provider.dart';
 import 'goal_switcher.dart';
 import 'pomodoro_global_listener.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AppSidebar extends StatelessWidget {
   final Widget child;
@@ -93,7 +95,7 @@ class _ExpandedSidebar extends StatelessWidget {
 
     return Container(
       width: 240,
-      color: AppTheme.bg1,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,7 +107,7 @@ class _ExpandedSidebar extends StatelessWidget {
               child: _Logo(),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.border),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           const SizedBox(height: 12),
           // Nav items
           Expanded(
@@ -127,6 +129,11 @@ class _ExpandedSidebar extends StatelessWidget {
                 }),
               ],
             ),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _ThemeToggle(),
           ),
           const SizedBox(height: 16),
         ],
@@ -176,15 +183,25 @@ class _SidebarItem extends StatelessWidget {
             Icon(
               dest.icon,
               size: 20,
-              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+              color: selected
+                  ? AppTheme.primary
+                  : (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
             ),
             const SizedBox(width: 12),
-            Text(
-              dest.label,
-              style: TextStyle(
-                color: selected ? AppTheme.primary : AppTheme.textSecondary,
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            Expanded(
+              child: Text(
+                dest.label,
+                style: TextStyle(
+                  color: selected
+                      ? AppTheme.primary
+                      : (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -207,7 +224,7 @@ class _CompactRail extends StatelessWidget {
 
     return Container(
       width: 72,
-      color: AppTheme.bg1,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           const SafeArea(
@@ -218,7 +235,7 @@ class _CompactRail extends StatelessWidget {
                   Icon(Icons.school_rounded, color: AppTheme.primary, size: 28),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.border),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           const SizedBox(height: 8),
           const GoalSwitcher(compact: true),
           const SizedBox(height: 8),
@@ -248,13 +265,18 @@ class _CompactRail extends StatelessWidget {
                         size: 22,
                         color: selected
                             ? AppTheme.primary
-                            : AppTheme.textSecondary,
+                            : (Theme.of(context).textTheme.bodySmall?.color ??
+                                Colors.grey),
                       ),
                     ),
                   ),
                 );
               }).toList(),
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 24),
+            child: _ThemeToggle(compact: true),
           ),
         ],
       ),
@@ -304,6 +326,12 @@ class _MobileDrawer extends StatelessWidget {
                 ],
               ),
             ),
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _ThemeToggle(),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -336,10 +364,11 @@ class _Logo extends StatelessWidget {
           child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
         ),
         const SizedBox(width: 10),
-        const Text(
+        Text(
           'StudyOps',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color:
+                (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
             fontSize: 17,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.3,
@@ -358,4 +387,78 @@ class _Dest {
   final String label;
   final String path;
   const _Dest({required this.icon, required this.label, required this.path});
+}
+
+// ---------------------------------------------------------------------------
+// Theme Toggle
+// ---------------------------------------------------------------------------
+class _ThemeToggle extends ConsumerWidget {
+  final bool compact;
+
+  const _ThemeToggle({this.compact = false});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+
+    if (compact) {
+      return IconButton(
+        icon: Icon(
+          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+          color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+          size: 22,
+        ),
+        onPressed: () {
+          ref.read(themeProvider.notifier).setThemeMode(
+                isDark ? ThemeMode.light : ThemeMode.dark,
+              );
+        },
+        tooltip: isDark ? 'Modo Claro' : 'Modo Escuro',
+      );
+    }
+
+    return InkWell(
+      onTap: () {
+        ref.read(themeProvider.notifier).setThemeMode(
+              isDark ? ThemeMode.light : ThemeMode.dark,
+            );
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              size: 20,
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isDark ? 'Modo Claro' : 'Modo Escuro',
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

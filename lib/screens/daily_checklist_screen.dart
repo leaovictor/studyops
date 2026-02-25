@@ -81,7 +81,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     final topicMap = {for (final t in allTopics) t.id: t};
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddTaskDialog(context, subjects, allTopics),
         icon: const Icon(Icons.add_rounded),
@@ -106,7 +106,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                         // Header with date picker
                         Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -115,7 +115,11 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,
-                                      color: AppTheme.textPrimary,
+                                      color: (Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color ??
+                                          Colors.white),
                                     ),
                                   ),
                                 ],
@@ -158,8 +162,12 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                               children: [
                                 Text(
                                   '$done/$total tarefas concluídas',
-                                  style: const TextStyle(
-                                    color: AppTheme.textSecondary,
+                                  style: TextStyle(
+                                    color: (Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color ??
+                                        Colors.grey),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -183,7 +191,8 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                     LinearProgressIndicator(
                                   value: value,
                                   minHeight: 6,
-                                  backgroundColor: AppTheme.border,
+                                  backgroundColor:
+                                      Theme.of(context).dividerColor,
                                   valueColor: const AlwaysStoppedAnimation(
                                       AppTheme.primary),
                                 ),
@@ -430,10 +439,15 @@ class _TaskCard extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: task.done ? AppTheme.bg1 : AppTheme.bg2,
+        color: task.done
+            ? Theme.of(context).colorScheme.surface
+            : (Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: task.done ? AppTheme.border : color.withValues(alpha: 0.3),
+          color: task.done
+              ? Theme.of(context).dividerColor
+              : color.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -451,18 +465,23 @@ class _TaskCard extends StatelessWidget {
               const SizedBox(width: 8),
 
               // Subject badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  subject?.name ?? 'Matéria',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    subject?.name ?? 'Matéria',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -472,19 +491,25 @@ class _TaskCard extends StatelessWidget {
                 child: Text(
                   topicName,
                   style: TextStyle(
-                    color:
-                        task.done ? AppTheme.textMuted : AppTheme.textPrimary,
+                    color: task.done
+                        ? (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey)
+                        : (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
                     fontWeight: FontWeight.w500,
                     decoration: task.done ? TextDecoration.lineThrough : null,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
 
               // Time
               Text(
                 AppDateUtils.formatMinutes(task.plannedMinutes),
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   fontSize: 12,
                 ),
               ),
@@ -495,7 +520,10 @@ class _TaskCard extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.timer_rounded,
-                    color: showPomodoro ? AppTheme.primary : AppTheme.textMuted,
+                    color: showPomodoro
+                        ? AppTheme.primary
+                        : (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
                     size: 20,
                   ),
                   onPressed: onTogglePomodoro,
@@ -505,8 +533,10 @@ class _TaskCard extends StatelessWidget {
 
               // Delete
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded,
-                    color: AppTheme.textMuted, size: 18),
+                icon: Icon(Icons.delete_outline_rounded,
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
+                    size: 18),
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,
               ),
@@ -532,28 +562,35 @@ class _EmptyChecklistState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.checklist_rounded,
-              color: AppTheme.textMuted, size: 48),
+          Icon(Icons.checklist_rounded,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              size: 48),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Nenhuma tarefa para hoje',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Crie um plano de estudo para gerar seu cronograma\nou adicione uma tarefa manualmente.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey),
+                fontSize: 13),
           ),
           const SizedBox(height: 20),
           OutlinedButton.icon(

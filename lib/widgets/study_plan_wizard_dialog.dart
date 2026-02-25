@@ -4,8 +4,8 @@ import '../controllers/auth_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
-import '../core/constants/app_constants.dart';
 import '../core/theme/app_theme.dart';
+import '../core/utils/app_date_utils.dart';
 import '../models/study_plan_model.dart';
 
 class StudyPlanWizardDialog extends ConsumerStatefulWidget {
@@ -22,13 +22,16 @@ class StudyPlanWizardDialog extends ConsumerStatefulWidget {
 }
 
 class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
-  late int _selectedDuration;
+  late DateTime _startDate;
+  late DateTime _endDate;
   late double _dailyHours;
 
   @override
   void initState() {
     super.initState();
-    _selectedDuration = widget.activePlan?.durationDays ?? 30;
+    _startDate = widget.activePlan?.startDate ?? DateTime.now();
+    _endDate = widget.activePlan?.endDate ??
+        DateTime.now().add(const Duration(days: 29));
     _dailyHours = widget.activePlan?.dailyHours ?? 3.0;
   }
 
@@ -41,7 +44,7 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
     final planState = ref.watch(studyPlanControllerProvider);
 
     return Dialog(
-      backgroundColor: AppTheme.bg1,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
@@ -60,80 +63,124 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
                       widget.activePlan != null
                           ? 'Mudar Plano de Estudo'
                           : 'Novo Plano de Estudo',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppTheme.textSecondary),
+                    icon: Icon(Icons.close_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Defina como será a sua carga e período de estudos para gerarmos seu cronograma ideal.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 13),
               ),
               const SizedBox(height: 24),
 
-              // Duration
-              const Text(
-                'Duração do Cronograma',
+              // Date Range Selection
+              Text(
+                'Período do Cronograma',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: AppConstants.planDurations.map((d) {
-                  final selected = _selectedDuration == d;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedDuration = d),
-                        borderRadius: BorderRadius.circular(12),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? AppTheme.primary.withOpacity(0.1)
-                                : AppTheme.bg2,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color:
-                                  selected ? AppTheme.primary : AppTheme.border,
-                              width: 2,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$d dias',
+              InkWell(
+                onTap: () async {
+                  final initialRange =
+                      DateTimeRange(start: _startDate, end: _endDate);
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    initialDateRange: initialRange,
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: Theme.of(context).colorScheme.copyWith(
+                                primary: AppTheme.primary,
+                                onPrimary: Colors.white,
+                              ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _startDate = picked.start;
+                      _endDate = picked.end;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: (Theme.of(context).cardTheme.color ??
+                        Theme.of(context).colorScheme.surface),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.date_range_rounded,
+                          color: AppTheme.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${AppDateUtils.displayDate(_startDate)} — ${AppDateUtils.displayDate(_endDate)}',
                               style: TextStyle(
-                                color: selected
-                                    ? AppTheme.primary
-                                    : AppTheme.textPrimary,
-                                fontWeight: selected
-                                    ? FontWeight.bold
-                                    : FontWeight.w600,
+                                color: (Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color ??
+                                    Colors.white),
+                                fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Total: ${_endDate.difference(_startDate).inDays + 1} dias',
+                              style: TextStyle(
+                                color: (Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color ??
+                                    Colors.grey),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                      Icon(Icons.edit_calendar_rounded,
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          size: 18),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -141,10 +188,11 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Carga Horária Diária',
                     style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -204,12 +252,12 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
 
                           // Cria/atualiza plano
                           final plan = StudyPlan(
-                            id: widget.activePlan?.id ??
-                                '', // reUSA se ja tiver ID? O controller faz upsert ou apaga antigo.
+                            id: widget.activePlan?.id ?? '',
                             userId: user.uid,
                             goalId: activeGoalId,
-                            startDate: DateTime.now(),
-                            durationDays: _selectedDuration,
+                            startDate: _startDate,
+                            durationDays:
+                                _endDate.difference(_startDate).inDays + 1,
                             dailyHours: _dailyHours,
                           );
 
@@ -267,18 +315,23 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
               ),
 
               if (subjects.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded,
+                      const Icon(Icons.info_outline_rounded,
                           color: AppTheme.warning, size: 16),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Vá em "Matérias" para cadastrar as matérias antes de criar o plano.',
                           style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 12),
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color ??
+                                  Colors.grey),
+                              fontSize: 12),
                         ),
                       ),
                     ],

@@ -18,12 +18,14 @@ class PomodoroState {
   final int secondsLeft;
   final bool running;
   final int completedSessions;
+  final int currentSessionMinutes;
 
   const PomodoroState({
     required this.phase,
     required this.secondsLeft,
     required this.running,
     required this.completedSessions,
+    this.currentSessionMinutes = 0,
   });
 
   PomodoroState copyWith({
@@ -31,12 +33,15 @@ class PomodoroState {
     int? secondsLeft,
     bool? running,
     int? completedSessions,
+    int? currentSessionMinutes,
   }) =>
       PomodoroState(
         phase: phase ?? this.phase,
         secondsLeft: secondsLeft ?? this.secondsLeft,
         running: running ?? this.running,
         completedSessions: completedSessions ?? this.completedSessions,
+        currentSessionMinutes:
+            currentSessionMinutes ?? this.currentSessionMinutes,
       );
 
   factory PomodoroState.initial(int workMins) => PomodoroState(
@@ -44,6 +49,7 @@ class PomodoroState {
         secondsLeft: workMins * 60,
         running: false,
         completedSessions: 0,
+        currentSessionMinutes: workMins,
       );
 }
 
@@ -71,9 +77,15 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     // If it's running, we let the current session finish with old duration
     if (!state.running) {
       if (state.phase == PomodoroPhase.work) {
-        state = state.copyWith(secondsLeft: workMins * 60);
+        state = state.copyWith(
+          secondsLeft: workMins * 60,
+          currentSessionMinutes: workMins,
+        );
       } else {
-        state = state.copyWith(secondsLeft: breakMins * 60);
+        state = state.copyWith(
+          secondsLeft: breakMins * 60,
+          currentSessionMinutes: breakMins,
+        );
       }
     }
   }
@@ -82,7 +94,12 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
     if (state.running) {
       _stopTimer();
     } else {
-      state = state.copyWith(running: true);
+      final sessionMins =
+          state.phase == PomodoroPhase.work ? workMins : breakMins;
+      state = state.copyWith(
+        running: true,
+        currentSessionMinutes: sessionMins,
+      );
       _focusService.enableWakeLock();
       _timer = Timer.periodic(const Duration(seconds: 1), _tick);
     }
@@ -110,6 +127,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           secondsLeft: breakMins * 60,
           running: false,
           completedSessions: completed,
+          currentSessionMinutes: breakMins,
         );
       } else {
         state = PomodoroState(
@@ -117,6 +135,7 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
           secondsLeft: workMins * 60,
           running: false,
           completedSessions: state.completedSessions,
+          currentSessionMinutes: workMins,
         );
       }
       _focusService.disableWakeLock();
@@ -172,16 +191,16 @@ class PomodoroTimer extends ConsumerWidget {
 
     return OpenContainer(
       transitionType: ContainerTransitionType.fadeThrough,
-      openColor: AppTheme.bg0,
+      openColor: Theme.of(context).scaffoldBackgroundColor,
       closedColor: Colors.transparent,
       closedElevation: 0,
       openBuilder: (context, _) => const _FocusModeScreen(),
       closedBuilder: (context, openContainer) => Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.bg3,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: InkWell(
           onTap: openContainer,
@@ -199,8 +218,10 @@ class PomodoroTimer extends ConsumerWidget {
                       fontSize: 13,
                     ),
                   ),
-                  const Icon(Icons.fullscreen_rounded,
-                      color: AppTheme.textMuted, size: 16),
+                  Icon(Icons.fullscreen_rounded,
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      size: 16),
                 ],
               ),
               const SizedBox(height: 12),
@@ -212,17 +233,19 @@ class PomodoroTimer extends ConsumerWidget {
                   children: [
                     CircularProgressIndicator(
                       value: progress,
-                      backgroundColor: AppTheme.border,
+                      backgroundColor: Theme.of(context).dividerColor,
                       valueColor: AlwaysStoppedAnimation(color),
                       strokeWidth: 5,
                     ),
                     Center(
                       child: Text(
                         AppDateUtils.formatCountdown(state.secondsLeft),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white),
                         ),
                       ),
                     ),
@@ -254,10 +277,12 @@ class PomodoroTimer extends ConsumerWidget {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: notifier.reset,
-                    icon: const Icon(Icons.refresh_rounded,
-                        color: AppTheme.textSecondary),
+                    icon: Icon(Icons.refresh_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppTheme.bg2,
+                      backgroundColor: (Theme.of(context).cardTheme.color ??
+                          Theme.of(context).colorScheme.surface),
                     ),
                   ),
                 ],
@@ -267,8 +292,9 @@ class PomodoroTimer extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     '${state.completedSessions} sessão(ões) concluída(s)',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
                       fontSize: 11,
                     ),
                   ),
@@ -338,7 +364,7 @@ class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
           }
         },
         child: Scaffold(
-          backgroundColor: AppTheme.bg0,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: SafeArea(
             child: Stack(
               children: [
@@ -348,10 +374,34 @@ class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
                     children: [
                       Align(
                         alignment: Alignment.topRight,
-                        child: IconButton(
-                          icon: const Icon(Icons.fullscreen_exit_rounded,
-                              color: AppTheme.textSecondary, size: 32),
-                          onPressed: () => Navigator.maybePop(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!state.running)
+                              IconButton(
+                                icon: Icon(Icons.settings_rounded,
+                                    color: (Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.color ??
+                                        Colors.grey),
+                                    size: 28),
+                                onPressed: () =>
+                                    _showSettings(context, ref, notifier),
+                                tooltip: 'Configurações do Pomodoro',
+                              ),
+                            IconButton(
+                              icon: Icon(Icons.fullscreen_exit_rounded,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color ??
+                                      Colors.grey),
+                                  size: 32),
+                              onPressed: () => Navigator.maybePop(context),
+                              tooltip: 'Sair do modo foco',
+                            ),
+                          ],
                         ),
                       ),
                       const Spacer(),
@@ -373,17 +423,21 @@ class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
                           children: [
                             CircularProgressIndicator(
                               value: progress,
-                              backgroundColor: AppTheme.border,
+                              backgroundColor: Theme.of(context).dividerColor,
                               valueColor: AlwaysStoppedAnimation(color),
                               strokeWidth: 8,
                             ),
                             Center(
                               child: Text(
                                 AppDateUtils.formatCountdown(state.secondsLeft),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 64,
                                   fontWeight: FontWeight.w900,
-                                  color: AppTheme.textPrimary,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white),
                                 ),
                               ),
                             ),
@@ -411,9 +465,15 @@ class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
                           const SizedBox(width: 32),
                           FloatingActionButton(
                             onPressed: notifier.reset,
-                            backgroundColor: AppTheme.bg2,
-                            child: const Icon(Icons.refresh_rounded,
-                                color: AppTheme.textSecondary),
+                            backgroundColor:
+                                (Theme.of(context).cardTheme.color ??
+                                    Theme.of(context).colorScheme.surface),
+                            child: Icon(Icons.refresh_rounded,
+                                color: (Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.color ??
+                                    Colors.grey)),
                           ),
                         ],
                       ),
@@ -440,6 +500,121 @@ class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
             ),
           ),
         ));
+  }
+
+  void _showSettings(
+      BuildContext context, WidgetRef ref, PomodoroNotifier notifier) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Consumer(builder: (context, ref, _) {
+        final settings = ref.watch(pomodoroSettingsProvider).valueOrNull;
+        if (settings == null) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ajustar Temporizador',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _DurationSlider(
+                label: 'Foco',
+                icon: Icons.timer_rounded,
+                color: AppTheme.primary,
+                value: settings.workMinutes.toDouble(),
+                min: 5,
+                max: 90,
+                divisions: 17,
+                onChanged: (v) => ref
+                    .read(pomodoroSettingsProvider.notifier)
+                    .updateSettings(v.toInt(), settings.breakMinutes),
+              ),
+              const SizedBox(height: 16),
+              _DurationSlider(
+                label: 'Pausa',
+                icon: Icons.coffee_rounded,
+                color: AppTheme.accent,
+                value: settings.breakMinutes.toDouble(),
+                min: 1,
+                max: 30,
+                divisions: 29,
+                onChanged: (v) => ref
+                    .read(pomodoroSettingsProvider.notifier)
+                    .updateSettings(settings.workMinutes, v.toInt()),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _DurationSlider extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final ValueChanged<double> onChanged;
+
+  const _DurationSlider({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Text(label,
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white))),
+            const Spacer(),
+            Text('${value.toInt()} min',
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          activeColor: color,
+          onChanged: onChanged,
+        ),
+      ],
+    );
   }
 }
 
@@ -468,8 +643,8 @@ class _MotivationalQuote extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Text(
         quote,
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
+        style: TextStyle(
+          color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
           fontSize: 18,
           fontStyle: FontStyle.italic,
           height: 1.5,

@@ -10,7 +10,9 @@ import '../models/topic_model.dart';
 import '../controllers/study_plan_controller.dart';
 import '../widgets/study_plan_wizard_dialog.dart';
 import '../controllers/quote_controller.dart';
+import '../core/theme/theme_provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import '../models/study_plan_model.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -55,11 +57,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final topicMap = {for (final t in allTopics) t.id: t};
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
-    // Watch tasks for selected day
     final tasks = ref.watch(dailyTasksProvider).valueOrNull ?? [];
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -68,12 +73,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Cronograma',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                   ),
                 ),
                 if (activePlan != null)
@@ -86,7 +92,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     icon: const Icon(Icons.settings_suggest_rounded, size: 18),
                     label: const Text('Ajustar Plano'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.primary.withOpacity(0.1),
+                      backgroundColor: isDark
+                          ? AppTheme.primary.withValues(alpha: 0.2)
+                          : AppTheme.primary.withValues(alpha: 0.12),
+                      foregroundColor: AppTheme.primary,
                     ),
                   ),
               ],
@@ -100,7 +109,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   gradient: LinearGradient(
                     colors: [
                       AppTheme.primary,
-                      AppTheme.primary.withOpacity(0.8)
+                      AppTheme.primary.withValues(alpha: 0.8)
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -108,7 +117,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.3),
+                      color: AppTheme.primary.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -119,7 +128,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.auto_awesome_rounded,
@@ -142,7 +151,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                           Text(
                             'Organize seus estudos gerando um plano.',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 13,
                             ),
                           ),
@@ -175,9 +184,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             // Calendar
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.bg2,
+                color: (Theme.of(context).cardTheme.color ??
+                    Theme.of(context).colorScheme.surface),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: Theme.of(context).dividerColor),
               ),
               child: TableCalendar(
                 firstDay: DateTime(2020),
@@ -196,11 +206,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 onPageChanged: (focused) {
                   setState(() => _focusedDay = focused);
                 },
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) =>
+                      _buildCalendarCell(context, day, activePlan),
+                  todayBuilder: (context, day, focusedDay) =>
+                      _buildCalendarCell(context, day, activePlan,
+                          isToday: true),
+                ),
                 calendarStyle: CalendarStyle(
-                  defaultTextStyle:
-                      const TextStyle(color: AppTheme.textPrimary),
-                  weekendTextStyle:
-                      const TextStyle(color: AppTheme.textSecondary),
+                  defaultTextStyle: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white)),
+                  weekendTextStyle: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey)),
                   todayDecoration: BoxDecoration(
                     color: AppTheme.primary.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
@@ -215,24 +234,31 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                       color: Colors.white, fontWeight: FontWeight.w700),
                   outsideDaysVisible: false,
                 ),
-                headerStyle: const HeaderStyle(
+                headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
                   titleTextStyle: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                   leftChevronIcon: Icon(Icons.chevron_left_rounded,
-                      color: AppTheme.textSecondary),
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey)),
                   rightChevronIcon: Icon(Icons.chevron_right_rounded,
-                      color: AppTheme.textSecondary),
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey)),
                 ),
-                daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle:
-                      TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                  weekendStyle:
-                      TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                daysOfWeekStyle: DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                      fontSize: 12),
+                  weekendStyle: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 12),
                 ),
               ),
             ),
@@ -248,8 +274,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     _selectedDay != null
                         ? 'Tarefas — ${AppDateUtils.displayDate(_selectedDay!)}'
                         : 'Selecione um dia',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -288,12 +315,18 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 16, vertical: 12),
                                           decoration: BoxDecoration(
-                                            color: AppTheme.bg2,
+                                            color: (Theme.of(context)
+                                                    .cardTheme
+                                                    .color ??
+                                                Theme.of(context)
+                                                    .colorScheme
+                                                    .surface),
                                             borderRadius:
                                                 BorderRadius.circular(10),
                                             border: Border.all(
                                               color: task.done
-                                                  ? AppTheme.border
+                                                  ? Theme.of(context)
+                                                      .dividerColor
                                                   : color.withValues(
                                                       alpha: 0.3),
                                             ),
@@ -306,27 +339,38 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                                     : Icons.circle_outlined,
                                                 color: task.done
                                                     ? AppTheme.accent
-                                                    : AppTheme.textMuted,
+                                                    : (Theme.of(context)
+                                                            .textTheme
+                                                            .labelSmall
+                                                            ?.color ??
+                                                        Colors.grey),
                                                 size: 18,
                                               ),
                                               const SizedBox(width: 12),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: color.withValues(
-                                                      alpha: 0.15),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  subject?.name ?? 'Matéria',
-                                                  style: TextStyle(
-                                                    color: color,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
+                                              Flexible(
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: color.withValues(
+                                                        alpha: 0.15),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
+                                                  ),
+                                                  child: Text(
+                                                    subject?.name ?? 'Matéria',
+                                                    style: TextStyle(
+                                                      color: color,
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ),
@@ -336,17 +380,32 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                                                   topic?.name ?? 'Tópico',
                                                   style: TextStyle(
                                                     color: task.done
-                                                        ? AppTheme.textMuted
-                                                        : AppTheme.textPrimary,
+                                                        ? (Theme.of(context)
+                                                                .textTheme
+                                                                .labelSmall
+                                                                ?.color ??
+                                                            Colors.grey)
+                                                        : (Theme.of(context)
+                                                                .textTheme
+                                                                .bodyLarge
+                                                                ?.color ??
+                                                            Colors.white),
                                                     fontSize: 13,
                                                   ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                               Text(
                                                 AppDateUtils.formatMinutes(
                                                     task.plannedMinutes),
-                                                style: const TextStyle(
-                                                  color: AppTheme.textMuted,
+                                                style: TextStyle(
+                                                  color: (Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.color ??
+                                                      Colors.grey),
                                                   fontSize: 12,
                                                 ),
                                               ),
@@ -369,6 +428,52 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       ),
     );
   }
+
+  Widget? _buildCalendarCell(
+      BuildContext context, DateTime day, StudyPlan? plan,
+      {bool isToday = false}) {
+    final isInPlan = plan != null &&
+        day.isAfter(plan.startDate.subtract(const Duration(seconds: 1))) &&
+        day.isBefore(plan.endDate.add(const Duration(seconds: 1)));
+
+    if (isInPlan) {
+      final isWeekend =
+          day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+      Color textColor;
+      if (isToday) {
+        textColor = AppTheme.primary;
+      } else if (isWeekend) {
+        textColor =
+            (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey);
+      } else {
+        textColor =
+            (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white);
+      }
+
+      return Container(
+        margin: const EdgeInsets.all(4),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withValues(alpha: isToday ? 0.25 : 0.12),
+          shape: BoxShape.circle,
+          border: isToday
+              ? Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.5), width: 1)
+              : null,
+        ),
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: isToday
+                ? FontWeight.w900
+                : (isWeekend ? FontWeight.normal : FontWeight.w600),
+          ),
+        ),
+      );
+    }
+    return null; // Let default builder handle it
+  }
 }
 
 class _EmptyScheduleQuote extends ConsumerWidget {
@@ -389,21 +494,24 @@ class _EmptyScheduleQuote extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.bg2,
+                  color: (Theme.of(context).cardTheme.color ??
+                      Theme.of(context).colorScheme.surface),
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.coffee_rounded,
-                  color: AppTheme.textMuted,
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   size: 40,
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Nenhuma tarefa planejada.',
                 style: TextStyle(
-                  color: AppTheme.textPrimary,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -419,8 +527,9 @@ class _EmptyScheduleQuote extends ConsumerWidget {
                     Text(
                       '"${quote.text}"',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
                         fontSize: 14,
                         fontStyle: FontStyle.italic,
                         height: 1.5,
@@ -429,8 +538,9 @@ class _EmptyScheduleQuote extends ConsumerWidget {
                     const SizedBox(height: 8),
                     Text(
                       "- ${quote.author}",
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),

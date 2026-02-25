@@ -45,7 +45,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     final controller = ref.read(subjectControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showSubjectDialog(context, null),
         icon: const Icon(Icons.add_rounded),
@@ -56,20 +56,23 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Matérias',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
               ),
             ),
             const SizedBox(height: 4),
             subjectsAsync.maybeWhen(
               data: (subjects) => Text(
                 '${subjects.length} matéria(s) cadastrada(s)',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 13),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 13),
               ),
               orElse: () => const SizedBox.shrink(),
             ),
@@ -98,8 +101,13 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                           const Text('Erro ao carregar matérias',
                               style: TextStyle(fontWeight: FontWeight.w600)),
                           Text(e.toString(),
-                              style: const TextStyle(
-                                  fontSize: 12, color: AppTheme.textMuted)),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.color ??
+                                      Colors.grey))),
                           const SizedBox(height: 16),
                           TextButton(
                               onPressed: _onRefresh,
@@ -279,8 +287,11 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                     const SizedBox(height: 16),
                     Text(
                         'Dificuldade: ${AppConstants.difficultyLabels[difficulty - 1]}',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 13)),
+                        style: TextStyle(
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
+                            fontSize: 13)),
                     Slider(
                       value: difficulty.toDouble(),
                       min: 1,
@@ -396,7 +407,9 @@ class _SubjectCard extends ConsumerWidget {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isExpanded ? color.withValues(alpha: 0.4) : AppTheme.border,
+          color: isExpanded
+              ? color.withValues(alpha: 0.4)
+              : Theme.of(context).dividerColor,
         ),
       ),
       child: Column(
@@ -424,12 +437,20 @@ class _SubjectCard extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              subject.name,
-                              style: const TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                            Flexible(
+                              child: Text(
+                                subject.name,
+                                style: TextStyle(
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -440,18 +461,26 @@ class _SubjectCard extends ConsumerWidget {
                               content: RelevanceTooltip(
                                 subject: subject,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.info_outline_rounded,
                                 size: 16,
-                                color: AppTheme.textMuted,
+                                color: (Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.color ??
+                                    Colors.grey),
                               ),
                             ),
                           ],
                         ),
                         Text(
                           'Prioridade ${subject.priority} • Peso ${subject.weight} • ${topics.length} tópico(s)',
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
+                          style: TextStyle(
+                            color: (Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.color ??
+                                Colors.grey),
                             fontSize: 11,
                           ),
                         ),
@@ -459,14 +488,18 @@ class _SubjectCard extends ConsumerWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined,
-                        size: 18, color: AppTheme.textSecondary),
+                    icon: Icon(Icons.edit_outlined,
+                        size: 18,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
                     onPressed: onEdit,
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded,
-                        size: 18, color: AppTheme.textMuted),
+                    icon: Icon(Icons.delete_outline_rounded,
+                        size: 18,
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey)),
                     onPressed: onDelete,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -474,7 +507,8 @@ class _SubjectCard extends ConsumerWidget {
                     isExpanded
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
-                    color: AppTheme.textSecondary,
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
                   ),
                 ],
               ),
@@ -535,29 +569,43 @@ class _TopicRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          const Icon(Icons.fiber_manual_record_rounded,
-              size: 6, color: AppTheme.textMuted),
+          Icon(Icons.fiber_manual_record_rounded,
+              size: 6,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               topic.name,
-              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
+                  fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             AppConstants.difficultyLabels[topic.difficulty - 1],
-            style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey),
+                fontSize: 11),
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.edit_outlined,
-                size: 14, color: AppTheme.textMuted),
+            icon: Icon(Icons.edit_outlined,
+                size: 14,
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey)),
             onPressed: onEdit,
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded,
-                size: 14, color: AppTheme.textMuted),
+            icon: Icon(Icons.delete_outline_rounded,
+                size: 14,
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey)),
             onPressed: onDelete,
             visualDensity: VisualDensity.compact,
           ),
@@ -620,9 +668,11 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
               ),
               const SizedBox(height: 16),
               // Color picker
-              const Text('Cor',
-                  style:
-                      TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+              Text('Cor',
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                      fontSize: 13)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -663,8 +713,11 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                   children: [
                     Text(
                         'Prioridade: ${AppConstants.priorityLabels[_priority - 1]}',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 13)),
+                        style: TextStyle(
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
+                            fontSize: 13)),
                     Slider(
                       value: _priority.toDouble(),
                       min: 1,
@@ -685,8 +738,11 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Peso na prova: $_weight',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 13)),
+                        style: TextStyle(
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
+                            fontSize: 13)),
                     Slider(
                       value: _weight.toDouble(),
                       min: 1,
@@ -740,7 +796,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                       await controller.updateSubject(subject);
                     }
 
-                    if (mounted) {
+                    if (context.mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -750,7 +806,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                       );
                     }
                   } catch (e) {
-                    if (mounted) {
+                    if (context.mounted) {
                       setState(() => _isLoading = false);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Erro ao salvar: $e')),
@@ -777,22 +833,30 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
 class _EmptySubjects extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.school_outlined, color: AppTheme.textMuted, size: 48),
-          SizedBox(height: 16),
+          Icon(Icons.school_outlined,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              size: 48),
+          const SizedBox(height: 16),
           Text(
             'Nenhuma matéria cadastrada',
             style: TextStyle(
-                color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
+                fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Comece adicionando suas matérias\npara gerar seu cronograma.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey),
+                fontSize: 13),
           ),
         ],
       ),

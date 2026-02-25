@@ -54,7 +54,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
     final topicMap = {for (final t in allTopics) t.id: t};
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showNoteDialog(context, null, subjects, allTopics),
         icon: const Icon(Icons.add_rounded),
@@ -68,7 +68,7 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
             // Header
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -77,13 +77,18 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white),
                         ),
                       ),
                       Text(
                         'Revisão espaçada inteligente',
                         style: TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 13),
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
+                            fontSize: 13),
                       ),
                     ],
                   ),
@@ -250,7 +255,8 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.bg2,
+      backgroundColor: (Theme.of(context).cardTheme.color ??
+          Theme.of(context).colorScheme.surface),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -352,10 +358,11 @@ class _NoteDialogContentState extends State<_NoteDialogContent> {
             children: [
               Text(
                 widget.existing == null ? 'Novo Erro' : 'Editar Erro',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                 ),
               ),
               const SizedBox(height: 20),
@@ -473,11 +480,13 @@ class _NoteCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color:
-              isDue ? AppTheme.warning.withValues(alpha: 0.5) : AppTheme.border,
+          color: isDue
+              ? AppTheme.warning.withValues(alpha: 0.5)
+              : Theme.of(context).dividerColor,
         ),
       ),
       child: Column(
@@ -485,28 +494,38 @@ class _NoteCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  subject?.name ?? 'Matéria',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    subject?.name ?? 'Matéria',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                topicName,
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 12),
+              Expanded(
+                child: Text(
+                  topicName,
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                      fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
               if (isDue)
                 Container(
                   padding:
@@ -526,7 +545,10 @@ class _NoteCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 stageLabel,
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
+                    fontSize: 10),
               ),
             ],
           ),
@@ -534,8 +556,9 @@ class _NoteCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               note.question,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -547,8 +570,10 @@ class _NoteCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               '✅ ${note.correctAnswer}',
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 13),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -556,11 +581,17 @@ class _NoteCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Text(
-                'Próxima revisão: ${AppDateUtils.displayDate(note.nextReview)}',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+              Expanded(
+                child: Text(
+                  'Próxima revisão: ${AppDateUtils.displayDate(note.nextReview)}',
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
               if (isDue)
                 TextButton.icon(
                   onPressed: onMarkReviewed,
@@ -572,14 +603,18 @@ class _NoteCard extends StatelessWidget {
                   ),
                 ),
               IconButton(
-                icon: const Icon(Icons.edit_outlined,
-                    size: 16, color: AppTheme.textMuted),
+                icon: Icon(Icons.edit_outlined,
+                    size: 16,
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey)),
                 onPressed: onEdit,
                 visualDensity: VisualDensity.compact,
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded,
-                    size: 16, color: AppTheme.textMuted),
+                icon: Icon(Icons.delete_outline_rounded,
+                    size: 16,
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey)),
                 onPressed: onDelete,
                 visualDensity: VisualDensity.compact,
               ),
@@ -601,20 +636,28 @@ class _EmptyNotes extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.book_outlined, color: AppTheme.textMuted, size: 48),
+          Icon(Icons.book_outlined,
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              size: 48),
           const SizedBox(height: 16),
           Text(
             showDueOnly
                 ? 'Nenhuma revisão pendente hoje 🎉'
                 : 'Nenhum erro cadastrado ainda',
-            style: const TextStyle(
-                color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
+                fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Adicione erros de questões para\npraticar a revisão espaçada.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey),
+                fontSize: 13),
           ),
         ],
       ),

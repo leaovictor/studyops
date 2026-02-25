@@ -43,4 +43,23 @@ class StudyLogService {
 
     return snap.docs.map((d) => StudyLog.fromDoc(d)).toList();
   }
+
+  Future<List<StudyLog>> getLogsForRange(
+    String userId,
+    String startKey,
+    String endKey, {
+    String? goalId,
+  }) async {
+    Query query = _logs.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+
+    final snap = await query
+        .where('date', isGreaterThanOrEqualTo: startKey)
+        .where('date', isLessThanOrEqualTo: endKey)
+        .get();
+
+    return snap.docs.map((d) => StudyLog.fromDoc(d)).toList();
+  }
 }

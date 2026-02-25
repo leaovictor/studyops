@@ -56,9 +56,10 @@ class GoalSwitcher extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.bg2,
+                  color: (Theme.of(context).cardTheme.color ??
+                      Theme.of(context).colorScheme.surface),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
@@ -84,10 +85,14 @@ class GoalSwitcher extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'AMBIENTE ATIVO',
                             style: TextStyle(
-                              color: AppTheme.textSecondary,
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color ??
+                                  Colors.grey),
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.2,
@@ -95,18 +100,25 @@ class GoalSwitcher extends ConsumerWidget {
                           ),
                           Text(
                             activeGoal.name,
-                            style: const TextStyle(
-                              color: AppTheme.textPrimary,
+                            style: TextStyle(
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color ??
+                                  Colors.white),
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.unfold_more_rounded,
-                        color: AppTheme.textSecondary, size: 20),
+                    Icon(Icons.unfold_more_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
+                        size: 20),
                   ],
                 ),
               ),
@@ -128,7 +140,7 @@ class GoalSwitcher extends ConsumerWidget {
   void _showGoalPicker(BuildContext context, WidgetRef ref, List<Goal> goals) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.bg1,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
@@ -142,12 +154,13 @@ class GoalSwitcher extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Selecione seu Objetivo',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -164,26 +177,38 @@ class GoalSwitcher extends ConsumerWidget {
                           Icons.flag_rounded,
                           color: isSelected
                               ? AppTheme.primary
-                              : AppTheme.textSecondary,
+                              : (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
                         ),
                         title: Text(
                           goal.name,
                           style: TextStyle(
                             color: isSelected
                                 ? AppTheme.primary
-                                : AppTheme.textPrimary,
+                                : (Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color ??
+                                    Colors.white),
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (goals.length > 1)
                               IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded,
-                                    size: 20, color: AppTheme.textMuted),
+                                icon: Icon(Icons.delete_outline_rounded,
+                                    size: 20,
+                                    color: (Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.color ??
+                                        Colors.grey)),
                                 onPressed: () {
                                   Navigator.pop(context);
                                   _showDeleteConfirmationDialog(
@@ -233,14 +258,14 @@ class GoalSwitcher extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: AppTheme.bg1,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           title: const Text('Excluir Ambiente?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text.rich(
-                TextSpan(
+              Text.rich(
+                const TextSpan(
                   children: [
                     TextSpan(
                         text: 'Esta ação é irreversível. Todas as ',
@@ -254,13 +279,16 @@ class GoalSwitcher extends ConsumerWidget {
                         style: TextStyle(fontSize: 13)),
                   ],
                 ),
-                style: TextStyle(color: AppTheme.textSecondary),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey)),
               ),
               const SizedBox(height: 20),
               Text(
                 'Digite "${goal.name}" para confirmar:',
-                style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontSize: 14,
                     fontWeight: FontWeight.w600),
               ),
@@ -270,7 +298,7 @@ class GoalSwitcher extends ConsumerWidget {
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: goal.name,
-                  fillColor: AppTheme.bg0,
+                  fillColor: Theme.of(context).scaffoldBackgroundColor,
                 ),
                 autofocus: true,
               ),
@@ -315,15 +343,18 @@ class GoalSwitcher extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.bg1,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         title: const Text('Novo Ambiente de Estudo'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Crie um ambiente separado para organizar seus estudos (ex: ENEM, Faculdade, Concursos).',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
