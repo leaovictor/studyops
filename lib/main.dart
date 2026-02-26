@@ -11,19 +11,28 @@ import 'core/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  // Enable offline persistence and unlimited caching for Firestore PWA
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Enable offline persistence and unlimited caching for Firestore PWA
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
 
   final sharedPrefs = await SharedPreferences.getInstance();
 
-  await initializeDateFormatting('pt_BR');
+  try {
+    await initializeDateFormatting('pt_BR');
+  } catch (e) {
+    debugPrint('Date formatting error: $e');
+  }
   runApp(
     ProviderScope(
       overrides: [
