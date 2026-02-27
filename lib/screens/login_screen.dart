@@ -182,7 +182,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(
+                      MediaQuery.of(context).size.width >= 600 ? 32 : 16),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
                     child: Form(

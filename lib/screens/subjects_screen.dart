@@ -52,15 +52,21 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         label: const Text('MatÃ©ria'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width >= 600 ? 24 : 16,
+          vertical: 24,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
               children: [
                 Text(
-                  'MatÃ©rias',
+                  'Matérias',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
@@ -365,7 +371,8 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               setS(() => isLoading = false);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text('Erro ao salvar tÃ³pico: $e')),
+                                    content:
+                                        Text('Erro ao salvar tÃ³pico: $e')),
                               );
                             }
                           }
@@ -523,15 +530,19 @@ class _SubjectCard extends ConsumerWidget {
                       IconButton(
                         icon: Icon(Icons.edit_outlined,
                             size: 18,
-                            color: (Theme.of(context).textTheme.bodySmall?.color ??
-                                Colors.grey)),
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey)),
                         onPressed: onEdit,
                         visualDensity: VisualDensity.compact,
                       ),
                       IconButton(
                         icon: Icon(Icons.delete_outline_rounded,
                             size: 18,
-                            color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            color: (Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.color ??
                                 Colors.grey)),
                         onPressed: onDelete,
                         visualDensity: VisualDensity.compact,
@@ -596,14 +607,16 @@ class _SubjectCard extends ConsumerWidget {
                             .deleteTopic(t.id),
                         onToggleTheory: () => ref
                             .read(subjectControllerProvider.notifier)
-                            .updateTopic(t.copyWith(isTheoryDone: !t.isTheoryDone)),
+                            .updateTopic(
+                                t.copyWith(isTheoryDone: !t.isTheoryDone)),
                         onToggleReview: () => ref
                             .read(subjectControllerProvider.notifier)
-                            .updateTopic(t.copyWith(isReviewDone: !t.isReviewDone)),
+                            .updateTopic(
+                                t.copyWith(isReviewDone: !t.isReviewDone)),
                         onToggleExercises: () => ref
                             .read(subjectControllerProvider.notifier)
-                            .updateTopic(
-                                t.copyWith(isExercisesDone: !t.isExercisesDone)),
+                            .updateTopic(t.copyWith(
+                                isExercisesDone: !t.isExercisesDone)),
                       )),
                   const SizedBox(height: 4),
                   TextButton.icon(
@@ -800,7 +813,6 @@ class _ProgressIcon extends StatelessWidget {
   }
 }
 
-
 class _SubjectDialog extends ConsumerStatefulWidget {
   final Subject? existing;
   const _SubjectDialog({this.existing});
@@ -838,7 +850,8 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
     final user = ref.read(authStateProvider).valueOrNull;
 
     return AlertDialog(
-      title: Text(widget.existing == null ? 'Nova MatÃ©ria' : 'Editar MatÃ©ria'),
+      title:
+          Text(widget.existing == null ? 'Nova MatÃ©ria' : 'Editar MatÃ©ria'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -848,7 +861,8 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nome da MatÃ©ria'),
+                decoration:
+                    const InputDecoration(labelText: 'Nome da MatÃ©ria'),
                 validator: (v) =>
                     (v?.isNotEmpty ?? false) ? null : 'ObrigatÃ³rio',
               ),
@@ -1050,7 +1064,6 @@ class _EmptySubjects extends StatelessWidget {
   }
 }
 
-
 class _AIImportDialog extends ConsumerStatefulWidget {
   const _AIImportDialog();
 
@@ -1086,7 +1099,8 @@ class _AIImportDialogState extends ConsumerState<_AIImportDialog> {
             maxLines: 8,
             decoration: InputDecoration(
               hintText: "Ex: PORTUGUÊS: 1. Compreensão de textos...",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true,
             ),
           ),
@@ -1100,7 +1114,10 @@ class _AIImportDialogState extends ConsumerState<_AIImportDialog> {
         FilledButton(
           onPressed: _isLoading ? null : _import,
           child: _isLoading
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
               : const Text("Processar Edital"),
         ),
       ],
@@ -1120,17 +1137,19 @@ class _AIImportDialogState extends ConsumerState<_AIImportDialog> {
         throw Exception("Gemini API Key não configurada no Painel Admin.");
       }
       final activeGoalId = ref.read(activeGoalIdProvider);
-      
+
       final result = await aiService.parseSyllabus(
         _textCtrl.text.trim(),
         user.uid,
         activeGoalId,
       );
 
-      await ref.read(subjectControllerProvider.notifier).createMultipleSubjectsAndTopics(
-        result.subjects,
-        result.topics,
-      );
+      await ref
+          .read(subjectControllerProvider.notifier)
+          .createMultipleSubjectsAndTopics(
+            result.subjects,
+            result.topics,
+          );
 
       if (mounted) {
         Navigator.pop(context);

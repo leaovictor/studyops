@@ -87,7 +87,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: isDesktop ? 40 : 20,
+                horizontal: isDesktop ? 40 : (isTablet ? 30 : 16),
                 vertical: 32,
               ),
               child: AnimationLimiter(
@@ -411,21 +411,25 @@ class _NoPlanCTA extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.accent.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.calendar_month_rounded,
+                  color: AppTheme.accent, size: 24),
             ),
-            child: const Icon(Icons.calendar_month_rounded,
-                color: AppTheme.accent, size: 24),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Plano de Estudo não configurado',
@@ -446,18 +450,17 @@ class _NoPlanCTA extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.accent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
+            FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Configurar'),
             ),
-            child: const Text('Configurar'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -664,44 +667,44 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Olá, $userName 👋',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                      Colors.white),
-                  letterSpacing: -0.5,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Olá, $userName 👋',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
+                letterSpacing: -0.5,
               ),
-              const SizedBox(height: 4),
-              Text(
-                AppDateUtils.weekdayLabel(DateTime.now()),
-                style: TextStyle(
-                  color: (Theme.of(context).textTheme.bodySmall?.color ??
-                      Colors.grey),
-                  fontSize: 15,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              AppDateUtils.weekdayLabel(DateTime.now()),
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+                fontSize: 15,
               ),
-              const SizedBox(height: 16),
-              // Render the GoalSwitcher inline on the dashboard
-              const SizedBox(
-                width: 250,
-                child: GoalSwitcher(),
-              ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            const SizedBox(
+              width: 250,
+              child: GoalSwitcher(),
+            ),
+          ],
         ),
         FilledButton.icon(
           onPressed: () => context.go('/checklist'),
