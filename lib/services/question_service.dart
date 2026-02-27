@@ -17,7 +17,8 @@ class QuestionService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((snap) => snap.docs
-            .map((d) => QuestionLog.fromMap(d.id, d.data() as Map<String, dynamic>))
+            .map((d) =>
+                QuestionLog.fromMap(d.id, d.data() as Map<String, dynamic>))
             .toList());
   }
 

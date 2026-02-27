@@ -11,6 +11,7 @@ O StudyOps integra o poder da IA multimodal do Google para automatizar as tarefa
 * **Mentor de Performance**: Relatórios de coaching personalizados baseados na sua taxa de acerto, constância e evolução.
 * **Fábrica de Flashcards**: Geração automática de cards de memorização a partir dos seus erros registrados no Caderno de Erros.
 * **Explicação de Questões**: Professor particular integrado para explicar a fundamentação teórica de qualquer erro cometido.
+* **Validação Rápida de Conhecimento**: Geração *on-the-fly* de mini-testes (Verdadeiro/Falso) ao concluir tarefas no Checklist Diário para validar a retenção de leitura.
 
 ---
 
@@ -27,18 +28,20 @@ O sistema permite o rastreio completo do edital através de três indicadores po
 
 ---
 
-### 2. Banco de Questões e De-duplicação
+### 2. Banco de Questões e Simulado Global
 
-O app possui um ecossistema de conteúdo colaborativo:
-* **Crowdsourcing**: Usuários alimentam o banco global ao subir provas antigas.
-* **Deduplicação Inteligente**: Sistema de hashing SHA-256 que identifica questões idênticas pelo conteúdo, garantindo um banco limpo e sem repetições.
-* **Aproveitamento (%)**: Monitoramento em tempo real da taxa de acerto global e por disciplina.
+O app possui um ecossistema de conteúdo colaborativo com interface de prática dinâmica:
+* **Crowdsourcing**: Usuários alimentam o banco global ao subir provas antigas (PDFs).
+* **Simulado Prático**: Resolução de questões estilo "Tinder" de cards, com feedback imediato. Erros são direcionados automaticamente para o Caderno de Erros.
+* **Deduplicação Inteligente**: Sistema de hashing SHA-256 que identifica questões idênticas pelo conteúdo.
+* **Explicação IA On-Demand**: Peça explicações detalhadas simulando um professor humano no contexto exato da questão.
 
 ---
 
 ### 3. Repetição Espaçada (Spaced Repetition)
 
 Implementada no **Caderno de Erros** e nos **Flashcards**, a lógica segue sistemas de memorização científica:
+* **Integração com o Checklist Diário**: As revisões diárias do Caderno de Erros aparecem diretamente na aba de Checklist Diário do usuário, mesclando aprendizagem e revisão ativamente.
 * **FSRS (Free Spaced Repetition Scheduler)**: Algoritmo de ponta integrado para prever o momento exato da revisão nos Flashcards.
 * **Manual Review Stages**: Intervalos progressivos de 1, 3, 7, 15 e 30 dias para o Caderno de Erros.
 

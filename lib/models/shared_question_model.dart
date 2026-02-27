@@ -40,7 +40,8 @@ class SharedQuestion {
         'isApproved': isApproved,
       };
 
-  factory SharedQuestion.fromMap(String id, Map<String, dynamic> map) => SharedQuestion(
+  factory SharedQuestion.fromMap(String id, Map<String, dynamic> map) =>
+      SharedQuestion(
         id: id,
         statement: map['statement'] ?? '',
         options: Map<String, String>.from(map['options'] ?? {}),

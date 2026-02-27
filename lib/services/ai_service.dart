@@ -7,6 +7,7 @@ import '../models/daily_task_model.dart';
 import '../core/utils/app_date_utils.dart';
 import 'usage_service.dart';
 import 'package:uuid/uuid.dart';
+import '../models/knowledge_check_model.dart';
 
 class AISyllabusImportResult {
   final List<Subject> subjects;
@@ -346,6 +347,70 @@ Use Markdown para negrito e listas. Seja breve (máximo 150 palavras).
 
     return response.choices.first.message.content?.first.text?.trim() ??
         'Não foi possível gerar a explanation.';
+  }
+
+  Future<List<KnowledgeCheckQuestion>> generateKnowledgeCheck({
+    required String subject,
+    required String topic,
+  }) async {
+    final prompt = '''
+Você é um especialista em $subject.
+O aluno acabou de estudar o tópico "$topic".
+Gere exatamente 5 perguntas de VERDADEIRO ou FALSO (fáceis para médias) sobre este tópico para verificar o aprendizado rápido.
+Retorne um objeto JSON com uma chave "questions", cujo valor seja um array com o seguinte formato exato (sem formatação markdown como ```json):
+{
+  "questions": [
+    {
+      "statement": "O Sol gira ao redor da Terra.",
+      "isTrue": false,
+      "explanation": "No modelo heliocêntrico, a Terra gira ao redor do Sol."
+    }
+  ]
+}
+Apenas retorne o JSON.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {
+        "type": "json_object"
+      }, // Not always supported by all models, but groq handles json output if instructed. Wait, we usually parse it raw. Let's just ask for JSON without json_object to be safe with standard models.
+    );
+
+    final rawText =
+        response.choices.first.message.content?.first.text?.trim() ?? '[]';
+    final cleanText =
+        rawText.replaceAll('```json', '').replaceAll('```', '').trim();
+
+    try {
+      final dynamic decoded = jsonDecode(cleanText);
+      List<dynamic> questionsList = [];
+
+      if (decoded is Map<String, dynamic>) {
+        questionsList = decoded['questions'] ?? [];
+        if (questionsList.isEmpty) {
+          final lists = decoded.values.whereType<List<dynamic>>();
+          if (lists.isNotEmpty) questionsList = lists.first;
+        }
+      } else if (decoded is List<dynamic>) {
+        questionsList = decoded;
+      }
+
+      return questionsList
+          .map((e) => KnowledgeCheckQuestion.fromJson(e))
+          .toList();
+    } catch (e) {
+      print('Failed to parse knowledge check JSON: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> extractQuestionsFromFiles(

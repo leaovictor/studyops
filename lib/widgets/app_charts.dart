@@ -39,7 +39,8 @@ class WeeklyBarChart extends StatelessWidget {
               getTitlesWidget: (v, _) => Text(
                 '${(v / 60).round()}h',
                 style: TextStyle(
-                  color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey),
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   fontSize: 10,
                 ),
               ),
@@ -57,7 +58,8 @@ class WeeklyBarChart extends StatelessWidget {
                   child: Text(
                     AppDateUtils.shortWeekdayLabel(date),
                     style: TextStyle(
-                      color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey),
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
                       fontSize: 10,
                     ),
                   ),
@@ -124,7 +126,10 @@ class _SubjectPieChartState extends State<SubjectPieChart> {
   Widget build(BuildContext context) {
     if (widget.data.isEmpty) {
       return Center(
-        child: Text('Sem dados', style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey))),
+        child: Text('Sem dados',
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey))),
       );
     }
 
@@ -190,7 +195,8 @@ class _SubjectPieChartState extends State<SubjectPieChart> {
                   Text(
                     name.length > 12 ? '${name.substring(0, 12)}…' : name,
                     style: TextStyle(
-                      color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
                       fontSize: 12,
                     ),
                   ),
@@ -216,7 +222,10 @@ class EvolutionLineChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) {
       return Center(
-        child: Text('Sem dados', style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey))),
+        child: Text('Sem dados',
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey))),
       );
     }
 
@@ -248,7 +257,10 @@ class EvolutionLineChart extends StatelessWidget {
               reservedSize: 36,
               getTitlesWidget: (v, _) => Text(
                 '${v.round()}h',
-                style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 10),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
+                    fontSize: 10),
               ),
             ),
           ),
@@ -298,7 +310,9 @@ class PlannedVsReadChart extends StatelessWidget {
     if (data.isEmpty) {
       return Center(
         child: Text('Sem dados diários',
-            style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey))),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey))),
       );
     }
 
@@ -310,7 +324,9 @@ class PlannedVsReadChart extends StatelessWidget {
     if (entries.isEmpty) {
       return Center(
         child: Text('Sem planejamento hoje',
-            style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey))),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey))),
       );
     }
 
@@ -356,7 +372,8 @@ class PlannedVsReadChart extends StatelessWidget {
     return Column(
       children: [
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          _LegendItem(color: Theme.of(context).dividerColor, label: 'Planejado'),
+          _LegendItem(
+              color: Theme.of(context).dividerColor, label: 'Planejado'),
           const SizedBox(width: 16),
           const _LegendItem(color: AppTheme.accent, label: 'Lido Hoje'),
         ]),
@@ -370,8 +387,8 @@ class PlannedVsReadChart extends StatelessWidget {
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) =>
-                    FlLine(color: Theme.of(context).dividerColor, strokeWidth: 1),
+                getDrawingHorizontalLine: (_) => FlLine(
+                    color: Theme.of(context).dividerColor, strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
@@ -384,7 +401,10 @@ class PlannedVsReadChart extends StatelessWidget {
                     getTitlesWidget: (v, _) => Text(
                       '${(v / 60).toStringAsFixed(1)}h',
                       style: TextStyle(
-                          color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 10),
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          fontSize: 10),
                     ),
                   ),
                 ),
@@ -407,7 +427,12 @@ class PlannedVsReadChart extends StatelessWidget {
                         child: Text(
                           displayStr,
                           style: TextStyle(
-                              color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 10),
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.color ??
+                                  Colors.grey),
+                              fontSize: 10),
                         ),
                       );
                     },
@@ -440,8 +465,10 @@ class _LegendItem extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(label,
-            style:
-                TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 11)),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+                fontSize: 11)),
       ],
     );
   }

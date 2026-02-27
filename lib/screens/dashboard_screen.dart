@@ -945,12 +945,18 @@ class _TopMetricsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasLostTime = data.todayProductiveMinutes < data.todayMinutes;
+    final String todaySubtitle = hasLostTime
+        ? '${AppDateUtils.formatMinutes(data.todayMinutes)} Bruto'
+        : '100% Produtivo';
+
     final List<Widget> cards = [
       MetricCard(
         icon: Icons.today_rounded,
-        label: 'Hoje',
-        value: AppDateUtils.formatMinutes(data.todayMinutes),
-        accentColor: AppTheme.primary,
+        label: 'Hoje (Líquido)',
+        value: AppDateUtils.formatMinutes(data.todayProductiveMinutes),
+        subtitle: todaySubtitle,
+        accentColor: hasLostTime ? AppTheme.warning : AppTheme.primary,
       ),
       MetricCard(
         icon: Icons.calendar_view_week_rounded,

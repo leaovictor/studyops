@@ -9,7 +9,8 @@ class DailyTask {
   final String topicId;
   final int plannedMinutes;
   final bool done;
-  final int actualMinutes;
+  final int actualMinutes; // Gross time
+  final int productiveMinutes; // Net high-quality time validated by AI
 
   const DailyTask({
     required this.id,
@@ -21,6 +22,7 @@ class DailyTask {
     required this.plannedMinutes,
     required this.done,
     required this.actualMinutes,
+    this.productiveMinutes = 0,
   });
 
   DailyTask copyWith({
@@ -33,6 +35,7 @@ class DailyTask {
     int? plannedMinutes,
     bool? done,
     int? actualMinutes,
+    int? productiveMinutes,
   }) {
     return DailyTask(
       id: id ?? this.id,
@@ -44,6 +47,7 @@ class DailyTask {
       plannedMinutes: plannedMinutes ?? this.plannedMinutes,
       done: done ?? this.done,
       actualMinutes: actualMinutes ?? this.actualMinutes,
+      productiveMinutes: productiveMinutes ?? this.productiveMinutes,
     );
   }
 
@@ -56,6 +60,7 @@ class DailyTask {
         'plannedMinutes': plannedMinutes,
         'done': done,
         'actualMinutes': actualMinutes,
+        'productiveMinutes': productiveMinutes,
       };
 
   factory DailyTask.fromMap(String id, Map<String, dynamic> map) => DailyTask(
@@ -68,6 +73,7 @@ class DailyTask {
         plannedMinutes: (map['plannedMinutes'] as num?)?.toInt() ?? 60,
         done: map['done'] as bool? ?? false,
         actualMinutes: (map['actualMinutes'] as num?)?.toInt() ?? 0,
+        productiveMinutes: (map['productiveMinutes'] as num?)?.toInt() ?? 0,
       );
 
   factory DailyTask.fromDoc(DocumentSnapshot doc) =>

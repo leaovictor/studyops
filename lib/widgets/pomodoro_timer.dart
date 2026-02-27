@@ -53,19 +53,39 @@ class PomodoroState {
       );
 }
 
-class PomodoroNotifier extends StateNotifier<PomodoroState> {
+class PomodoroNotifier extends StateNotifier<PomodoroState>
+    with WidgetsBindingObserver {
   Timer? _timer;
   int workMins;
   int breakMins;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FocusService _focusService;
 
+  // Event stream for showing UI alerts
+  final _eventController = StreamController<String>.broadcast();
+  Stream<String> get events => _eventController.stream;
+
   PomodoroNotifier({
     required FocusService focusService,
     this.workMins = 25,
     this.breakMins = 5,
   })  : _focusService = focusService,
-        super(PomodoroState.initial(workMins));
+        super(PomodoroState.initial(workMins)) {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState appState) {
+    if (appState == AppLifecycleState.paused ||
+        appState == AppLifecycleState.inactive ||
+        appState == AppLifecycleState.hidden) {
+      if (state.running) {
+        _stopTimer();
+        _eventController
+            .add('Modo Hardcore: O timer foi pausado por sair do aplicativo!');
+      }
+    }
+  }
 
   void updateDurations(int work, int breakM) {
     if (workMins == work && breakMins == breakM) return;
@@ -153,7 +173,9 @@ class PomodoroNotifier extends StateNotifier<PomodoroState> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _eventController.close();
     _focusService.disableWakeLock();
     _audioPlayer.dispose();
     super.dispose();
@@ -316,16 +338,36 @@ class _FocusModeScreen extends ConsumerStatefulWidget {
 
 class _FocusModeScreenState extends ConsumerState<_FocusModeScreen> {
   late ConfettiController _confettiController;
+  StreamSubscription<String>? _eventSubscription;
 
   @override
   void initState() {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
+
+    // Listen to Anti-AFK events from notifier
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notifier = ref.read(pomodoroProvider.notifier);
+      _eventSubscription = notifier.events.listen((message) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🛑 $message'),
+              backgroundColor: Colors.red.shade800,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _eventSubscription?.cancel();
     _confettiController.dispose();
     super.dispose();
   }

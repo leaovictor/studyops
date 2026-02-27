@@ -16,6 +16,7 @@ final scheduleGeneratorServiceProvider =
 /// Dashboard summary data
 class DashboardData {
   final int todayMinutes;
+  final int todayProductiveMinutes;
   final int weekMinutes;
   final int monthMinutes;
   final Map<String, int> minutesBySubject; // subjectId → minutes
@@ -39,6 +40,7 @@ class DashboardData {
 
   const DashboardData({
     required this.todayMinutes,
+    required this.todayProductiveMinutes,
     required this.weekMinutes,
     required this.monthMinutes,
     required this.minutesBySubject,
@@ -59,6 +61,7 @@ class DashboardData {
 
   static const empty = DashboardData(
     todayMinutes: 0,
+    todayProductiveMinutes: 0,
     weekMinutes: 0,
     monthMinutes: 0,
     minutesBySubject: {},
@@ -96,6 +99,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final (weekStart, weekEnd) = AppDateUtils.currentWeekRange();
 
   int todayMinutes = 0;
+  int todayProductiveMinutes = 0;
   int weekMinutes = 0;
   int monthMinutes = 0;
   final minutesBySubject = <String, int>{};
@@ -115,7 +119,11 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     }
     dailyMap[log.date] = (dailyMap[log.date] ?? 0) + log.minutes;
 
-    if (log.date == todayKey) todayMinutes += log.minutes;
+    if (log.date == todayKey) {
+      todayMinutes += log.minutes;
+      // We will add productiveMinutes mapping here shortly
+      todayProductiveMinutes += log.productiveMinutes ?? log.minutes;
+    }
 
     final logDate = AppDateUtils.fromKey(log.date);
     if (!logDate.isBefore(weekStart) && !logDate.isAfter(weekEnd)) {
@@ -223,6 +231,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
 
   return DashboardData(
     todayMinutes: todayMinutes,
+    todayProductiveMinutes: todayProductiveMinutes,
     weekMinutes: weekMinutes,
     monthMinutes: monthMinutes,
     minutesBySubject: minutesBySubject,

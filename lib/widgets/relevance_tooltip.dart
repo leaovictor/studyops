@@ -77,7 +77,9 @@ class _RelevanceTooltipState extends ConsumerState<RelevanceTooltip> {
           width: 250,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface).withValues(alpha: 0.8),
+            color: (Theme.of(context).cardTheme.color ??
+                    Theme.of(context).colorScheme.surface)
+                .withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             boxShadow: [
@@ -98,7 +100,8 @@ class _RelevanceTooltipState extends ConsumerState<RelevanceTooltip> {
                   Text(
                     'Relevância',
                     style: TextStyle(
-                      color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
                       letterSpacing: 0.5,
@@ -210,7 +213,10 @@ class _SelectorRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 11),
+          style: TextStyle(
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+              fontSize: 11),
         ),
         const SizedBox(height: 6),
         Row(
@@ -229,7 +235,9 @@ class _SelectorRow extends StatelessWidget {
                       : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: active ? AppTheme.primary : Theme.of(context).dividerColor,
+                    color: active
+                        ? AppTheme.primary
+                        : Theme.of(context).dividerColor,
                     width: 1,
                   ),
                 ),
@@ -237,7 +245,11 @@ class _SelectorRow extends StatelessWidget {
                   child: Text(
                     '${index + 1}',
                     style: TextStyle(
-                      color: active ? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white) : (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey),
+                      color: active
+                          ? (Theme.of(context).textTheme.bodyLarge?.color ??
+                              Colors.white)
+                          : (Theme.of(context).textTheme.labelSmall?.color ??
+                              Colors.grey),
                       fontSize: 10,
                       fontWeight: active ? FontWeight.bold : FontWeight.normal,
                     ),

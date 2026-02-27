@@ -16,6 +16,7 @@ import '../models/daily_task_model.dart';
 import '../models/error_note_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
+import '../models/knowledge_check_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../widgets/pomodoro_timer.dart';
@@ -306,7 +307,57 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                           if (item.done) {
                                             controller.markUndone(item.id);
                                           } else {
-                                            controller.markDone(item, minutes);
+                                            // Trigger AI Knowledge Check before marking as done
+                                            if (subject != null &&
+                                                topic != null) {
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (context) =>
+                                                    _KnowledgeCheckDialog(
+                                                  subject: subject,
+                                                  topicName: topic.name,
+                                                  onCompleted: (correctCount,
+                                                      totalQuestions) {
+                                                    Navigator.pop(
+                                                        context); // Close dialog
+
+                                                    // Calculate productive minutes
+                                                    int productiveMins = 0;
+                                                    if (totalQuestions > 0) {
+                                                      final score =
+                                                          correctCount /
+                                                              totalQuestions;
+                                                      if (score >= 0.6) {
+                                                        productiveMins =
+                                                            minutes; // Approve all tracked minutes
+                                                      } else {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                              content: Text(
+                                                                  'Sua nota foi ${(score * 100).toInt()}% (Abaixo da média de 60%). Seu tempo não foi contabilizado como produtivo.')),
+                                                        );
+                                                      }
+                                                    }
+
+                                                    final updatedItem =
+                                                        item.copyWith(
+                                                            productiveMinutes:
+                                                                productiveMins);
+                                                    controller.markDone(
+                                                        updatedItem, minutes);
+                                                    _confettiController.play();
+                                                  },
+                                                ),
+                                              );
+                                            } else {
+                                              // Fallback if no subject mapping
+                                              controller.markDone(
+                                                  item, minutes);
+                                              _confettiController.play();
+                                            }
                                           }
                                         },
                                         onDelete: () async {
@@ -939,6 +990,273 @@ class _EmptyChecklistState extends StatelessWidget {
               side: const BorderSide(color: AppTheme.primary),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KnowledgeCheckDialog extends ConsumerStatefulWidget {
+  final Subject subject;
+  final String topicName;
+  final void Function(int correctAnswers, int totalQuestions) onCompleted;
+
+  const _KnowledgeCheckDialog({
+    required this.subject,
+    required this.topicName,
+    required this.onCompleted,
+  });
+
+  @override
+  ConsumerState<_KnowledgeCheckDialog> createState() =>
+      _KnowledgeCheckDialogState();
+}
+
+class _KnowledgeCheckDialogState extends ConsumerState<_KnowledgeCheckDialog> {
+  List<KnowledgeCheckQuestion>? _questions;
+  bool _isLoading = true;
+  String? _error;
+  int _currentIndex = 0;
+  bool? _lastAnswerCorrect;
+  bool _showExplanation = false;
+  int _correctCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateQuestions();
+  }
+
+  Future<void> _generateQuestions() async {
+    try {
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception("IA não configurada.");
+
+      final questions = await aiService.generateKnowledgeCheck(
+        subject: widget.subject.name,
+        topic: widget.topicName,
+      );
+
+      if (mounted) {
+        setState(() {
+          _questions = questions;
+          _isLoading = false;
+          if (questions.isEmpty) {
+            _error = "Não foi possível gerar as perguntas.";
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _answer(bool isTrue) {
+    if (_questions == null) return;
+    final currentQ = _questions![_currentIndex];
+    final isCorrect = isTrue == currentQ.isTrue;
+
+    setState(() {
+      _lastAnswerCorrect = isCorrect;
+      _showExplanation = true;
+      if (isCorrect) _correctCount++;
+    });
+
+    if (!isCorrect) {
+      _saveToErrorNotebook(currentQ);
+    }
+  }
+
+  Future<void> _saveToErrorNotebook(KnowledgeCheckQuestion question) async {
+    final user = ref.read(authStateProvider).valueOrNull;
+    final activeGoalId = ref.read(activeGoalIdProvider);
+    if (user == null) return;
+
+    final note = ErrorNote(
+      id: const Uuid().v4(),
+      userId: user.uid,
+      goalId: activeGoalId,
+      subjectId: widget.subject.id,
+      topicId: widget.topicName,
+      question: "[V/F] ${question.statement}",
+      correctAnswer: question.isTrue
+          ? "Verdadeiro. ${question.explanation}"
+          : "Falso. ${question.explanation}",
+      errorReason: "Errei no teste rápido ao concluir a tarefa.",
+      nextReview: DateTime.now().add(const Duration(days: 1)),
+      reviewStage: 0,
+    );
+
+    try {
+      await ref.read(errorNotebookControllerProvider.notifier).createNote(note);
+    } catch (e) {
+      debugPrint("Erro salvando no caderno: $e");
+    }
+  }
+
+  void _nextQuestion() {
+    if (_questions == null) return;
+
+    if (_currentIndex < _questions!.length - 1) {
+      setState(() {
+        _currentIndex++;
+        _showExplanation = false;
+        _lastAnswerCorrect = null;
+      });
+    } else {
+      widget.onCompleted(_correctCount, _questions!.length);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Gerando teste rápido de ${widget.subject.name}...'),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null || _questions == null || _questions!.isEmpty) {
+      return AlertDialog(
+        title: const Text('Ops!'),
+        content: Text(_error ?? 'Erro ao gerar o teste.'),
+        actions: [
+          TextButton(
+              onPressed: () => widget.onCompleted(0, 0),
+              child: const Text('Pular Teste e Concluir Tarefa')),
+        ],
+      );
+    }
+
+    final currentQ = _questions![_currentIndex];
+
+    return AlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text('Teste Rápido', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          Text(
+            '${_currentIndex + 1}/${_questions!.length}',
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            currentQ.statement,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          if (!_showExplanation) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green,
+                      side: const BorderSide(color: Colors.green),
+                    ),
+                    onPressed: () => _answer(true),
+                    child: const Text('Verdadeiro'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                    ),
+                    onPressed: () => _answer(false),
+                    child: const Text('Falso'),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: _lastAnswerCorrect!
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : AppTheme.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color:
+                          _lastAnswerCorrect! ? Colors.green : AppTheme.error)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _lastAnswerCorrect!
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color:
+                            _lastAnswerCorrect! ? Colors.green : AppTheme.error,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _lastAnswerCorrect! ? 'Correto!' : 'Incorreto!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _lastAnswerCorrect!
+                              ? Colors.green
+                              : AppTheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    currentQ.explanation,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  if (!_lastAnswerCorrect!) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Salvo no Caderno de Erros 📓',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold),
+                    )
+                  ]
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _nextQuestion,
+              child: Text(_currentIndex < _questions!.length - 1
+                  ? 'Próxima'
+                  : 'Concluir Tarefa'),
+            )
+          ]
         ],
       ),
     );
