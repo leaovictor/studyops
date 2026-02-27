@@ -11,13 +11,23 @@ O StudyOps integra o poder da IA multimodal do Google para automatizar as tarefa
 * **Mentor de Performance**: Relatórios de coaching personalizados baseados na sua taxa de acerto, constância e evolução.
 * **Fábrica de Flashcards**: Geração automática de cards de memorização a partir dos seus erros registrados no Caderno de Erros.
 * **Explicação de Questões**: Professor particular integrado para explicar a fundamentação teórica de qualquer erro cometido.
-* **Validação Rápida de Conhecimento**: Geração *on-the-fly* de mini-testes (Verdadeiro/Falso) ao concluir tarefas no Checklist Diário para validar a retenção de leitura.
+* **Validação de Conhecimento Rápida**: Geração *on-the-fly* de mini-testes (Verdadeiro/Falso) ao concluir tarefas no Checklist Diário para validar a retenção de leitura.
 
 ---
 
 ## 🧠 Lógica das Funcionalidades
 
-### 1. Edital Verticalizado e Ciclo de Estudos
+### 1. Foco Hardcore e Tempo Produtivo Líquido
+
+Pensando em **métricas reais** e não em métricas vaidosas, o StudyOps não rastreia apenas o tempo que o app fica aberto:
+* **Timer de Foco Hardcore**: Ao iniciar o Pomodoro, se o usuário sair do aplicativo (minimizar a tela, trocar de aba), o timer **pausa imediatamente**. O tempo só corre quando o aluno está efetivamente na tela do StudyOps estudando.
+* **Validador de Tempo via Inteligência Artificial**: Ao final da sessão Pomodoro, um Quiz rápido é gerado pela IA. Se o aluno acertar menos de 60% (*chutou ou não reteve a matéria*), o **Tempo Produtivo é zerado** no registro do Dashboard. Caso passe, o Tempo Bruto se converte em Tempo Produtivo 1:1, garantindo estatísticas de aprendizagem 100% sinceras.
+
+---
+
+## 🧠 Lógica das Funcionalidades
+
+### 2. Edital Verticalizado e Ciclo de Estudos
 
 O sistema permite o rastreio completo do edital através de três indicadores por tópico:
 * **Teoria (T)**: Registro de leitura ou visualização de aula.
@@ -28,7 +38,7 @@ O sistema permite o rastreio completo do edital através de três indicadores po
 
 ---
 
-### 2. Banco de Questões e Simulado Global
+### 3. Banco de Questões e Simulado Global
 
 O app possui um ecossistema de conteúdo colaborativo com interface de prática dinâmica:
 * **Crowdsourcing**: Usuários alimentam o banco global ao subir provas antigas (PDFs).
@@ -38,7 +48,7 @@ O app possui um ecossistema de conteúdo colaborativo com interface de prática 
 
 ---
 
-### 3. Repetição Espaçada (Spaced Repetition)
+### 4. Repetição Espaçada (Spaced Repetition)
 
 Implementada no **Caderno de Erros** e nos **Flashcards**, a lógica segue sistemas de memorização científica:
 * **Integração com o Checklist Diário**: As revisões diárias do Caderno de Erros aparecem diretamente na aba de Checklist Diário do usuário, mesclando aprendizagem e revisão ativamente.
@@ -47,7 +57,7 @@ Implementada no **Caderno de Erros** e nos **Flashcards**, a lógica segue siste
 
 ---
 
-### 4. Dashboard e Métricas de Performance
+### 5. Dashboard e Métricas de Performance
 
 Transformamos dados em estratégia:
 * **Consistência e Streak**: Gamificação focada em manter o hábito diário (ofensiva).
@@ -56,7 +66,7 @@ Transformamos dados em estratégia:
 
 ---
 
-### 5. Gestão de Multi-Objetivos
+### 6. Gestão de Multi-Objetivos
 
 * **Isolamento de Contexto**: Cada concurso ou objetivo possui suas próprias matérias, planos e métricas.
 * **Integridade de Dados**: Exclusão em cascata para manter o banco de dados sempre organizado.
