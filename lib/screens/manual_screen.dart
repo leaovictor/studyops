@@ -151,12 +151,23 @@ class ManualScreen extends StatelessWidget {
                 const _ManualCard(
                   title: 'Validação Rápida de Conhecimento (IA)',
                   description:
-                      'Ao marcar uma tarefa do Checklist como concluída, a IA gera um mini-teste de 5 questões verdadeiras ou falsas sobre o tópico estudado para fixação.',
+                      'Ao marcar uma tarefa do Checklist como concluída, a IA gera um mini-teste de 5 questões sobre o tópico estudado para fixação. Sua nota define a rentabilidade do seu estudo!',
                   icon: Icons.psychology_rounded,
                   color: Colors.deepOrange,
                   tips: [
-                    'Esse teste não bloqueia sua tarefa! Ele serve puramente para você testar se realmente aprendeu o assunto.',
-                    'A IA explica as respostas para cada questão instantaneamente.'
+                    'Acerte mais de 60% para converter seu Tempo Bruto em Tempo Líquido no Dashboard.',
+                    'A IA explica as respostas para cada questão instantaneamente caso você erre.'
+                  ],
+                ),
+                const _ManualCard(
+                  title: 'Modo Foco Hardcore (Pomodoro)',
+                  description:
+                      'Chega de se enganar. O seu tempo Pomodoro só roda quando você está efetivamente no app.',
+                  icon: Icons.timer_rounded,
+                  color: Colors.redAccent,
+                  tips: [
+                    'Se você sair do app enquanto o timer estiver rodando, ele é pausado automaticamente.',
+                    'Combine o Modo Hardcore com a Validação da IA para ter 100% de certeza do seu rendimento.'
                   ],
                 ),
                 const SizedBox(height: 40),
