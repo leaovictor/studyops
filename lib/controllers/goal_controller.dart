@@ -6,6 +6,7 @@ import '../models/error_note_model.dart';
 import '../services/goal_service.dart';
 import '../services/subject_service.dart';
 import '../services/error_notebook_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_controller.dart';
 
 final goalServiceProvider = Provider<GoalService>((ref) => GoalService());
@@ -62,7 +63,14 @@ class GoalController extends AsyncNotifier<void> {
 
     // Set as active if none selected
     if (ref.read(activeGoalIdProvider) == null) {
-      ref.read(activeGoalIdProvider.notifier).state = activeGoal.id;
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getString('active_goal_id_${user.uid}');
+
+      if (savedId != null && goals.any((g) => g.id == savedId)) {
+        ref.read(activeGoalIdProvider.notifier).state = savedId;
+      } else {
+        ref.read(activeGoalIdProvider.notifier).state = activeGoal.id;
+      }
     }
 
     // Check subjects without goalId
@@ -114,10 +122,15 @@ class GoalController extends AsyncNotifier<void> {
       createdAt: DateTime.now(),
     );
     final newGoal = await _service.createGoal(goal);
-    ref.read(activeGoalIdProvider.notifier).state = newGoal.id;
+    await setActiveGoal(newGoal.id);
   }
 
   Future<void> setActiveGoal(String goalId) async {
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('active_goal_id_${user.uid}', goalId);
+    }
     ref.read(activeGoalIdProvider.notifier).state = goalId;
   }
 

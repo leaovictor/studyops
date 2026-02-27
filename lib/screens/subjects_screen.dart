@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
-import 'package:el_tooltip/el_tooltip.dart';
 import '../models/subject_model.dart';
 import '../widgets/relevance_tooltip.dart';
 import '../models/topic_model.dart';
@@ -24,6 +23,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
   String? _expandedSubjectId;
   final RefreshController _refreshController =
       RefreshController(initialRefresh: false);
+  bool _isGeneratingSuggestions = false;
 
   void _onRefresh() async {
     ref.invalidate(subjectsProvider);
@@ -49,7 +49,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showSubjectDialog(context, null),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('MatÃ©ria'),
+        label: const Text('Matéria'),
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(
@@ -74,18 +74,82 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                         Colors.white),
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () => _showAIImportDialog(context),
-                  icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                  label: const Text('Importar com IA'),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.accent),
+                PopupMenuButton<String>(
+                  onSelected: (val) {
+                    if (val == 'import') _showAIImportDialog(context);
+                    if (val == 'suggest') _suggestWithAI();
+                    if (val == 'clear') _confirmClearAll();
+                  },
+                  tooltip: 'Opções',
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'suggest',
+                      child: Row(
+                        children: [
+                          Icon(Icons.auto_awesome_rounded,
+                              size: 18, color: AppTheme.accent),
+                          SizedBox(width: 12),
+                          Text('Sugerir com IA'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'import',
+                      child: Row(
+                        children: [
+                          Icon(Icons.description_rounded, size: 18),
+                          SizedBox(width: 12),
+                          Text('Importar Edital/Texto'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'clear',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_sweep_rounded,
+                              size: 18, color: AppTheme.error),
+                          SizedBox(width: 12),
+                          Text('Limpar Todas',
+                              style: TextStyle(color: AppTheme.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isGeneratingSuggestions
+                              ? Icons.hourglass_empty_rounded
+                              : Icons.auto_awesome_rounded,
+                          size: 18,
+                          color: AppTheme.accent,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isGeneratingSuggestions
+                              ? 'Gerando...'
+                              : 'Gerenciar com IA',
+                          style: const TextStyle(
+                            color: AppTheme.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             subjectsAsync.maybeWhen(
               data: (subjects) => Text(
-                '${subjects.length} matÃ©ria(s) cadastrada(s)',
+                '${subjects.length} matéria(s) cadastrada(s)',
                 style: TextStyle(
                     color: (Theme.of(context).textTheme.bodySmall?.color ??
                         Colors.grey),
@@ -115,7 +179,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                           const Icon(Icons.error_outline_rounded,
                               color: AppTheme.error, size: 48),
                           const SizedBox(height: 16),
-                          const Text('Erro ao carregar matÃ©rias',
+                          const Text('Erro ao carregar matérias',
                               style: TextStyle(fontWeight: FontWeight.w600)),
                           Text(e.toString(),
                               style: TextStyle(
@@ -134,7 +198,13 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                     ),
                   ),
                   data: (subjects) => subjects.isEmpty
-                      ? SingleChildScrollView(child: _EmptySubjects())
+                      ? SingleChildScrollView(
+                          child: _EmptySubjects(
+                            onImport: () => _showAIImportDialog(context),
+                            onSuggest: _suggestWithAI,
+                            isGenerating: _isGeneratingSuggestions,
+                          ),
+                        )
                       : AnimationLimiter(
                           child: ListView.separated(
                             itemCount: subjects.length,
@@ -169,9 +239,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                                               builder: (ctx, setS) {
                                                 return AlertDialog(
                                                   title: const Text(
-                                                      'Excluir MatÃ©ria'),
+                                                      'Excluir Matéria'),
                                                   content: Text(
-                                                      'Excluir "${subject.name}" e todos os seus tÃ³picos?'),
+                                                      'Excluir "${subject.name}" e todos os seus tópicos?'),
                                                   actions: [
                                                     TextButton(
                                                       onPressed: isDeleting
@@ -202,7 +272,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                                                                       .showSnackBar(
                                                                     const SnackBar(
                                                                         content:
-                                                                            Text('MatÃ©ria excluÃ­da')),
+                                                                            Text('Matéria excluída')),
                                                                   );
                                                                 }
                                                               } catch (e) {
@@ -282,6 +352,162 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     );
   }
 
+  Future<void> _confirmClearAll() async {
+    final activeGoal = ref.read(activeGoalProvider);
+    if (activeGoal == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Limpar Todas as Matérias?'),
+        content: Text(
+            'Isso excluirá permanentemente todas as matérias de "${activeGoal.name}", incluindo tópicos, logs e flashcards. Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Excluir Tudo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .deleteAllSubjects(activeGoal.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Matérias limpas com sucesso!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao limpar: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _suggestWithAI({bool clearExisting = false}) async {
+    final activeGoal = ref.read(activeGoalProvider);
+    if (activeGoal == null) return;
+
+    if (!clearExisting &&
+        ref.read(subjectsProvider).valueOrNull?.isNotEmpty == true) {
+      final mode = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Sugerir com IA'),
+          content:
+              const Text('Como você deseja proceder com as matérias atuais?'),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.pop(ctx, 'append'),
+              child: const Text('Manter e Adicionar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, 'clear'),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+              child: const Text('Limpar e Gerar Novas'),
+            ),
+          ],
+        ),
+      );
+
+      if (mode == null) return;
+      if (mode == 'clear') {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .deleteAllSubjects(activeGoal.id);
+      }
+    }
+
+    setState(() => _isGeneratingSuggestions = true);
+
+    try {
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) {
+        throw Exception("Gemini API Key não configurada.");
+      }
+
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) return;
+
+      final suggestions = await aiService.suggestSubjectsForObjective(
+          user.uid, activeGoal.name);
+
+      final controller = ref.read(subjectControllerProvider.notifier);
+
+      for (final s in suggestions) {
+        final subject = Subject(
+          id: '',
+          userId: user.uid,
+          goalId: activeGoal.id,
+          name: s['name'] as String,
+          color: s['color'] as String,
+          priority: (s['priority'] as num).toInt(),
+          weight: (s['weight'] as num).toInt(),
+          difficulty: 3,
+        );
+
+        // 1. Create subject
+        final created =
+            await ref.read(subjectServiceProvider).createSubject(subject);
+
+        // 2. Create suggested topics
+        final List<dynamic> suggestedTopics = s['topics'] ?? [];
+        if (suggestedTopics.isEmpty) {
+          // Fallback to default if no topics suggested
+          await controller.createDefaultTopic(created.id);
+        } else {
+          for (final topicName in suggestedTopics) {
+            final topic = Topic(
+              id: '',
+              userId: user.uid,
+              subjectId: created.id,
+              name: topicName as String,
+              difficulty: 3,
+            );
+            await controller.createTopic(topic);
+          }
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Matérias sugeridas com sucesso!")),
+        );
+      }
+    } catch (e) {
+      String msg = "Erro ao sugerir: $e";
+      if (e.toString().contains("429")) {
+        msg =
+            "IA ocupada (muitas requisições). Por favor, aguarde 30 segundos e tente novamente!";
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppTheme.error.withValues(alpha: 0.8),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGeneratingSuggestions = false);
+      }
+    }
+  }
+
   Future<void> _showTopicDialog(
       BuildContext context, String subjectId, Topic? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
@@ -295,7 +521,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         return StatefulBuilder(
           builder: (ctx, setS) {
             return AlertDialog(
-              title: Text(existing == null ? 'Novo TÃ³pico' : 'Editar TÃ³pico'),
+              title: Text(existing == null ? 'Novo Tópico' : 'Editar Tópico'),
               content: Form(
                 key: formKey,
                 child: Column(
@@ -304,9 +530,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                     TextFormField(
                       controller: nameCtrl,
                       decoration:
-                          const InputDecoration(labelText: 'Nome do TÃ³pico'),
+                          const InputDecoration(labelText: 'Nome do Tópico'),
                       validator: (v) =>
-                          (v?.isNotEmpty ?? false) ? null : 'ObrigatÃ³rio',
+                          (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -362,8 +588,8 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(existing == null
-                                        ? 'TÃ³pico criado'
-                                        : 'TÃ³pico atualizado')),
+                                        ? 'Tópico criado'
+                                        : 'Tópico atualizado')),
                               );
                             }
                           } catch (e) {
@@ -371,8 +597,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               setS(() => isLoading = false);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content:
-                                        Text('Erro ao salvar tÃ³pico: $e')),
+                                    content: Text('Erro ao salvar tópico: $e')),
                               );
                             }
                           }
@@ -494,27 +719,30 @@ class _SubjectCard extends ConsumerWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                ElTooltip(
-                                  position: ElTooltipPosition.topCenter,
+                                IconButton(
+                                  icon: const Icon(Icons.info_outline_rounded,
+                                      size: 18),
                                   padding: EdgeInsets.zero,
-                                  color: Colors.transparent,
-                                  content: RelevanceTooltip(
-                                    subject: subject,
-                                  ),
-                                  child: Icon(
-                                    Icons.info_outline_rounded,
-                                    size: 16,
-                                    color: (Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.color ??
-                                        Colors.grey),
-                                  ),
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => RelevanceTooltip(
+                                        subject: subject,
+                                      ),
+                                    );
+                                  },
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.color ??
+                                      Colors.grey),
                                 ),
                               ],
                             ),
                             Text(
-                              'Prioridade ${subject.priority} â€¢ Peso ${subject.weight} â€¢ ${topics.length} tÃ³pico(s)',
+                              'Prioridade ${subject.priority} • Peso ${subject.weight} • ${topics.length} tópico(s)',
                               style: TextStyle(
                                 color: (Theme.of(context)
                                         .textTheme
@@ -622,7 +850,7 @@ class _SubjectCard extends ConsumerWidget {
                   TextButton.icon(
                     onPressed: onAddTopic,
                     icon: const Icon(Icons.add_rounded, size: 14),
-                    label: const Text('Adicionar TÃ³pico',
+                    label: const Text('Adicionar Tópico',
                         style: TextStyle(fontSize: 13)),
                     style: TextButton.styleFrom(
                       foregroundColor: color,
@@ -773,8 +1001,8 @@ class _ProgressIcon extends StatelessWidget {
       message: label == 'T'
           ? 'Teoria'
           : label == 'R'
-              ? 'RevisÃ£o'
-              : 'ExercÃ­cios',
+              ? 'Revisão'
+              : 'Exercícios',
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(4),
@@ -850,8 +1078,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
     final user = ref.read(authStateProvider).valueOrNull;
 
     return AlertDialog(
-      title:
-          Text(widget.existing == null ? 'Nova MatÃ©ria' : 'Editar MatÃ©ria'),
+      title: Text(widget.existing == null ? 'Nova Matéria' : 'Editar Matéria'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -861,8 +1088,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Nome da MatÃ©ria'),
+                decoration: const InputDecoration(labelText: 'Nome da Matéria'),
                 validator: (v) =>
                     (v?.isNotEmpty ?? false) ? null : 'ObrigatÃ³rio',
               ),
@@ -1001,8 +1227,8 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: Text(widget.existing == null
-                                ? 'MatÃ©ria criada'
-                                : 'MatÃ©ria atualizada')),
+                                ? 'Matéria criada'
+                                : 'Matéria atualizada')),
                       );
                     }
                   } catch (e) {
@@ -1031,33 +1257,81 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
 }
 
 class _EmptySubjects extends StatelessWidget {
+  final VoidCallback onImport;
+  final VoidCallback onSuggest;
+  final bool isGenerating;
+
+  const _EmptySubjects({
+    required this.onImport,
+    required this.onSuggest,
+    required this.isGenerating,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 40),
           Icon(Icons.school_outlined,
               color: (Theme.of(context).textTheme.labelSmall?.color ??
                   Colors.grey),
-              size: 48),
-          const SizedBox(height: 16),
+              size: 64),
+          const SizedBox(height: 24),
           Text(
-            'Nenhuma matÃ©ria cadastrada',
+            'Nenhuma matéria cadastrada',
             style: TextStyle(
-                color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                    Colors.white),
-                fontWeight: FontWeight.w600),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
-            'Comece adicionando suas matÃ©rias\npara gerar seu cronograma.',
+            'Comece adicionando suas matérias\npara gerar seu cronograma personalizado.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: (Theme.of(context).textTheme.labelSmall?.color ??
                     Colors.grey),
-                fontSize: 13),
+                fontSize: 14),
           ),
+          const SizedBox(height: 40),
+          if (isGenerating)
+            const Column(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('A IA está analisando seu objetivo...'),
+              ],
+            )
+          else ...[
+            SizedBox(
+              width: 250,
+              child: FilledButton.icon(
+                onPressed: onSuggest,
+                icon: const Icon(Icons.auto_awesome_rounded),
+                label: const Text('Sugerir com IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 250,
+              child: OutlinedButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.description_rounded),
+                label: const Text('Importar do Edital'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1129,14 +1403,44 @@ class _AIImportDialogState extends ConsumerState<_AIImportDialog> {
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) return;
 
+    final activeGoalId = ref.read(activeGoalIdProvider);
+    if (activeGoalId == null) return;
+
+    final confirmClear = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Importar Edital'),
+        content: const Text(
+            'Deseja limpar as matérias atuais antes de importar o novo edital?'),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Manter Atuais'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Limpar e Importar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmClear == null) return;
+
     setState(() => _isLoading = true);
 
     try {
-      final aiService = ref.read(aiServiceProvider);
+      if (confirmClear) {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .deleteAllSubjects(activeGoalId);
+      }
+
+      final aiService = await ref.read(aiServiceProvider.future);
       if (aiService == null) {
         throw Exception("Gemini API Key não configurada no Painel Admin.");
       }
-      final activeGoalId = ref.read(activeGoalIdProvider);
 
       final result = await aiService.parseSyllabus(
         _textCtrl.text.trim(),

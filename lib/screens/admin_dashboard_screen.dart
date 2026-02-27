@@ -10,7 +10,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(adminControllerProvider.notifier).isAdmin;
-    
+
     if (!isAdmin) {
       return const Scaffold(body: Center(child: Text('Acesso negado')));
     }
@@ -27,23 +27,30 @@ class AdminDashboardScreen extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Expanded(child: _StatCard(title: 'Chamadas de IA (Total)', value: totalAI.toString())),
+                Expanded(
+                    child: _StatCard(
+                        title: 'Chamadas de IA (Total)',
+                        value: totalAI.toString())),
               ],
             ),
             const SizedBox(height: 32),
-            const _GeminiConfigCard(),
+            const _GroqConfigCard(),
             const SizedBox(height: 32),
-            Text('Questões para Moderação', 
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, 
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white))),
+            Text('Questões para Moderação',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white))),
             const SizedBox(height: 16),
             pendingAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('Erro: $e')),
               data: (questions) {
                 final pending = questions.where((q) => !q.isApproved).toList();
-                if (pending.isEmpty) return const Center(child: Text('Nenhuma questão pendente.'));
-                
+                if (pending.isEmpty)
+                  return const Center(child: Text('Nenhuma questão pendente.'));
+
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -60,14 +67,14 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
-class _GeminiConfigCard extends ConsumerStatefulWidget {
-  const _GeminiConfigCard();
+class _GroqConfigCard extends ConsumerStatefulWidget {
+  const _GroqConfigCard();
 
   @override
-  ConsumerState<_GeminiConfigCard> createState() => _GeminiConfigCardState();
+  ConsumerState<_GroqConfigCard> createState() => _GroqConfigCardState();
 }
 
-class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
+class _GroqConfigCardState extends ConsumerState<_GroqConfigCard> {
   final _keyCtrl = TextEditingController();
   bool _isSaving = false;
 
@@ -76,7 +83,7 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
     super.initState();
     // Pre-fill with existing key if available
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentKey = ref.read(geminiApiKeyProvider).valueOrNull;
+      final currentKey = ref.read(groqApiKeyProvider).valueOrNull;
       if (currentKey != null) _keyCtrl.text = currentKey;
     });
   }
@@ -90,7 +97,7 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
   @override
   Widget build(BuildContext context) {
     // Also listen for changes to update text field if needed
-    ref.listen(geminiApiKeyProvider, (prev, next) {
+    ref.listen(groqApiKeyProvider, (prev, next) {
       if (next.hasValue && next.value != null && _keyCtrl.text.isEmpty) {
         _keyCtrl.text = next.value!;
       }
@@ -99,7 +106,8 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
@@ -110,17 +118,21 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
             children: [
               Icon(Icons.vpn_key_rounded, color: AppTheme.accent, size: 20),
               SizedBox(width: 8),
-              Text('Configuração Gemini API', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Configuração Groq API (Llama 3.3)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
           const SizedBox(height: 16),
-          const Text('Esta chave é usada para todas as funcionalidades de IA do app.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const Text(
+            'Esta chave é usada para todas as funcionalidades de IA do app via Groq Cloud.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _keyCtrl,
             decoration: const InputDecoration(
-              labelText: 'Gemini API Key',
-              hintText: 'Cole sua chave aqui...',
+              labelText: 'Groq API Key',
+              hintText: 'gsk_...',
               border: OutlineInputBorder(),
             ),
             obscureText: true,
@@ -130,7 +142,12 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
             width: double.infinity,
             child: FilledButton(
               onPressed: _isSaving ? null : _save,
-              child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Salvar Chave'),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Salvar Chave Groq'),
             ),
           ),
         ],
@@ -141,10 +158,16 @@ class _GeminiConfigCardState extends ConsumerState<_GeminiConfigCard> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      await ref.read(adminControllerProvider.notifier).saveGeminiApiKey(_keyCtrl.text.trim());
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chave salva com sucesso!')));
+      await ref
+          .read(adminControllerProvider.notifier)
+          .saveGroqApiKey(_keyCtrl.text.trim());
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chave Groq salva com sucesso!')));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao salvar: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Erro ao salvar: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -169,7 +192,11 @@ class _StatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          Text(value, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary)),
         ],
       ),
     );
@@ -187,20 +214,27 @@ class _ModerationCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question.subjectName ?? 'Sem matéria', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent)),
+          Text(question.subjectName ?? 'Sem matéria',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: AppTheme.accent)),
           const SizedBox(height: 8),
-          Text(question.statement, maxLines: 3, overflow: TextOverflow.ellipsis),
+          Text(question.statement,
+              maxLines: 3, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 16),
           Row(
             children: [
               FilledButton(
-                onPressed: () => ref.read(adminControllerProvider.notifier).approveQuestion(question.id),
+                onPressed: () => ref
+                    .read(adminControllerProvider.notifier)
+                    .approveQuestion(question.id),
                 style: FilledButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Aprovar'),
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () => ref.read(adminControllerProvider.notifier).rejectQuestion(question.id),
+                onPressed: () => ref
+                    .read(adminControllerProvider.notifier)
+                    .rejectQuestion(question.id),
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
                 child: const Text('Rejeitar'),
               ),

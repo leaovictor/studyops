@@ -8,6 +8,9 @@ import '../controllers/daily_task_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/goal_controller.dart';
+import '../controllers/dashboard_controller.dart';
+import '../controllers/study_plan_controller.dart';
+import '../widgets/study_plan_wizard_dialog.dart';
 import '../models/daily_task_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -30,6 +33,9 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   bool _wasDone = false;
   final RefreshController _refreshController =
       RefreshController(initialRefresh: false);
+  String? _aiInsight;
+  bool _isFetchingInsight = false;
+  String? _lastInsightKey;
 
   void _onRefresh() async {
     ref.invalidate(dailyTasksProvider);
@@ -107,8 +113,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Row(
                                 children: [
                                   Text(
                                     'Checklist Diário',
@@ -121,6 +126,42 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                               ?.color ??
                                           Colors.white),
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert_rounded,
+                                        size: 20,
+                                        color: (Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color ??
+                                            Colors.grey)),
+                                    onSelected: (value) {
+                                      if (value == 'config') {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) =>
+                                              StudyPlanWizardDialog(
+                                                  activePlan: ref
+                                                      .read(activePlanProvider)
+                                                      .valueOrNull),
+                                        );
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'config',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.auto_awesome_rounded,
+                                                size: 18,
+                                                color: AppTheme.primary),
+                                            SizedBox(width: 12),
+                                            Text('Gerenciar Plano (IA)'),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -199,6 +240,14 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                               ),
                             ),
                           ],
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        _AIMentorCard(
+                          insight: _aiInsight,
+                          isLoading: _isFetchingInsight,
+                          onRefresh: _fetchAIInsight,
                         ),
 
                         const SizedBox(height: 24),
@@ -404,6 +453,62 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
       }),
     );
   }
+
+  Future<void> _fetchAIInsight() async {
+    final activeGoal = ref.read(activeGoalProvider);
+    final tasks = ref.read(dailyTasksProvider).valueOrNull ?? [];
+    final user = ref.read(authStateProvider).valueOrNull;
+
+    final dashboard = ref.read(dashboardProvider).valueOrNull;
+
+    if (activeGoal == null || user == null) return;
+
+    final taskIds = tasks.map((t) => t.id).join(',');
+    final currentKey = "${activeGoal.id}_$taskIds";
+    if (currentKey == _lastInsightKey && _aiInsight != null) return;
+
+    setState(() {
+      _isFetchingInsight = true;
+      _lastInsightKey = currentKey;
+    });
+
+    try {
+      final aiServiceProviderFuture = ref.read(aiServiceProvider.future);
+      final aiService = await aiServiceProviderFuture;
+      if (aiService != null) {
+        final insight = await aiService.getDailyInsight(
+          userId: user.uid,
+          objective: activeGoal.name,
+          streak: dashboard?.streakDays ?? 0,
+          consistency: dashboard?.consistencyPct ?? 0.0,
+          taskNames: tasks.map((t) {
+            final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+            final s = subjects.firstWhere((s) => s.id == t.subjectId,
+                orElse: () => Subject(
+                    id: '',
+                    userId: '',
+                    name: 'Matéria',
+                    color: '',
+                    priority: 0,
+                    weight: 0,
+                    difficulty: 0));
+            return s.name;
+          }).toList(),
+        );
+        if (mounted) setState(() => _aiInsight = insight);
+      }
+    } catch (e) {
+      debugPrint("Erro ao buscar insight IA: $e");
+    } finally {
+      if (mounted) setState(() => _isFetchingInsight = false);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchAIInsight();
+  }
 }
 
 class _TaskCard extends StatelessWidget {
@@ -453,18 +558,23 @@ class _TaskCard extends StatelessWidget {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Checkbox
-              Checkbox(
-                value: task.done,
-                onChanged: (_) => onToggleDone(task.plannedMinutes),
-                activeColor: AppTheme.primary,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4)),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: task.done,
+                  onChanged: (_) => onToggleDone(task.plannedMinutes),
+                  activeColor: AppTheme.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
 
-              // Subject badge
+              // Subject name
               Flexible(
                 child: Container(
                   padding:
@@ -485,7 +595,7 @@ class _TaskCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
 
               Expanded(
                 child: Text(
@@ -504,41 +614,55 @@ class _TaskCard extends StatelessWidget {
                 ),
               ),
 
-              // Time
-              Text(
-                AppDateUtils.formatMinutes(task.plannedMinutes),
-                style: TextStyle(
-                  color: (Theme.of(context).textTheme.labelSmall?.color ??
-                      Colors.grey),
-                  fontSize: 12,
-                ),
-              ),
+              const SizedBox(width: 12),
 
-              // Pomodoro toggle
-              if (!task.done) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    Icons.timer_rounded,
-                    color: showPomodoro
-                        ? AppTheme.primary
-                        : (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey),
-                    size: 20,
+              // Trailing actions group
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Time
+                  Text(
+                    AppDateUtils.formatMinutes(task.plannedMinutes),
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  onPressed: onTogglePomodoro,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
+                  const SizedBox(width: 8),
 
-              // Delete
-              IconButton(
-                icon: Icon(Icons.delete_outline_rounded,
-                    color: (Theme.of(context).textTheme.labelSmall?.color ??
-                        Colors.grey),
-                    size: 18),
-                onPressed: onDelete,
-                visualDensity: VisualDensity.compact,
+                  // Pomodoro toggle
+                  if (!task.done)
+                    IconButton(
+                      icon: Icon(
+                        Icons.timer_rounded,
+                        color: showPomodoro
+                            ? AppTheme.primary
+                            : (Theme.of(context).textTheme.labelSmall?.color ??
+                                Colors.grey),
+                        size: 18,
+                      ),
+                      onPressed: onTogglePomodoro,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+
+                  const SizedBox(width: 12),
+
+                  // Delete
+                  IconButton(
+                    icon: Icon(Icons.delete_outline_rounded,
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        size: 18),
+                    onPressed: onDelete,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -548,6 +672,103 @@ class _TaskCard extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: PomodoroTimer(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AIMentorCard extends StatelessWidget {
+  final String? insight;
+  final bool isLoading;
+  final VoidCallback onRefresh;
+
+  const _AIMentorCard({
+    required this.insight,
+    required this.isLoading,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (insight == null && !isLoading) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.8),
+            AppTheme.accent.withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Insights do Seu Mentor',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              if (isLoading)
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(Colors.white),
+                  ),
+                )
+              else
+                InkWell(
+                  onTap: onRefresh,
+                  child: Icon(Icons.refresh_rounded,
+                      color: Colors.white.withValues(alpha: 0.7), size: 16),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (isLoading && insight == null)
+            Container(
+              height: 20,
+              width: 150,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            )
+          else
+            Text(
+              insight ?? '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
               ),
             ),
         ],
@@ -594,7 +815,20 @@ class _EmptyChecklistState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           OutlinedButton.icon(
-            onPressed: () => context.go('/settings'),
+            onPressed: () => context.go('/subjects'),
+            icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+            label: const Text('Sugerir com IA'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.accent,
+              side: const BorderSide(color: AppTheme.accent),
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (context) => const StudyPlanWizardDialog(),
+            ),
             icon: const Icon(Icons.calendar_month_rounded, size: 16),
             label: const Text('Configurar Plano de Estudo'),
             style: OutlinedButton.styleFrom(

@@ -649,7 +649,7 @@ class _RecommendationChips extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Step 3 — Matérias
 // ---------------------------------------------------------------------------
-class _Step3Subjects extends StatelessWidget {
+class _Step3Subjects extends ConsumerStatefulWidget {
   final _OnboardingData data;
   final VoidCallback onNext;
   final VoidCallback onSkip;
@@ -663,42 +663,131 @@ class _Step3Subjects extends StatelessWidget {
   });
 
   @override
+  ConsumerState<_Step3Subjects> createState() => _Step3SubjectsState();
+}
+
+class _Step3SubjectsState extends ConsumerState<_Step3Subjects> {
+  bool _isGenerating = false;
+
+  Future<void> _suggestWithAI() async {
+    if (widget.data.objective.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Por favor, defina um objetivo primeiro!')),
+      );
+      return;
+    }
+
+    setState(() => _isGenerating = true);
+
+    try {
+      final user = ref.read(authStateProvider).valueOrNull;
+      final aiService = await ref.read(aiServiceProvider.future);
+
+      if (aiService == null || user == null) {
+        throw Exception('IA não configurada ou usuário não logado.');
+      }
+
+      final suggestions = await aiService.suggestSubjectsForObjective(
+        user.uid,
+        widget.data.objective,
+      );
+
+      if (suggestions.isNotEmpty) {
+        widget.setState(() {
+          // Limpa matérias vazias se houver mais de uma
+          widget.data.subjects.removeWhere((s) => s.name.trim().isEmpty);
+
+          for (final suggestion in suggestions) {
+            final name = suggestion['name'] as String;
+            widget.data.subjects.add(_OnboardingSubject(
+              id: const Uuid().v4(),
+              color: suggestion['color'] as String? ??
+                  AppConstants.defaultSubjectColors[
+                      widget.data.subjects.length %
+                          AppConstants.defaultSubjectColors.length],
+              name: name,
+              priority: (suggestion['priority'] as num?)?.toInt() ?? 3,
+            ));
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao sugerir matérias: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final validCount =
-        data.subjects.where((s) => s.name.trim().isNotEmpty).length;
+        widget.data.subjects.where((s) => s.name.trim().isNotEmpty).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '📚 Suas matérias',
-          style: TextStyle(
-              color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                  Colors.white),
-              fontSize: 24,
-              fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Adicione as matérias do seu estudo. Você pode editar depois.',
-          style: TextStyle(
-              color:
-                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
-              fontSize: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '📚 Suas matérias',
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Adicione as matérias do seu estudo. Você pode editar depois.',
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
+                        fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            if (!_isGenerating)
+              IconButton.filledTonal(
+                onPressed: _suggestWithAI,
+                icon: const Icon(Icons.auto_awesome_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                ),
+                tooltip: 'Sugerir com IA',
+              )
+            else
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          ],
         ),
         const SizedBox(height: 20),
         Expanded(
           child: ListView.separated(
-            itemCount: data.subjects.length + 1,
+            itemCount: widget.data.subjects.length + 1,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
-              if (i == data.subjects.length) {
+              if (i == widget.data.subjects.length) {
                 return TextButton.icon(
-                  onPressed: () => setState(() {
-                    data.subjects.add(_OnboardingSubject(
+                  onPressed: () => widget.setState(() {
+                    widget.data.subjects.add(_OnboardingSubject(
                       id: const Uuid().v4(),
                       color: AppConstants.defaultSubjectColors[
-                          data.subjects.length %
+                          widget.data.subjects.length %
                               AppConstants.defaultSubjectColors.length],
                       name: '',
                       priority: 3,
@@ -710,14 +799,15 @@ class _Step3Subjects extends StatelessWidget {
                       TextButton.styleFrom(foregroundColor: AppTheme.primary),
                 );
               }
-              final s = data.subjects[i];
+              final s = widget.data.subjects[i];
               return _SubjectRow(
                 subject: s,
                 onNameChanged: (v) => s.name = v,
-                onColorChanged: (c) => setState(() => s.color = c),
-                onPriorityChanged: (p) => setState(() => s.priority = p),
-                onDelete: data.subjects.length > 1
-                    ? () => setState(() => data.subjects.removeAt(i))
+                onColorChanged: (c) => widget.setState(() => s.color = c),
+                onPriorityChanged: (p) => widget.setState(() => s.priority = p),
+                onDelete: widget.data.subjects.length > 1
+                    ? () =>
+                        widget.setState(() => widget.data.subjects.removeAt(i))
                     : null,
               );
             },
@@ -731,14 +821,14 @@ class _Step3Subjects extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _ContinueButton(
-          onPressed: validCount > 0 ? onNext : null,
+          onPressed: validCount > 0 ? widget.onNext : null,
           label: 'Gerar meu plano →',
           icon: Icons.auto_awesome_rounded,
         ),
         const SizedBox(height: 8),
         Center(
           child: TextButton(
-            onPressed: onSkip,
+            onPressed: widget.onSkip,
             child: Text(
               'Pular esta etapa',
               style: TextStyle(

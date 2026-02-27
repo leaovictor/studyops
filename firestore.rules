@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     // Configs: Users need to read the API Key to use AI, but only Admin can write.
-    match /configs/gemini_settings {
+    match /configs/{configId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }

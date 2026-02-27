@@ -25,6 +25,66 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
   late DateTime _startDate;
   late DateTime _endDate;
   late double _dailyHours;
+  final TextEditingController _routineController = TextEditingController();
+  bool _isSuggestingAI = false;
+
+  Future<void> _suggestConfigWithAI(BuildContext context) async {
+    if (_routineController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Descreva sua rotina para a IA te ajudar.')),
+      );
+      return;
+    }
+
+    final user = ref.read(authStateProvider).valueOrNull;
+    final activeGoal = ref.read(activeGoalProvider);
+    if (user == null || activeGoal == null) return;
+
+    setState(() => _isSuggestingAI = true);
+
+    try {
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception('IA não configurada');
+
+      final suggestion = await aiService.suggestStudyPlanConfig(
+        userId: user.uid,
+        objective: activeGoal.name,
+        routineContext: _routineController.text,
+      );
+
+      final startDate = DateTime.parse(suggestion['startDate']);
+      final duration = suggestion['durationDays'] as int;
+      final hours = (suggestion['dailyHours'] as num).toDouble();
+      final reason = suggestion['reasoning'] as String;
+
+      setState(() {
+        _startDate = startDate;
+        _endDate = startDate.add(Duration(days: duration - 1));
+        _dailyHours = hours;
+        _isSuggestingAI = false;
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✨ Sugestão da IA: $reason'),
+            backgroundColor: AppTheme.accent,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isSuggestingAI = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro na IA: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -201,7 +261,7 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
+                      color: AppTheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -232,7 +292,63 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
                   onChanged: (v) => setState(() => _dailyHours = v),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Sua Rotina (Opcional)',
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _isSuggestingAI
+                        ? null
+                        : () => _suggestConfigWithAI(context),
+                    icon: _isSuggestingAI
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppTheme.accent),
+                          )
+                        : const Icon(Icons.auto_awesome_rounded, size: 14),
+                    label: const Text('Sugerir com IA',
+                        style: TextStyle(fontSize: 12)),
+                    style:
+                        TextButton.styleFrom(foregroundColor: AppTheme.accent),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _routineController,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText:
+                      'Ex: Trabalho das 8h às 18h. Posso estudar mais no FDS.',
+                  hintStyle: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                  ),
+                  filled: true,
+                  fillColor: (Theme.of(context).cardTheme.color ??
+                      Theme.of(context).colorScheme.surface),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: Theme.of(context).dividerColor),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // Generate Button
               SizedBox(
@@ -262,7 +378,10 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
                           );
 
                           try {
-                            await planCtrl.createPlanAndGenerate(plan);
+                            await planCtrl.createPlanAndGenerate(
+                              plan,
+                              routineContext: _routineController.text,
+                            );
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(

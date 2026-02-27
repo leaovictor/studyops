@@ -12,8 +12,8 @@ import 'admin_controller.dart';
 final subjectServiceProvider =
     Provider<SubjectService>((ref) => SubjectService());
 
-final aiServiceProvider = Provider<AIService?>((ref) {
-  final apiKey = ref.watch(geminiApiKeyProvider).valueOrNull;
+final aiServiceProvider = FutureProvider<AIService?>((ref) async {
+  final apiKey = await ref.watch(groqApiKeyProvider.future);
   if (apiKey == null || apiKey.isEmpty) return null;
 
   return AIService(
@@ -60,11 +60,12 @@ class SubjectController extends AsyncNotifier<void> {
       for (final subject in subjects) {
         // 1. Create subject
         final createdSubject = await _service.createSubject(subject);
-        
+
         // 2. Create topics for this subject
         final subjectTopics = topics.where((t) => t.subjectId == subject.id);
         for (final topic in subjectTopics) {
-          await _service.createTopic(topic.copyWith(subjectId: createdSubject.id));
+          await _service
+              .createTopic(topic.copyWith(subjectId: createdSubject.id));
         }
       }
       state = const AsyncData(null);
@@ -159,6 +160,19 @@ class SubjectController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     try {
       await _service.deleteTopic(topicId);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAllSubjects(String goalId) async {
+    state = const AsyncLoading();
+    try {
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) throw Exception('Usuário não autenticado');
+      await _service.deleteAllSubjectsForGoal(user.uid, goalId);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);

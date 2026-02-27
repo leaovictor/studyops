@@ -110,8 +110,11 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                             child: FadeInAnimation(child: widget),
                           ),
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 16,
+                              runSpacing: 12,
                               children: [
                                 Text(
                                   'Performance',
@@ -125,19 +128,30 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                         Colors.white),
                                   ),
                                 ),
-                                Row(
+                                Wrap(
+                                  spacing: 8,
                                   children: [
                                     TextButton.icon(
-                                      onPressed: () => _showAIAnalysisDialog(context, data, stats, subjectNameMap),
-                                      icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-                                      label: const Text('Analisar com IA', style: TextStyle(fontSize: 13)),
-                                      style: TextButton.styleFrom(foregroundColor: AppTheme.accent),
+                                      onPressed: () => _showAIAnalysisDialog(
+                                          context, data, stats, subjectNameMap),
+                                      icon: const Icon(
+                                          Icons.auto_awesome_rounded,
+                                          size: 18),
+                                      label: const Text('Analisar com IA',
+                                          style: TextStyle(fontSize: 13)),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: AppTheme.accent),
                                     ),
                                     TextButton.icon(
-                                      onPressed: () => _showUploadExamDialog(context),
-                                      icon: const Icon(Icons.upload_file_rounded, size: 18),
-                                      label: const Text('Subir Prova', style: TextStyle(fontSize: 13)),
-                                      style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                                      onPressed: () =>
+                                          _showUploadExamDialog(context),
+                                      icon: const Icon(
+                                          Icons.upload_file_rounded,
+                                          size: 18),
+                                      label: const Text('Subir Prova',
+                                          style: TextStyle(fontSize: 13)),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: AppTheme.primary),
                                     ),
                                   ],
                                 ),
@@ -157,30 +171,67 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                             const SizedBox(height: 20),
 
                             // KPI Row
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _KpiCard(
+                            if (MediaQuery.of(context).size.width >= 600)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _KpiCard(
+                                      icon: Icons.percent_rounded,
+                                      iconColor: AppTheme.accent,
+                                      label: 'Aproveitamento',
+                                      value:
+                                          '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                                      subtitle:
+                                          '${stats.totalCorrect}/${stats.totalQuestions} acertos',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _KpiCard(
+                                      icon: Icons.bolt_rounded,
+                                      iconColor: AppTheme.primary,
+                                      label: 'Produtividade',
+                                      value: '${(productivity * 100).round()}%',
+                                      subtitle:
+                                          '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _KpiCard(
+                                      icon: Icons.warning_amber_rounded,
+                                      iconColor: riskColor,
+                                      label: 'Risco de Atraso',
+                                      value: riskLabel,
+                                      valueColor: riskColor,
+                                      subtitle: 'vs. meta semanal',
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Column(
+                                children: [
+                                  _KpiCard(
                                     icon: Icons.percent_rounded,
                                     iconColor: AppTheme.accent,
                                     label: 'Aproveitamento',
-                                    value: '${stats.averageAccuracy.toStringAsFixed(1)}%',
-                                    subtitle: '${stats.totalCorrect}/${stats.totalQuestions} acertos',
+                                    value:
+                                        '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                                    subtitle:
+                                        '${stats.totalCorrect}/${stats.totalQuestions} acertos',
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _KpiCard(
+                                  const SizedBox(height: 12),
+                                  _KpiCard(
                                     icon: Icons.bolt_rounded,
                                     iconColor: AppTheme.primary,
                                     label: 'Produtividade',
                                     value: '${(productivity * 100).round()}%',
-                                    subtitle: '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
+                                    subtitle:
+                                        '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _KpiCard(
+                                  const SizedBox(height: 12),
+                                  _KpiCard(
                                     icon: Icons.warning_amber_rounded,
                                     iconColor: riskColor,
                                     label: 'Risco de Atraso',
@@ -188,23 +239,27 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                     valueColor: riskColor,
                                     subtitle: 'vs. meta semanal',
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                             const SizedBox(height: 16),
 
                             if (data.streakDays > 0)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: Colors.orangeAccent.withValues(alpha: 0.12),
+                                  color: Colors.orangeAccent
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+                                  border: Border.all(
+                                      color: Colors.orangeAccent
+                                          .withValues(alpha: 0.3)),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Text('🔥', style: TextStyle(fontSize: 14)),
+                                    const Text('🔥',
+                                        style: TextStyle(fontSize: 14)),
                                     const SizedBox(width: 6),
                                     Text(
                                       '${data.streakDays} dia${data.streakDays > 1 ? 's' : ''} seguido${data.streakDays > 1 ? 's' : ''}!',
@@ -223,29 +278,50 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                               _SectionCard(
                                 title: 'Aproveitamento por Matéria (%)',
                                 child: Column(
-                                  children: stats.accuracyBySubject.entries.map((e) {
-                                    final subject = subjects.firstWhere((s) => s.id == e.key, orElse: () => subjects.first);
-                                    final color = Color(int.parse('FF${subject.color.replaceAll('#', '')}', radix: 16));
+                                  children:
+                                      stats.accuracyBySubject.entries.map((e) {
+                                    final subject = subjects.firstWhere(
+                                        (s) => s.id == e.key,
+                                        orElse: () => subjects.first);
+                                    final color = Color(int.parse(
+                                        'FF${subject.color.replaceAll('#', '')}',
+                                        radix: 16));
                                     return Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 12),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Text(subject.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                              Text('${e.value.toStringAsFixed(1)}%', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+                                              Text(subject.name,
+                                                  style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500)),
+                                              Text(
+                                                  '${e.value.toStringAsFixed(1)}%',
+                                                  style: TextStyle(
+                                                      color: color,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
                                             ],
                                           ),
                                           const SizedBox(height: 6),
                                           ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                             child: LinearProgressIndicator(
                                               value: e.value / 100,
                                               minHeight: 8,
-                                              backgroundColor: color.withValues(alpha: 0.1),
-                                              valueColor: AlwaysStoppedAnimation(color),
+                                              backgroundColor:
+                                                  color.withValues(alpha: 0.1),
+                                              valueColor:
+                                                  AlwaysStoppedAnimation(color),
                                             ),
                                           ),
                                         ],
@@ -261,7 +337,10 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                               child: SizedBox(
                                 height: 200,
                                 child: trend.isEmpty
-                                    ? const Center(child: Text('Sem dados ainda', style: TextStyle(color: Colors.grey)))
+                                    ? const Center(
+                                        child: Text('Sem dados ainda',
+                                            style:
+                                                TextStyle(color: Colors.grey)))
                                     : WeeklyBarChart(data: trend),
                               ),
                             ),
@@ -280,15 +359,21 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
   }
 
   void _showRecordQuestionsDialog(BuildContext context) {
-    showDialog(context: context, builder: (context) => const _RecordQuestionsDialog());
+    showDialog(
+        context: context, builder: (context) => const _RecordQuestionsDialog());
   }
 
-  void _showAIAnalysisDialog(BuildContext context, DashboardData data, PerformanceStats stats, Map<String, String> subjectNameMap) {
-    showDialog(context: context, builder: (context) => _AIAnalysisDialog(data: data, stats: stats, subjectNameMap: subjectNameMap));
+  void _showAIAnalysisDialog(BuildContext context, DashboardData data,
+      PerformanceStats stats, Map<String, String> subjectNameMap) {
+    showDialog(
+        context: context,
+        builder: (context) => _AIAnalysisDialog(
+            data: data, stats: stats, subjectNameMap: subjectNameMap));
   }
 
   void _showUploadExamDialog(BuildContext context) {
-    showDialog(context: context, builder: (context) => const _UploadExamDialog());
+    showDialog(
+        context: context, builder: (context) => const _UploadExamDialog());
   }
 }
 
@@ -296,7 +381,8 @@ class _AIAnalysisDialog extends ConsumerStatefulWidget {
   final DashboardData data;
   final PerformanceStats stats;
   final Map<String, String> subjectNameMap;
-  const _AIAnalysisDialog({required this.data, required this.stats, required this.subjectNameMap});
+  const _AIAnalysisDialog(
+      {required this.data, required this.stats, required this.subjectNameMap});
 
   @override
   ConsumerState<_AIAnalysisDialog> createState() => _AIAnalysisDialogState();
@@ -317,11 +403,11 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
     try {
       final user = ref.read(authStateProvider).valueOrNull;
       if (user == null) return;
-      final aiService = ref.read(aiServiceProvider);
+      final aiService = await ref.read(aiServiceProvider.future);
       if (aiService == null) {
         throw Exception("Gemini API Key não configurada no Painel Admin.");
       }
-      
+
       final accuracyByName = <String, double>{};
       widget.stats.accuracyBySubject.forEach((id, accuracy) {
         final name = widget.subjectNameMap[id] ?? "Desconhecida";
@@ -335,22 +421,46 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
         consistencyPct: widget.data.consistencyPct,
         streakDays: widget.data.streakDays,
       );
-      if (mounted) setState(() { _analysis = result; _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _analysis = result;
+          _isLoading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Row(children: [Icon(Icons.auto_awesome_rounded, color: AppTheme.accent), SizedBox(width: 12), Text("Mentor IA")]),
+      title: const Row(children: [
+        Icon(Icons.auto_awesome_rounded, color: AppTheme.accent),
+        SizedBox(width: 12),
+        Text("Mentor IA")
+      ]),
       content: _isLoading
-          ? const Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 16), Text("Analisando seus dados...")])
+          ? const Column(mainAxisSize: MainAxisSize.min, children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text("Analisando seus dados...")
+            ])
           : _error != null
-              ? Text("Erro: $_error", style: const TextStyle(color: AppTheme.error))
-              : SingleChildScrollView(child: Text(_analysis ?? "", style: const TextStyle(fontSize: 14, height: 1.5))),
-      actions: [if (!_isLoading) FilledButton(onPressed: () => Navigator.pop(context), child: const Text("Entendi"))],
+              ? Text("Erro: $_error",
+                  style: const TextStyle(color: AppTheme.error))
+              : SingleChildScrollView(
+                  child: Text(_analysis ?? "",
+                      style: const TextStyle(fontSize: 14, height: 1.5))),
+      actions: [
+        if (!_isLoading)
+          FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Entendi"))
+      ],
     );
   }
 }
@@ -367,18 +477,24 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
   String? _status;
 
   Future<void> _pickAndProcess() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["pdf", "jpg", "png"], withData: true);
+    final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ["pdf", "jpg", "png"],
+        withData: true);
     if (result == null || result.files.isEmpty) return;
-    setState(() { _isLoading = true; _status = "Enviando arquivo para a IA..."; });
+    setState(() {
+      _isLoading = true;
+      _status = "Enviando arquivo para a IA...";
+    });
 
     try {
       final user = ref.read(authStateProvider).valueOrNull;
       if (user == null) return;
-      final aiService = ref.read(aiServiceProvider);
+      final aiService = await ref.read(aiServiceProvider.future);
       if (aiService == null) {
         throw Exception("Gemini API Key não configurada no Painel Admin.");
       }
-      
+
       final bankService = ref.read(questionBankServiceProvider);
       final file = result.files.first;
 
@@ -388,7 +504,8 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
         file.extension == "pdf" ? "application/pdf" : "image/${file.extension}",
       );
 
-      setState(() => _status = "Processando ${extracted.length} questões e removendo duplicatas...");
+      setState(() => _status =
+          "Processando ${extracted.length} questões e removendo duplicatas...");
       final List<SharedQuestion> toAdd = extracted.map((qData) {
         final statement = qData["statement"] as String;
         final options = Map<String, String>.from(qData["options"]);
@@ -404,9 +521,17 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
       }).toList();
 
       final added = await bankService.addQuestions(toAdd);
-      if (mounted) setState(() { _isLoading = false; _status = "Sucesso! $added novas questões adicionadas."; });
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+          _status = "Sucesso! $added novas questões adicionadas.";
+        });
     } catch (e) {
-      if (mounted) setState(() { _isLoading = false; _status = "Erro: $e"; });
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+          _status = "Erro: $e";
+        });
     }
   }
 
@@ -415,13 +540,28 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
     return AlertDialog(
       title: const Text("Alimentar Banco Global"),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text("Suba uma prova anterior (PDF ou Imagem). Nossa IA extrairá as questões para o banco compartilhado.", style: TextStyle(fontSize: 13)),
+        const Text(
+            "Suba uma prova anterior (PDF ou Imagem). Nossa IA extrairá as questões para o banco compartilhado.",
+            style: TextStyle(fontSize: 13)),
         const SizedBox(height: 20),
-        if (_isLoading) const CircularProgressIndicator()
-        else if (_status != null) Text(_status!, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.accent))
-        else ElevatedButton.icon(onPressed: _pickAndProcess, icon: const Icon(Icons.picture_as_pdf_rounded), label: const Text("Selecionar Arquivo")),
+        if (_isLoading)
+          const CircularProgressIndicator()
+        else if (_status != null)
+          Text(_status!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: AppTheme.accent))
+        else
+          ElevatedButton.icon(
+              onPressed: _pickAndProcess,
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+              label: const Text("Selecionar Arquivo")),
       ]),
-      actions: [TextButton(onPressed: _isLoading ? null : () => Navigator.pop(context), child: const Text("Fechar"))],
+      actions: [
+        TextButton(
+            onPressed: _isLoading ? null : () => Navigator.pop(context),
+            child: const Text("Fechar"))
+      ],
     );
   }
 }
@@ -429,10 +569,12 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
 class _RecordQuestionsDialog extends ConsumerStatefulWidget {
   const _RecordQuestionsDialog();
   @override
-  ConsumerState<_RecordQuestionsDialog> createState() => _RecordQuestionsDialogState();
+  ConsumerState<_RecordQuestionsDialog> createState() =>
+      _RecordQuestionsDialogState();
 }
 
-class _RecordQuestionsDialogState extends ConsumerState<_RecordQuestionsDialog> {
+class _RecordQuestionsDialogState
+    extends ConsumerState<_RecordQuestionsDialog> {
   String? _selectedSubjectId;
   String? _selectedTopicId;
   final _totalCtrl = TextEditingController();
@@ -443,21 +585,93 @@ class _RecordQuestionsDialogState extends ConsumerState<_RecordQuestionsDialog> 
   @override
   Widget build(BuildContext context) {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
-    final topics = _selectedSubjectId != null ? ref.watch(topicsForSubjectProvider(_selectedSubjectId!)).valueOrNull ?? [] : [];
+    final topics = _selectedSubjectId != null
+        ? ref
+                .watch(topicsForSubjectProvider(_selectedSubjectId!))
+                .valueOrNull ??
+            []
+        : [];
     return AlertDialog(
       title: const Text('Registrar Desempenho'),
-      content: Form(key: _formKey, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        DropdownButtonFormField<String>(initialValue: _selectedSubjectId, decoration: const InputDecoration(labelText: 'Matéria'), items: subjects.map((s) => DropdownMenuItem<String>(value: s.id, child: Text(s.name))).toList(), onChanged: (val) => setState(() { _selectedSubjectId = val; _selectedTopicId = null; }), validator: (v) => v == null ? 'Obrigatório' : null),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(initialValue: _selectedTopicId, decoration: const InputDecoration(labelText: 'Tópico (Opcional)'), items: topics.map((t) => DropdownMenuItem<String>(value: t.id, child: Text(t.name))).toList(), onChanged: (val) => setState(() => _selectedTopicId = val)),
-        const SizedBox(height: 16),
-        Row(children: [
-          Expanded(child: TextFormField(controller: _totalCtrl, decoration: const InputDecoration(labelText: 'Total'), keyboardType: TextInputType.number, validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0 ? null : 'Inválido')),
-          const SizedBox(width: 16),
-          Expanded(child: TextFormField(controller: _correctCtrl, decoration: const InputDecoration(labelText: 'Acertos'), keyboardType: TextInputType.number, validator: (v) { final val = int.tryParse(v ?? '') ?? 0; final total = int.tryParse(_totalCtrl.text) ?? 0; if (val < 0) return 'Inválido'; if (val > total) return 'Maior que total'; return null; })),
-        ]),
-      ]))),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')), FilledButton(onPressed: _isLoading ? null : () async { if (!_formKey.currentState!.validate()) return; setState(() => _isLoading = true); try { await ref.read(questionControllerProvider.notifier).addLog(subjectId: _selectedSubjectId!, topicId: _selectedTopicId, total: int.parse(_totalCtrl.text), correct: int.parse(_correctCtrl.text)); if (context.mounted) Navigator.pop(context); } catch (e) { setState(() => _isLoading = false); } }, child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : const Text('Salvar'))],
+      content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<String>(
+                initialValue: _selectedSubjectId,
+                decoration: const InputDecoration(labelText: 'Matéria'),
+                items: subjects
+                    .map((s) => DropdownMenuItem<String>(
+                        value: s.id, child: Text(s.name)))
+                    .toList(),
+                onChanged: (val) => setState(() {
+                      _selectedSubjectId = val;
+                      _selectedTopicId = null;
+                    }),
+                validator: (v) => v == null ? 'Obrigatório' : null),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+                initialValue: _selectedTopicId,
+                decoration:
+                    const InputDecoration(labelText: 'Tópico (Opcional)'),
+                items: topics
+                    .map((t) => DropdownMenuItem<String>(
+                        value: t.id, child: Text(t.name)))
+                    .toList(),
+                onChanged: (val) => setState(() => _selectedTopicId = val)),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                  child: TextFormField(
+                      controller: _totalCtrl,
+                      decoration: const InputDecoration(labelText: 'Total'),
+                      keyboardType: TextInputType.number,
+                      validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
+                          ? null
+                          : 'Inválido')),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: TextFormField(
+                      controller: _correctCtrl,
+                      decoration: const InputDecoration(labelText: 'Acertos'),
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        final val = int.tryParse(v ?? '') ?? 0;
+                        final total = int.tryParse(_totalCtrl.text) ?? 0;
+                        if (val < 0) return 'Inválido';
+                        if (val > total) return 'Maior que total';
+                        return null;
+                      })),
+            ]),
+          ]))),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar')),
+        FilledButton(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    if (!_formKey.currentState!.validate()) return;
+                    setState(() => _isLoading = true);
+                    try {
+                      await ref
+                          .read(questionControllerProvider.notifier)
+                          .addLog(
+                              subjectId: _selectedSubjectId!,
+                              topicId: _selectedTopicId,
+                              total: int.parse(_totalCtrl.text),
+                              correct: int.parse(_correctCtrl.text));
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      setState(() => _isLoading = false);
+                    }
+                  },
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20, height: 20, child: CircularProgressIndicator())
+                : const Text('Salvar'))
+      ],
     );
   }
 }
@@ -468,7 +682,24 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({required this.title, required this.child});
   @override
   Widget build(BuildContext context) {
-    return Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface), borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white), fontWeight: FontWeight.w600, fontSize: 14)), const SizedBox(height: 16), child]));
+    return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+            color: (Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title,
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14)),
+          const SizedBox(height: 16),
+          child
+        ]));
   }
 }
 
@@ -479,9 +710,48 @@ class _KpiCard extends StatelessWidget {
   final String value;
   final Color? valueColor;
   final String subtitle;
-  const _KpiCard({required this.icon, required this.iconColor, required this.label, required this.value, this.valueColor, required this.subtitle});
+  const _KpiCard(
+      {required this.icon,
+      required this.iconColor,
+      required this.label,
+      required this.value,
+      this.valueColor,
+      required this.subtitle});
   @override
   Widget build(BuildContext context) {
-    return Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: (Theme.of(context).cardTheme.color ?? Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface), borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).dividerColor)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icon, color: iconColor, size: 16), const SizedBox(width: 6), Expanded(child: Text(label, style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 11), overflow: TextOverflow.ellipsis))]), const SizedBox(height: 8), Text(value, style: TextStyle(color: valueColor ?? (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white), fontWeight: FontWeight.w800, fontSize: 22)), Text(subtitle, style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 11))]));
+    return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+            color: (Theme.of(context).cardTheme.color ??
+                Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).dividerColor)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, color: iconColor, size: 16),
+            const SizedBox(width: 6),
+            Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 11),
+                    overflow: TextOverflow.ellipsis))
+          ]),
+          const SizedBox(height: 8),
+          Text(value,
+              style: TextStyle(
+                  color: valueColor ??
+                      (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22)),
+          Text(subtitle,
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
+                  fontSize: 11))
+        ]));
   }
 }

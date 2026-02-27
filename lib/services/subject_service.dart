@@ -116,6 +116,17 @@ class SubjectService {
     await batch.commit();
   }
 
+  Future<void> deleteAllSubjectsForGoal(String userId, String goalId) async {
+    final snap = await _subjects
+        .where('userId', isEqualTo: userId)
+        .where('goalId', isEqualTo: goalId)
+        .get();
+
+    for (final doc in snap.docs) {
+      await deleteSubject(userId, doc.id);
+    }
+  }
+
   // ── Topics ──────────────────────────────────
 
   Stream<List<Topic>> watchTopics(String userId, String subjectId) {

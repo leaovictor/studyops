@@ -340,49 +340,145 @@ class GoalSwitcher extends ConsumerWidget {
 
   void _showAddGoalDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
+    bool useAI = true;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        title: const Text('Novo Ambiente de Estudo'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Crie um ambiente separado para organizar seus estudos (ex: ENEM, Faculdade, Concursos).',
-              style: TextStyle(
-                  color: (Theme.of(context).textTheme.bodySmall?.color ??
-                      Colors.grey),
-                  fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Nome do ambiente (ex: Residência Médica)',
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          title: Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: AppTheme.primary, size: 24),
+              const SizedBox(width: 12),
+              const Text('Novo Ambiente'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Organize seus estudos em ambientes separados (ex: OAB, Residência, Concursos).',
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 13),
               ),
-              autofocus: true,
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Nome do objetivo',
+                  hintText: 'Ex: Concurso Auditor Fiscal',
+                  prefixIcon: Icon(Icons.flag_rounded),
+                ),
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 20),
+              // AI Toggle
+              InkWell(
+                onTap: () => setState(() => useAI = !useAI),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: useAI
+                        ? AppTheme.primary.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: useAI
+                          ? AppTheme.primary.withValues(alpha: 0.3)
+                          : Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        useAI
+                            ? Icons.auto_awesome_rounded
+                            : Icons.auto_awesome_outlined,
+                        color: useAI ? AppTheme.primary : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Configuração Inteligente',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: useAI ? AppTheme.primary : Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              'Sugerir matérias e pesos automaticamente.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: useAI ? AppTheme.primary : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: useAI,
+                        onChanged: (v) => setState(() => useAI = v),
+                        activeThumbColor: AppTheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: controller.text.trim().isEmpty
+                  ? null
+                  : () async {
+                      final name = controller.text.trim();
+                      final goal = await ref
+                          .read(goalControllerProvider.notifier)
+                          .createGoal(name);
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        if (useAI) {
+                          // Se usar IA, leva para a tela de matérias com o prompt de sugestão
+                          context.go('/subjects');
+                          // Opcional: Mostrar uma dica de que a IA pode ser usada lá
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Clique no ícone ✨ para gerar as matérias!'),
+                              backgroundColor: AppTheme.primary,
+                            ),
+                          );
+                        } else {
+                          context.go('/subjects');
+                        }
+                      }
+                    },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Criar Ambiente'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                ref
-                    .read(goalControllerProvider.notifier)
-                    .createGoal(controller.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Criar'),
-          ),
-        ],
       ),
     );
   }

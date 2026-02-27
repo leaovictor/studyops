@@ -8,12 +8,14 @@ import 'performance_controller.dart';
 final usageServiceProvider = Provider<UsageService>((ref) => UsageService());
 final configServiceProvider = Provider<ConfigService>((ref) => ConfigService());
 
-final geminiApiKeyProvider = StreamProvider<String?>((ref) {
-  return ref.watch(configServiceProvider).watchGeminiApiKey();
+final groqApiKeyProvider = StreamProvider<String?>((ref) {
+  return ref.watch(configServiceProvider).watchGroqApiKey();
 });
 
 final pendingQuestionsProvider = StreamProvider<List<SharedQuestion>>((ref) {
-  return ref.watch(questionBankServiceProvider).watchSharedQuestions(onlyApproved: false);
+  return ref
+      .watch(questionBankServiceProvider)
+      .watchSharedQuestions(onlyApproved: false);
 });
 
 final totalAICallsProvider = StreamProvider<int>((ref) {
@@ -21,7 +23,7 @@ final totalAICallsProvider = StreamProvider<int>((ref) {
 });
 
 class AdminController extends AsyncNotifier<void> {
-  static const adminUids = ['M9CWoXUk1HaW1e5CaxlarH6LxE83']; 
+  static const adminUids = ['M9CWoXUk1HaW1e5CaxlarH6LxE83'];
 
   bool get isAdmin {
     final user = ref.read(authStateProvider).valueOrNull;
@@ -31,9 +33,8 @@ class AdminController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<void> saveGeminiApiKey(String key) async {
-    if (!isAdmin) return;
-    await ref.read(configServiceProvider).saveGeminiApiKey(key);
+  Future<void> saveGroqApiKey(String apiKey) async {
+    await ref.read(configServiceProvider).saveGroqApiKey(apiKey);
   }
 
   Future<void> approveQuestion(String id) async {
@@ -47,4 +48,5 @@ class AdminController extends AsyncNotifier<void> {
   }
 }
 
-final adminControllerProvider = AsyncNotifierProvider<AdminController, void>(AdminController.new);
+final adminControllerProvider =
+    AsyncNotifierProvider<AdminController, void>(AdminController.new);
