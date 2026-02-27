@@ -10,8 +10,10 @@ import '../controllers/auth_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
+import '../controllers/error_notebook_controller.dart';
 import '../widgets/study_plan_wizard_dialog.dart';
 import '../models/daily_task_model.dart';
+import '../models/error_note_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
@@ -66,15 +68,24 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     final tasks = ref.watch(dailyTasksProvider).valueOrNull ?? [];
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? [];
+    final allErrorNotes = ref.watch(errorNotesProvider).valueOrNull ?? [];
     final selectedDate = ref.watch(selectedDateProvider);
     final controller = ref.read(dailyTaskControllerProvider.notifier);
+    final errorController = ref.read(errorNotebookControllerProvider.notifier);
 
-    final done = tasks.where((t) => t.done).length;
-    final total = tasks.length;
-    final progress = total > 0 ? done / total : 0.0;
+    // Filter error notes due today (only for today's view)
+    final isViewingToday =
+        AppDateUtils.toKey(selectedDate) == AppDateUtils.toKey(DateTime.now());
+    final dueErrorNotes = isViewingToday
+        ? allErrorNotes.where((n) => n.isDueToday).toList()
+        : <ErrorNote>[];
+
+    final doneTasks = tasks.where((t) => t.done).length;
+    final totalTasks = tasks.length + dueErrorNotes.length;
+    final progress = totalTasks > 0 ? doneTasks / totalTasks : 0.0;
 
     // Trigger confetti when hitting 100%
-    if (progress == 1.0 && total > 0 && !_wasDone) {
+    if (progress == 1.0 && totalTasks > 0 && !_wasDone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _confettiController.play();
       });
@@ -85,6 +96,9 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
     final subjectMap = {for (final s in subjects) s.id: s};
     final topicMap = {for (final t in allTopics) t.id: t};
+
+    // Combine tasks and error notes for display
+    final List<dynamic> combinedItems = [...tasks, ...dueErrorNotes];
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -202,7 +216,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '$done/$total tarefas concluídas',
+                                  '$doneTasks/$totalTasks tarefas concluídas',
                                   style: TextStyle(
                                     color: (Theme.of(context)
                                             .textTheme
@@ -252,7 +266,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
                         const SizedBox(height: 24),
 
-                        if (tasks.isEmpty)
+                        if (combinedItems.isEmpty)
                           _EmptyChecklistState()
                         else
                           AnimationLimiter(
@@ -266,64 +280,132 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                     child: widget,
                                   ),
                                 ),
-                                children: tasks.map((task) {
-                                  final subject = subjectMap[task.subjectId];
-                                  final topic = topicMap[task.topicId];
-                                  final showPomodoro =
-                                      _pomodoroTaskId == task.id;
+                                children: combinedItems.map((item) {
+                                  if (item is DailyTask) {
+                                    final subject = subjectMap[item.subjectId];
+                                    final topic = topicMap[item.topicId];
+                                    final showPomodoro =
+                                        _pomodoroTaskId == item.id;
 
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: _TaskCard(
-                                      task: task,
-                                      subject: subject,
-                                      topicName: topic?.name ?? 'Tópico',
-                                      showPomodoro: showPomodoro,
-                                      onTogglePomodoro: () {
-                                        setState(() {
-                                          _pomodoroTaskId =
-                                              showPomodoro ? null : task.id;
-                                        });
-                                      },
-                                      onToggleDone: (minutes) {
-                                        if (task.done) {
-                                          controller.markUndone(task.id);
-                                        } else {
-                                          controller.markDone(task, minutes);
-                                        }
-                                      },
-                                      onDelete: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Excluir Tarefa'),
-                                            content: const Text(
-                                                'Tem certeza que deseja excluir esta tarefa?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, false),
-                                                child: const Text('Cancelar'),
-                                              ),
-                                              FilledButton(
-                                                style: FilledButton.styleFrom(
-                                                  backgroundColor:
-                                                      AppTheme.error,
-                                                  foregroundColor: Colors.white,
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10),
+                                      child: _ChecklistCard(
+                                        title: topic?.name ?? 'Tópico',
+                                        isDone: item.done,
+                                        subject: subject,
+                                        plannedMinutes: item.plannedMinutes,
+                                        showPomodoro: showPomodoro,
+                                        onTogglePomodoro: () {
+                                          setState(() {
+                                            _pomodoroTaskId =
+                                                showPomodoro ? null : item.id;
+                                          });
+                                        },
+                                        onToggleDone: (minutes) {
+                                          if (item.done) {
+                                            controller.markUndone(item.id);
+                                          } else {
+                                            controller.markDone(item, minutes);
+                                          }
+                                        },
+                                        onDelete: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title:
+                                                  const Text('Excluir Tarefa'),
+                                              content: const Text(
+                                                  'Tem certeza que deseja excluir esta tarefa?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: const Text('Cancelar'),
                                                 ),
-                                                onPressed: () => Navigator.pop(
-                                                    context, true),
-                                                child: const Text('Excluir'),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                        if (confirm == true) {
-                                          controller.deleteTask(task.id);
-                                        }
-                                      },
-                                    ),
-                                  );
+                                                FilledButton(
+                                                  style: FilledButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppTheme.error,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: const Text('Excluir'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            controller.deleteTask(item.id);
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  } else if (item is ErrorNote) {
+                                    final subject = subjectMap[item.subjectId];
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10),
+                                      child: _ChecklistCard(
+                                        title: item.question,
+                                        isDone: false,
+                                        subject: subject,
+                                        isErrorNote: true,
+                                        onToggleDone: (_) {
+                                          errorController.markReviewed(item);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Revisão adiada com sucesso! 🧠'),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        },
+                                        onDelete: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Excluir Nota'),
+                                              content: const Text(
+                                                  'Tem certeza que deseja remover esta nota do Caderno de Erros?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                FilledButton(
+                                                  style: FilledButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppTheme.error,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: const Text('Excluir'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            errorController.deleteNote(item.id);
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
                                 }).toList(),
                               ),
                             ),
@@ -511,23 +593,27 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   }
 }
 
-class _TaskCard extends StatelessWidget {
-  final DailyTask task;
+class _ChecklistCard extends StatelessWidget {
+  final String title;
+  final bool isDone;
   final Subject? subject;
-  final String topicName;
+  final int? plannedMinutes;
   final bool showPomodoro;
-  final VoidCallback onTogglePomodoro;
+  final VoidCallback? onTogglePomodoro;
   final void Function(int minutes) onToggleDone;
   final VoidCallback onDelete;
+  final bool isErrorNote;
 
-  const _TaskCard({
-    required this.task,
+  const _ChecklistCard({
+    required this.title,
+    required this.isDone,
     required this.subject,
-    required this.topicName,
-    required this.showPomodoro,
-    required this.onTogglePomodoro,
+    this.plannedMinutes,
+    this.showPomodoro = false,
+    this.onTogglePomodoro,
     required this.onToggleDone,
     required this.onDelete,
+    this.isErrorNote = false,
   });
 
   Color _subjectColor() {
@@ -544,13 +630,13 @@ class _TaskCard extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: task.done
+        color: isDone
             ? Theme.of(context).colorScheme.surface
             : (Theme.of(context).cardTheme.color ??
                 Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: task.done
+          color: isDone
               ? Theme.of(context).dividerColor
               : color.withValues(alpha: 0.3),
         ),
@@ -565,8 +651,8 @@ class _TaskCard extends StatelessWidget {
                 width: 24,
                 height: 24,
                 child: Checkbox(
-                  value: task.done,
-                  onChanged: (_) => onToggleDone(task.plannedMinutes),
+                  value: isDone,
+                  onChanged: (_) => onToggleDone(plannedMinutes ?? 0),
                   activeColor: AppTheme.primary,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4)),
@@ -599,15 +685,15 @@ class _TaskCard extends StatelessWidget {
 
               Expanded(
                 child: Text(
-                  topicName,
+                  title,
                   style: TextStyle(
-                    color: task.done
+                    color: isDone
                         ? (Theme.of(context).textTheme.labelSmall?.color ??
                             Colors.grey)
                         : (Theme.of(context).textTheme.bodyLarge?.color ??
                             Colors.white),
                     fontWeight: FontWeight.w500,
-                    decoration: task.done ? TextDecoration.lineThrough : null,
+                    decoration: isDone ? TextDecoration.lineThrough : null,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -620,20 +706,37 @@ class _TaskCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Time
-                  Text(
-                    AppDateUtils.formatMinutes(task.plannedMinutes),
-                    style: TextStyle(
-                      color: (Theme.of(context).textTheme.labelSmall?.color ??
-                          Colors.grey),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  if (isErrorNote)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'REVISÃO',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  else if (plannedMinutes != null)
+                    Text(
+                      AppDateUtils.formatMinutes(plannedMinutes!),
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
                   const SizedBox(width: 8),
 
                   // Pomodoro toggle
-                  if (!task.done)
+                  if (!isDone && onTogglePomodoro != null)
                     IconButton(
                       icon: Icon(
                         Icons.timer_rounded,

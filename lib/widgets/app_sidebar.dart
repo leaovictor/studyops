@@ -26,6 +26,7 @@ class AppSidebar extends ConsumerWidget {
         label: 'Performance',
         path: '/performance'),
     _Dest(icon: Icons.book_rounded, label: 'Caderno', path: '/errors'),
+    _Dest(icon: Icons.quiz_rounded, label: 'Simulado', path: '/quiz'),
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
     _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
     _Dest(
