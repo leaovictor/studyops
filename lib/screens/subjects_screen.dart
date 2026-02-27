@@ -49,26 +49,37 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showSubjectDialog(context, null),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Matéria'),
+        label: const Text('MatÃ©ria'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Matérias',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                    Colors.white),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'MatÃ©rias',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _showAIImportDialog(context),
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                  label: const Text('Importar com IA'),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.accent),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             subjectsAsync.maybeWhen(
               data: (subjects) => Text(
-                '${subjects.length} matéria(s) cadastrada(s)',
+                '${subjects.length} matÃ©ria(s) cadastrada(s)',
                 style: TextStyle(
                     color: (Theme.of(context).textTheme.bodySmall?.color ??
                         Colors.grey),
@@ -98,7 +109,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                           const Icon(Icons.error_outline_rounded,
                               color: AppTheme.error, size: 48),
                           const SizedBox(height: 16),
-                          const Text('Erro ao carregar matérias',
+                          const Text('Erro ao carregar matÃ©rias',
                               style: TextStyle(fontWeight: FontWeight.w600)),
                           Text(e.toString(),
                               style: TextStyle(
@@ -152,9 +163,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                                               builder: (ctx, setS) {
                                                 return AlertDialog(
                                                   title: const Text(
-                                                      'Excluir Matéria'),
+                                                      'Excluir MatÃ©ria'),
                                                   content: Text(
-                                                      'Excluir "${subject.name}" e todos os seus tópicos?'),
+                                                      'Excluir "${subject.name}" e todos os seus tÃ³picos?'),
                                                   actions: [
                                                     TextButton(
                                                       onPressed: isDeleting
@@ -185,7 +196,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                                                                       .showSnackBar(
                                                                     const SnackBar(
                                                                         content:
-                                                                            Text('Matéria excluída')),
+                                                                            Text('MatÃ©ria excluÃ­da')),
                                                                   );
                                                                 }
                                                               } catch (e) {
@@ -258,6 +269,13 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     );
   }
 
+  Future<void> _showAIImportDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => const _AIImportDialog(),
+    );
+  }
+
   Future<void> _showTopicDialog(
       BuildContext context, String subjectId, Topic? existing) async {
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
@@ -271,7 +289,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
         return StatefulBuilder(
           builder: (ctx, setS) {
             return AlertDialog(
-              title: Text(existing == null ? 'Novo Tópico' : 'Editar Tópico'),
+              title: Text(existing == null ? 'Novo TÃ³pico' : 'Editar TÃ³pico'),
               content: Form(
                 key: formKey,
                 child: Column(
@@ -280,9 +298,9 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                     TextFormField(
                       controller: nameCtrl,
                       decoration:
-                          const InputDecoration(labelText: 'Nome do Tópico'),
+                          const InputDecoration(labelText: 'Nome do TÃ³pico'),
                       validator: (v) =>
-                          (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
+                          (v?.isNotEmpty ?? false) ? null : 'ObrigatÃ³rio',
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -338,8 +356,8 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(existing == null
-                                        ? 'Tópico criado'
-                                        : 'Tópico atualizado')),
+                                        ? 'TÃ³pico criado'
+                                        : 'TÃ³pico atualizado')),
                               );
                             }
                           } catch (e) {
@@ -347,7 +365,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               setS(() => isLoading = false);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text('Erro ao salvar tópico: $e')),
+                                    content: Text('Erro ao salvar tÃ³pico: $e')),
                               );
                             }
                           }
@@ -401,6 +419,19 @@ class _SubjectCard extends ConsumerWidget {
     final topics =
         ref.watch(topicsForSubjectProvider(subject.id)).valueOrNull ?? [];
 
+    double progress = 0;
+    if (topics.isNotEmpty) {
+      int totalTasks = topics.length * 3;
+      int completedTasks = topics.fold(0, (sum, t) {
+        int count = 0;
+        if (t.isTheoryDone) count++;
+        if (t.isReviewDone) count++;
+        if (t.isExercisesDone) count++;
+        return sum + count;
+      });
+      progress = completedTasks / totalTasks;
+    }
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       decoration: BoxDecoration(
@@ -420,96 +451,127 @@ class _SubjectCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Flexible(
-                              child: Text(
-                                subject.name,
-                                style: TextStyle(
-                                  color: (Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.color ??
-                                      Colors.white),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    subject.name,
+                                    style: TextStyle(
+                                      color: (Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color ??
+                                          Colors.white),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                                const SizedBox(width: 8),
+                                ElTooltip(
+                                  position: ElTooltipPosition.topCenter,
+                                  padding: EdgeInsets.zero,
+                                  color: Colors.transparent,
+                                  content: RelevanceTooltip(
+                                    subject: subject,
+                                  ),
+                                  child: Icon(
+                                    Icons.info_outline_rounded,
+                                    size: 16,
+                                    color: (Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.color ??
+                                        Colors.grey),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            ElTooltip(
-                              position: ElTooltipPosition.topCenter,
-                              padding: EdgeInsets.zero,
-                              color: Colors.transparent,
-                              content: RelevanceTooltip(
-                                subject: subject,
-                              ),
-                              child: Icon(
-                                Icons.info_outline_rounded,
-                                size: 16,
+                            Text(
+                              'Prioridade ${subject.priority} â€¢ Peso ${subject.weight} â€¢ ${topics.length} tÃ³pico(s)',
+                              style: TextStyle(
                                 color: (Theme.of(context)
                                         .textTheme
                                         .labelSmall
                                         ?.color ??
                                     Colors.grey),
+                                fontSize: 11,
                               ),
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit_outlined,
+                            size: 18,
+                            color: (Theme.of(context).textTheme.bodySmall?.color ??
+                                Colors.grey)),
+                        onPressed: onEdit,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline_rounded,
+                            size: 18,
+                            color: (Theme.of(context).textTheme.labelSmall?.color ??
+                                Colors.grey)),
+                        onPressed: onDelete,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
+                      ),
+                    ],
+                  ),
+                  if (topics.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: color.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation(color),
+                              minHeight: 6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Text(
-                          'Prioridade ${subject.priority} • Peso ${subject.weight} • ${topics.length} tópico(s)',
+                          '${(progress * 100).toInt()}%',
                           style: TextStyle(
-                            color: (Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.color ??
-                                Colors.grey),
-                            fontSize: 11,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: color,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit_outlined,
-                        size: 18,
-                        color: (Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.grey)),
-                    onPressed: onEdit,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline_rounded,
-                        size: 18,
-                        color: (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey)),
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: (Theme.of(context).textTheme.bodySmall?.color ??
-                        Colors.grey),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -523,6 +585,7 @@ class _SubjectCard extends ConsumerWidget {
                 children: [
                   ...topics.map((t) => _TopicRow(
                         topic: t,
+                        subjectColor: color,
                         onEdit: () {
                           (context.findAncestorStateOfType<
                                   _SubjectsScreenState>())!
@@ -531,12 +594,22 @@ class _SubjectCard extends ConsumerWidget {
                         onDelete: () => ref
                             .read(subjectControllerProvider.notifier)
                             .deleteTopic(t.id),
+                        onToggleTheory: () => ref
+                            .read(subjectControllerProvider.notifier)
+                            .updateTopic(t.copyWith(isTheoryDone: !t.isTheoryDone)),
+                        onToggleReview: () => ref
+                            .read(subjectControllerProvider.notifier)
+                            .updateTopic(t.copyWith(isReviewDone: !t.isReviewDone)),
+                        onToggleExercises: () => ref
+                            .read(subjectControllerProvider.notifier)
+                            .updateTopic(
+                                t.copyWith(isExercisesDone: !t.isExercisesDone)),
                       )),
                   const SizedBox(height: 4),
                   TextButton.icon(
                     onPressed: onAddTopic,
                     icon: const Icon(Icons.add_rounded, size: 14),
-                    label: const Text('Adicionar Tópico',
+                    label: const Text('Adicionar TÃ³pico',
                         style: TextStyle(fontSize: 13)),
                     style: TextButton.styleFrom(
                       foregroundColor: color,
@@ -554,13 +627,21 @@ class _SubjectCard extends ConsumerWidget {
 
 class _TopicRow extends StatelessWidget {
   final Topic topic;
+  final Color subjectColor;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onToggleTheory;
+  final VoidCallback onToggleReview;
+  final VoidCallback onToggleExercises;
 
   const _TopicRow({
     required this.topic,
+    required this.subjectColor,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleTheory,
+    required this.onToggleReview,
+    required this.onToggleExercises,
   });
 
   @override
@@ -569,51 +650,156 @@ class _TopicRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(Icons.fiber_manual_record_rounded,
-              size: 6,
-              color: (Theme.of(context).textTheme.labelSmall?.color ??
-                  Colors.grey)),
-          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              topic.name,
-              style: TextStyle(
-                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                      Colors.white),
-                  fontSize: 13),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  topic.name,
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  AppConstants.difficultyLabels[topic.difficulty - 1],
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 10),
+                ),
+              ],
             ),
           ),
-          Text(
-            AppConstants.difficultyLabels[topic.difficulty - 1],
-            style: TextStyle(
-                color: (Theme.of(context).textTheme.labelSmall?.color ??
-                    Colors.grey),
-                fontSize: 11),
+          _ProgressIcon(
+            icon: Icons.menu_book_rounded,
+            label: 'T',
+            isActive: topic.isTheoryDone,
+            color: subjectColor,
+            onTap: onToggleTheory,
           ),
           const SizedBox(width: 4),
-          IconButton(
-            icon: Icon(Icons.edit_outlined,
-                size: 14,
-                color: (Theme.of(context).textTheme.labelSmall?.color ??
-                    Colors.grey)),
-            onPressed: onEdit,
-            visualDensity: VisualDensity.compact,
+          _ProgressIcon(
+            icon: Icons.refresh_rounded,
+            label: 'R',
+            isActive: topic.isReviewDone,
+            color: subjectColor,
+            onTap: onToggleReview,
           ),
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded,
-                size: 14,
+          const SizedBox(width: 4),
+          _ProgressIcon(
+            icon: Icons.assignment_rounded,
+            label: 'E',
+            isActive: topic.isExercisesDone,
+            color: subjectColor,
+            onTap: onToggleExercises,
+          ),
+          const SizedBox(width: 8),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert,
+                size: 16,
                 color: (Theme.of(context).textTheme.labelSmall?.color ??
                     Colors.grey)),
-            onPressed: onDelete,
-            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            onSelected: (val) {
+              if (val == 'edit') onEdit();
+              if (val == 'delete') onDelete();
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 16),
+                    SizedBox(width: 8),
+                    Text('Editar', style: TextStyle(fontSize: 13)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline_rounded,
+                        size: 16, color: AppTheme.error),
+                    SizedBox(width: 8),
+                    Text('Excluir',
+                        style: TextStyle(fontSize: 13, color: AppTheme.error)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 }
+
+class _ProgressIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ProgressIcon({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label == 'T'
+          ? 'Teoria'
+          : label == 'R'
+              ? 'RevisÃ£o'
+              : 'ExercÃ­cios',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: isActive ? color : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isActive ? color : color.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 12,
+                color: isActive ? Colors.white : color.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isActive ? Colors.white : color.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _SubjectDialog extends ConsumerStatefulWidget {
   final Subject? existing;
@@ -652,7 +838,7 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
     final user = ref.read(authStateProvider).valueOrNull;
 
     return AlertDialog(
-      title: Text(widget.existing == null ? 'Nova Matéria' : 'Editar Matéria'),
+      title: Text(widget.existing == null ? 'Nova MatÃ©ria' : 'Editar MatÃ©ria'),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -662,9 +848,9 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
             children: [
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nome da Matéria'),
+                decoration: const InputDecoration(labelText: 'Nome da MatÃ©ria'),
                 validator: (v) =>
-                    (v?.isNotEmpty ?? false) ? null : 'Obrigatório',
+                    (v?.isNotEmpty ?? false) ? null : 'ObrigatÃ³rio',
               ),
               const SizedBox(height: 16),
               // Color picker
@@ -801,8 +987,8 @@ class _SubjectDialogState extends ConsumerState<_SubjectDialog> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                             content: Text(widget.existing == null
-                                ? 'Matéria criada'
-                                : 'Matéria atualizada')),
+                                ? 'MatÃ©ria criada'
+                                : 'MatÃ©ria atualizada')),
                       );
                     }
                   } catch (e) {
@@ -843,7 +1029,7 @@ class _EmptySubjects extends StatelessWidget {
               size: 48),
           const SizedBox(height: 16),
           Text(
-            'Nenhuma matéria cadastrada',
+            'Nenhuma matÃ©ria cadastrada',
             style: TextStyle(
                 color: (Theme.of(context).textTheme.bodyLarge?.color ??
                     Colors.white),
@@ -851,7 +1037,7 @@ class _EmptySubjects extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Comece adicionando suas matérias\npara gerar seu cronograma.',
+            'Comece adicionando suas matÃ©rias\npara gerar seu cronograma.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: (Theme.of(context).textTheme.labelSmall?.color ??
@@ -861,5 +1047,104 @@ class _EmptySubjects extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+
+class _AIImportDialog extends ConsumerStatefulWidget {
+  const _AIImportDialog();
+
+  @override
+  ConsumerState<_AIImportDialog> createState() => _AIImportDialogState();
+}
+
+class _AIImportDialogState extends ConsumerState<_AIImportDialog> {
+  final _textCtrl = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: AppTheme.accent),
+          SizedBox(width: 12),
+          Text("Importar com IA"),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Cole aqui o conteúdo programático do edital (matérias e tópicos). A IA irá organizar tudo para você.",
+            style: TextStyle(fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _textCtrl,
+            maxLines: 8,
+            decoration: InputDecoration(
+              hintText: "Ex: PORTUGUÊS: 1. Compreensão de textos...",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text("Cancelar"),
+        ),
+        FilledButton(
+          onPressed: _isLoading ? null : _import,
+          child: _isLoading
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text("Processar Edital"),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _import() async {
+    if (_textCtrl.text.trim().isEmpty) return;
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      if (aiService == null) {
+        throw Exception("Gemini API Key não configurada no Painel Admin.");
+      }
+      final activeGoalId = ref.read(activeGoalIdProvider);
+      
+      final result = await aiService.parseSyllabus(
+        _textCtrl.text.trim(),
+        user.uid,
+        activeGoalId,
+      );
+
+      await ref.read(subjectControllerProvider.notifier).createMultipleSubjectsAndTopics(
+        result.subjects,
+        result.topics,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Edital importado com sucesso!")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro na IA: $e")),
+        );
+      }
+    }
   }
 }

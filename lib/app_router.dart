@@ -18,6 +18,7 @@ import 'screens/settings_screen.dart';
 import 'screens/manual_screen.dart';
 import 'screens/flashcards_screen.dart';
 import 'screens/flashcard_study_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -131,6 +132,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/settings', builder: (_, __) => const SettingsScreen()),
           GoRoute(path: '/manual', builder: (_, __) => const ManualScreen()),
+          GoRoute(path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
         ],
       ),
     ],

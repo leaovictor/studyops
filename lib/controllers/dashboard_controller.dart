@@ -29,6 +29,14 @@ class DashboardData {
       plannedVsRead; // subjectId → {'planned': x, 'read': y}
   final Map<String, double> subjectDifficulties; // subjectId → avgDifficulty
 
+  // Syllabus Progress
+  final int totalTheory;
+  final int completedTheory;
+  final int totalReview;
+  final int completedReview;
+  final int totalExercises;
+  final int completedExercises;
+
   const DashboardData({
     required this.todayMinutes,
     required this.weekMinutes,
@@ -41,6 +49,12 @@ class DashboardData {
     this.suggestedMinutes = 0,
     this.plannedVsRead = const {},
     this.subjectDifficulties = const {},
+    this.totalTheory = 0,
+    this.completedTheory = 0,
+    this.totalReview = 0,
+    this.completedReview = 0,
+    this.totalExercises = 0,
+    this.completedExercises = 0,
   });
 
   static const empty = DashboardData(
@@ -196,6 +210,17 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     }
   }
 
+  // Calculate Syllabus Progress
+  int completedTheory = 0;
+  int completedReview = 0;
+  int completedExercises = 0;
+
+  for (final topic in allTopics) {
+    if (topic.isTheoryDone) completedTheory++;
+    if (topic.isReviewDone) completedReview++;
+    if (topic.isExercisesDone) completedExercises++;
+  }
+
   return DashboardData(
     todayMinutes: todayMinutes,
     weekMinutes: weekMinutes,
@@ -208,5 +233,11 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     suggestedMinutes: suggestedMinutes,
     plannedVsRead: plannedVsRead,
     subjectDifficulties: subjectDifficulties,
+    totalTheory: allTopics.length,
+    completedTheory: completedTheory,
+    totalReview: allTopics.length,
+    completedReview: completedReview,
+    totalExercises: allTopics.length,
+    completedExercises: completedExercises,
   );
 });

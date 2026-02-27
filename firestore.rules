@@ -11,77 +11,51 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Goals: user owns docs
-    match /goals/{docId} {
+    function isAdmin() {
+      return isAuthenticated() && request.auth.uid == 'M9CWoXUk1HaW1e5CaxlarH6LxE83';
+    }
+
+    // Configs: Users need to read the API Key to use AI, but only Admin can write.
+    match /configs/gemini_settings {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Shared Questions: Everyone can read and create, only Admin can moderate (update/delete).
+    match /shared_questions/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // AI Usage tracking: Users can only create their own logs, Admin can see everything.
+    match /usage/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Performance Logs: Strictly private.
+    match /question_logs/{docId} {
       allow get, list: if isOwner(resource.data.userId);
       allow create: if isOwner(request.resource.data.userId);
       allow update, delete: if isOwner(resource.data.userId);
     }
 
-    // Subjects: user owns docs
-    match /subjects/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
+    // User Data (Goals, Subjects, Topics, etc.): Strictly private.
+    match /{collection}/{docId} {
+      allow read, write: if (
+        collection in ['goals', 'subjects', 'topics', 'study_plans', 'daily_tasks', 'study_logs', 'error_notebook', 'flashcards', 'pomodoro_settings']
+      ) && (
+        (resource != null && isOwner(resource.data.userId)) || 
+        (resource == null && isOwner(request.resource.data.userId)) ||
+        (collection == 'pomodoro_settings' && isOwner(docId))
+      );
     }
 
-    // Topics: user owns docs
-    match /topics/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Study plans: user owns docs
-    match /study_plans/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Daily tasks: user owns docs
-    match /daily_tasks/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Study logs: user owns docs
-    match /study_logs/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Error notes: user owns docs
-    match /error_notebook/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Flashcards: user owns docs
-    match /flashcards/{docId} {
-      allow get, list: if isOwner(resource.data.userId);
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId);
-    }
-
-    // Pomodoro Settings: user owns docs, docId is userId
-    match /pomodoro_settings/{docId} {
-      allow read, write: if isOwner(docId);
-    }
-
-    // FSRS Review Logs: authenticated users can read/write (usually should have userId check but topics and goal checks are primary)
+    // FSRS Review Logs
     match /fsrs_review_logs/{docId} {
        allow read, write: if isAuthenticated();
-    }
-
-    // Questions Bank: authenticated users can read, only admin or owners can write
-    match /questions/{docId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (request.resource.data.ownerId == "admin" || request.resource.data.ownerId == request.auth.uid);
-      allow update, delete: if isAuthenticated() && (resource.data.ownerId == "admin" || resource.data.ownerId == request.auth.uid);
     }
   }
 }

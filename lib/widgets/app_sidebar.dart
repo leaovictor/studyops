@@ -5,8 +5,9 @@ import '../core/theme/theme_provider.dart';
 import 'goal_switcher.dart';
 import 'pomodoro_global_listener.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../controllers/admin_controller.dart';
 
-class AppSidebar extends StatelessWidget {
+class AppSidebar extends ConsumerWidget {
   final Widget child;
 
   const AppSidebar({super.key, required this.child});
@@ -35,17 +36,18 @@ class AppSidebar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
     final isTablet = width >= 600 && width < 900;
+    final isAdmin = ref.watch(adminControllerProvider.notifier).isAdmin;
 
     if (isDesktop) {
       return PomodoroGlobalListener(
         child: Scaffold(
           body: Row(
             children: [
-              const _ExpandedSidebar(destinations: _destinations),
+              _ExpandedSidebar(destinations: _destinations, isAdmin: isAdmin),
               Expanded(child: child),
             ],
           ),
@@ -58,7 +60,7 @@ class AppSidebar extends StatelessWidget {
         child: Scaffold(
           body: Row(
             children: [
-              const _CompactRail(destinations: _destinations),
+              _CompactRail(destinations: _destinations, isAdmin: isAdmin),
               const VerticalDivider(width: 1),
               Expanded(child: child),
             ],
@@ -75,7 +77,7 @@ class AppSidebar extends StatelessWidget {
           // Removed explicit IconButton from actions since 'drawer' automatically
           // adds a hamburger menu as the leading widget.
         ),
-        drawer: const _MobileDrawer(destinations: _destinations),
+        drawer: _MobileDrawer(destinations: _destinations, isAdmin: isAdmin),
         body: child,
       ),
     );
@@ -87,7 +89,8 @@ class AppSidebar extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _ExpandedSidebar extends StatelessWidget {
   final List<_Dest> destinations;
-  const _ExpandedSidebar({required this.destinations});
+  final bool isAdmin;
+  const _ExpandedSidebar({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +130,18 @@ class _ExpandedSidebar extends StatelessWidget {
                     onTap: () => context.go(d.path),
                   );
                 }),
+                if (isAdmin) ...[
+                  const Divider(height: 24),
+                  _SidebarItem(
+                    dest: const _Dest(
+                      icon: Icons.admin_panel_settings_rounded,
+                      label: 'Painel Admin',
+                      path: '/admin',
+                    ),
+                    selected: location.startsWith('/admin'),
+                    onTap: () => context.go('/admin'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -216,7 +231,8 @@ class _SidebarItem extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _CompactRail extends StatelessWidget {
   final List<_Dest> destinations;
-  const _CompactRail({required this.destinations});
+  final bool isAdmin;
+  const _CompactRail({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -242,36 +258,66 @@ class _CompactRail extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              children: destinations.map((d) {
-                final selected = location.startsWith(d.path);
-                return Tooltip(
-                  message: d.label,
-                  preferBelow: false,
-                  child: GestureDetector(
-                    onTap: () => context.go(d.path),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppTheme.primary.withValues(alpha: 0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
+              children: [
+                ...destinations.map((d) {
+                  final selected = location.startsWith(d.path);
+                  return Tooltip(
+                    message: d.label,
+                    preferBelow: false,
+                    child: GestureDetector(
+                      onTap: () => context.go(d.path),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppTheme.primary.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          d.icon,
+                          size: 22,
+                          color: selected
+                              ? AppTheme.primary
+                              : (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                        ),
                       ),
-                      child: Icon(
-                        d.icon,
-                        size: 22,
-                        color: selected
-                            ? AppTheme.primary
-                            : (Theme.of(context).textTheme.bodySmall?.color ??
-                                Colors.grey),
+                    ),
+                  );
+                }),
+                if (isAdmin)
+                  Tooltip(
+                    message: 'Painel Admin',
+                    preferBelow: false,
+                    child: GestureDetector(
+                      onTap: () => context.go('/admin'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: location.startsWith('/admin')
+                              ? AppTheme.primary.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.admin_panel_settings_rounded,
+                          size: 22,
+                          color: location.startsWith('/admin')
+                              ? AppTheme.primary
+                              : (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                        ),
                       ),
                     ),
                   ),
-                );
-              }).toList(),
+              ],
             ),
           ),
           const Padding(
@@ -289,7 +335,8 @@ class _CompactRail extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _MobileDrawer extends StatelessWidget {
   final List<_Dest> destinations;
-  const _MobileDrawer({required this.destinations});
+  final bool isAdmin;
+  const _MobileDrawer({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +370,21 @@ class _MobileDrawer extends StatelessWidget {
                       },
                     );
                   }),
+                  if (isAdmin) ...[
+                    const Divider(),
+                    _SidebarItem(
+                      dest: const _Dest(
+                        icon: Icons.admin_panel_settings_rounded,
+                        label: 'Painel Admin',
+                        path: '/admin',
+                      ),
+                      selected: location.startsWith('/admin'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go('/admin');
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

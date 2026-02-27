@@ -93,6 +93,39 @@ class ManualScreen extends StatelessWidget {
                   ],
                 ),
                 const _ManualCard(
+                  title: 'Edital Inteligente (T, R, E)',
+                  description:
+                      'O StudyOps permite o controle total do seu edital. Para cada tópico, você pode marcar se já cumpriu a Teoria (T), Revisão (R) e Exercícios (E).',
+                  icon: Icons.checklist_rtl_rounded,
+                  color: Colors.teal,
+                  tips: [
+                    'Acompanhe a barra de progresso em cada matéria para saber quanto falta para "fechar" o edital.',
+                    'Use a Importação com IA para cadastrar centenas de tópicos em segundos.'
+                  ],
+                ),
+                const _ManualCard(
+                  title: 'Mentor e Explicações com IA',
+                  description:
+                      'Use o poder do Gemini 1.5 Flash para acelerar seu aprendizado. A IA pode analisar sua performance, explicar questões difíceis e gerar flashcards automaticamente.',
+                  icon: Icons.auto_awesome_rounded,
+                  color: AppTheme.accent,
+                  tips: [
+                    'Na tela de Performance, clique em "Analisar com IA" para receber um feedback estratégico.',
+                    'No Caderno de Erros, peça explicações à IA para entender o fundamento jurídico ou teórico de qualquer questão.'
+                  ],
+                ),
+                const _ManualCard(
+                  title: 'Banco Global e Crowdsourcing',
+                  description:
+                      'Ajude a comunidade e seja ajudado. Você pode subir PDFs de provas anteriores e nossa IA extrairá as questões para o banco global automaticamente.',
+                  icon: Icons.cloud_upload_rounded,
+                  color: Colors.lightBlue,
+                  tips: [
+                    'O sistema remove duplicatas automaticamente usando hashing SHA-256.',
+                    'Quanto mais provas a comunidade sobe, maior fica o banco de questões para todos.'
+                  ],
+                ),
+                const _ManualCard(
                   title: 'Objetivos e Planos',
                   description:
                       'Você pode gerenciar múltiplos concursos ao mesmo tempo. Cada um tem seu próprio cronograma e matérias.',

@@ -10,6 +10,10 @@ class AppConstants {
   static const String colErrorNotebook = 'error_notebook';
   static const String colFlashcards = 'flashcards';
   static const String colGoals = 'goals';
+  static const String colQuestionLogs = 'question_logs';
+  static const String colSharedQuestions = 'shared_questions';
+  static const String colUsage = 'usage';
+  static const String colConfigs = 'configs';
 
   // Plan durations
   static const List<int> planDurations = [30, 60, 90];

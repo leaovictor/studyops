@@ -8,6 +8,7 @@ import '../controllers/subject_controller.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/flashcard_controller.dart';
 import '../controllers/goal_controller.dart';
+import '../controllers/performance_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import 'package:el_tooltip/el_tooltip.dart';
@@ -237,6 +238,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
 
+                      // Syllabus Progress Section
+                      _SectionCard(
+                        title: 'Cobertura do Edital',
+                        child: _SyllabusProgressRow(data: data),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // General Performance Card
+                      const _GeneralPerformanceCard(),
                       const SizedBox(height: 32),
 
                       // Bottom Section: Activities & Summary
@@ -705,6 +715,216 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _GeneralPerformanceCard extends ConsumerWidget {
+  const _GeneralPerformanceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(performanceStatsProvider);
+
+    return InkWell(
+      onTap: () => context.go('/performance'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primary.withValues(alpha: 0.1),
+              AppTheme.accent.withValues(alpha: 0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Aproveitamento Geral',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${stats.totalQuestions} questões',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${stats.totalCorrect} acertos',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.accent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            const Icon(Icons.chevron_right_rounded, color: AppTheme.primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SyllabusProgressRow extends StatelessWidget {
+  final DashboardData data;
+  const _SyllabusProgressRow({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final isSmall = constraints.maxWidth < 600;
+      return Column(
+        children: [
+          Row(
+            children: [
+              _ProgressCol(
+                label: 'Teoria',
+                completed: data.completedTheory,
+                total: data.totalTheory,
+                color: AppTheme.primary,
+              ),
+              const SizedBox(width: 16),
+              _ProgressCol(
+                label: 'Revisão',
+                completed: data.completedReview,
+                total: data.totalReview,
+                color: AppTheme.secondary,
+              ),
+              const SizedBox(width: 16),
+              _ProgressCol(
+                label: 'Exercícios',
+                completed: data.completedExercises,
+                total: data.totalExercises,
+                color: AppTheme.accent,
+              ),
+            ],
+          ),
+          if (data.totalTheory > 0) ...[
+            const SizedBox(height: 24),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: (data.completedTheory +
+                        data.completedReview +
+                        data.completedExercises) /
+                    (data.totalTheory * 3),
+                minHeight: 12,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${(((data.completedTheory + data.completedReview + data.completedExercises) / (data.totalTheory * 3)) * 100).toInt()}% do edital concluído',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+              ),
+            ),
+          ],
+        ],
+      );
+    });
+  }
+}
+
+class _ProgressCol extends StatelessWidget {
+  final String label;
+  final int completed;
+  final int total;
+  final Color color;
+
+  const _ProgressCol({
+    required this.label,
+    required this.completed,
+    required this.total,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? completed / total : 0.0;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$completed/$total',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Stack(
+            children: [
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: pct.clamp(0.0, 1.0),
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
