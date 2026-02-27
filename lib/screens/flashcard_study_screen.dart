@@ -1,5 +1,6 @@
 import 'dart:math' show pi;
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fsrs/fsrs.dart' as fsrs;
 import '../controllers/flashcard_controller.dart';
@@ -25,13 +26,22 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
   int _correct = 0;
   int _incorrect = 0;
   bool _sessionDone = false;
+  late ConfettiController _confettiController;
 
   List<Flashcard> _cards = [];
 
   @override
   void initState() {
     super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 3));
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadCards());
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   void _loadCards() {
@@ -62,6 +72,7 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
 
     if (_currentIndex + 1 >= _cards.length) {
       setState(() => _sessionDone = true);
+      _confettiController.play();
     } else {
       setState(() {
         _currentIndex++;
@@ -74,27 +85,46 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppTheme.bg0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppTheme.textSecondary),
+          icon: Icon(Icons.close_rounded, color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey)),
           onPressed: () => Navigator.pop(context),
         ),
         title: _sessionDone || _cards.isEmpty
             ? null
             : _ProgressBar(current: _currentIndex + 1, total: _cards.length),
       ),
-      body: _sessionDone || _cards.isEmpty
-          ? _DonePanel(correct: _correct, incorrect: _incorrect)
-          : _StudyPanel(
-              card: _cards[_currentIndex],
-              flipped: _flipped,
-              rated: _rated,
-              onFlip: () => setState(() => _flipped = true),
-              onRate: _rate,
+      body: Stack(
+        children: [
+          _sessionDone || _cards.isEmpty
+              ? _DonePanel(correct: _correct, incorrect: _incorrect)
+              : _StudyPanel(
+                  card: _cards[_currentIndex],
+                  flipped: _flipped,
+                  rated: _rated,
+                  onFlip: () => setState(() => _flipped = true),
+                  onRate: _rate,
+                ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                AppTheme.primary,
+                AppTheme.accent,
+                Colors.orange,
+                Colors.pink,
+                Colors.green,
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -114,7 +144,7 @@ class _ProgressBar extends StatelessWidget {
       children: [
         Text(
           '$current / $total',
-          style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+          style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 13),
         ),
         const SizedBox(height: 4),
         ClipRRect(
@@ -125,7 +155,7 @@ class _ProgressBar extends StatelessWidget {
             builder: (_, v, __) => LinearProgressIndicator(
               value: v,
               minHeight: 3,
-              backgroundColor: AppTheme.border,
+              backgroundColor: Theme.of(context).dividerColor,
               valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
             ),
           ),
@@ -260,12 +290,12 @@ class _CardFace extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -277,7 +307,7 @@ class _CardFace extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -294,8 +324,8 @@ class _CardFace extends StatelessWidget {
           Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
               fontSize: 20,
               fontWeight: FontWeight.w600,
               height: 1.4,
@@ -305,7 +335,7 @@ class _CardFace extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               hint!,
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12),
             ),
           ],
         ],
@@ -401,29 +431,30 @@ class _RatingBtn extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 18),
+            Text(
+              interval,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Icon(icon, color: color, size: 20),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: color,
+                color: color.withValues(alpha: 0.8),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-            Text(
-              interval,
-              style: TextStyle(
-                color: color.withOpacity(0.7),
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -454,32 +485,32 @@ class _DonePanel extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: AppTheme.accent.withOpacity(0.12),
+                color: AppTheme.accent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.celebration_rounded,
                   color: AppTheme.accent, size: 56),
             ),
             const SizedBox(height: 28),
-            const Text(
+            Text(
               'Sessão concluída!',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
               ),
             ),
             const SizedBox(height: 8),
             if (total == 0)
-              const Text(
+              Text(
                 'Nenhum card para revisar hoje.',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
               )
             else ...[
               Text(
                 '$total cards revisados',
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 14),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
               ),
               const SizedBox(height: 28),
               Row(
@@ -538,7 +569,7 @@ class _Stat extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 13),
         ),
       ],
     );

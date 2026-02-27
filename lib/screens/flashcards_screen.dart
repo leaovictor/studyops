@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/flashcard_controller.dart';
 import '../controllers/subject_controller.dart';
+import '../controllers/goal_controller.dart';
 import '../models/flashcard_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class FlashcardsScreen extends ConsumerStatefulWidget {
   const FlashcardsScreen({super.key});
@@ -37,16 +40,17 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: NestedScrollView(
         headerSliverBuilder: (_, __) => [
           SliverAppBar(
-            backgroundColor: AppTheme.bg0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             pinned: true,
-            title: const Text(
+            title: Text(
               'Flashcards',
               style: TextStyle(
-                color: AppTheme.textPrimary,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontWeight: FontWeight.w800,
                 fontSize: 22,
               ),
@@ -56,7 +60,9 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
               indicatorColor: AppTheme.primary,
               indicatorSize: TabBarIndicatorSize.label,
               labelColor: AppTheme.primary,
-              unselectedLabelColor: AppTheme.textMuted,
+              unselectedLabelColor:
+                  (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
               tabs: const [
                 Tab(text: 'Revisar Hoje'),
                 Tab(text: 'Todos'),
@@ -88,7 +94,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.bg1,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -100,59 +106,104 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
 // ---------------------------------------------------------------------------
 // Review Tab — decks grouped by subject
 // ---------------------------------------------------------------------------
-class _ReviewTab extends ConsumerWidget {
+class _ReviewTab extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReviewTab> createState() => _ReviewTabState();
+}
+
+class _ReviewTabState extends ConsumerState<_ReviewTab> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dueFlashcardsProvider);
+    ref.invalidate(subjectsProvider);
+    try {
+      await ref.read(dueFlashcardsProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dueAsync = ref.watch(dueFlashcardsProvider);
     final subjectsAsync = ref.watch(subjectsProvider);
 
-    return dueAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
-      data: (due) {
-        final subjects = subjectsAsync.valueOrNull ?? [];
-        final bySubject = <String, List<Flashcard>>{};
-        for (final c in due) {
-          bySubject.putIfAbsent(c.subjectId, () => []).add(c);
-        }
+    return SmartRefresher(
+      controller: _refreshController,
+      onRefresh: _onRefresh,
+      header: const WaterDropMaterialHeader(
+        backgroundColor: AppTheme.primary,
+      ),
+      child: dueAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(child: Text('Erro: $e'))),
+        data: (due) {
+          final subjects = subjectsAsync.valueOrNull ?? [];
+          final bySubject = <String, List<Flashcard>>{};
+          for (final c in due) {
+            bySubject.putIfAbsent(c.subjectId, () => []).add(c);
+          }
 
-        if (bySubject.isEmpty) {
-          return _EmptyState(
-            icon: Icons.check_circle_outline_rounded,
-            title: 'Tudo em dia!',
-            subtitle: 'Nenhum card para revisar hoje.',
-          );
-        }
+          if (bySubject.isEmpty) {
+            return const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: _EmptyState(
+                icon: Icons.check_circle_outline_rounded,
+                title: 'Tudo em dia!',
+                subtitle: 'Nenhum card para revisar hoje.',
+              ),
+            );
+          }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SummaryBanner(
-              totalDue: due.length,
-              onStudyAll: () => context.push('/flashcards/study'),
+          return AnimationLimiter(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) => SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(child: widget),
+                ),
+                children: [
+                  _SummaryBanner(
+                    totalDue: due.length,
+                    onStudyAll: () => context.push('/flashcards/study'),
+                  ),
+                  const SizedBox(height: 16),
+                  ...bySubject.entries.map((e) {
+                    final subject = subjects.firstWhere(
+                      (s) => s.id == e.key,
+                      orElse: () => Subject(
+                          id: e.key,
+                          userId: '',
+                          name: 'Matéria',
+                          color: '#7C6FFF',
+                          priority: 1,
+                          weight: 1,
+                          difficulty: 3),
+                    );
+                    return _DeckCard(
+                      subject: subject,
+                      count: e.value.length,
+                      onStudy: () => context
+                          .push('/flashcards/study?subjectId=${subject.id}'),
+                    );
+                  }),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            ...bySubject.entries.map((e) {
-              final subject = subjects.firstWhere(
-                (s) => s.id == e.key,
-                orElse: () => Subject(
-                    id: e.key,
-                    userId: '',
-                    name: 'Matéria',
-                    color: '#7C6FFF',
-                    priority: 1,
-                    weight: 1),
-              );
-              return _DeckCard(
-                subject: subject,
-                count: e.value.length,
-                onStudy: () =>
-                    context.push('/flashcards/study?subjectId=${subject.id}'),
-              );
-            }),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -169,14 +220,14 @@ class _SummaryBanner extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primary.withOpacity(0.15),
-            AppTheme.primary.withOpacity(0.05),
+            AppTheme.primary.withValues(alpha: 0.15),
+            AppTheme.primary.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -191,16 +242,20 @@ class _SummaryBanner extends StatelessWidget {
                   children: [
                     Text(
                       '$totalDue cards para revisar',
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'Mantenha sua sequência de estudos!',
                       style: TextStyle(
-                          color: AppTheme.textSecondary, fontSize: 12),
+                          color:
+                              (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -248,9 +303,10 @@ class _DeckCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
@@ -258,7 +314,7 @@ class _DeckCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.style_rounded, color: color, size: 22),
@@ -270,16 +326,21 @@ class _DeckCard extends StatelessWidget {
               children: [
                 Text(
                   subject.name,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   '$count card${count != 1 ? 's' : ''} para revisar',
-                  style:
-                      const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                      fontSize: 12),
                 ),
               ],
             ),
@@ -303,7 +364,7 @@ class _DeckCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // All Cards Tab
 // ---------------------------------------------------------------------------
-class _AllCardsTab extends ConsumerWidget {
+class _AllCardsTab extends ConsumerStatefulWidget {
   final String? filterSubjectId;
   final void Function(String?) onFilterChanged;
 
@@ -313,90 +374,140 @@ class _AllCardsTab extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AllCardsTab> createState() => _AllCardsTabState();
+}
+
+class _AllCardsTabState extends ConsumerState<_AllCardsTab> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(flashcardsProvider);
+    ref.invalidate(subjectsProvider);
+    try {
+      await ref.read(flashcardsProvider.future);
+    } catch (_) {}
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final allAsync = ref.watch(flashcardsProvider);
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
 
-    return allAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erro: $e')),
-      data: (all) {
-        final filtered = filterSubjectId == null
-            ? all
-            : all.where((c) => c.subjectId == filterSubjectId).toList();
+    return SmartRefresher(
+      controller: _refreshController,
+      onRefresh: _onRefresh,
+      header: const WaterDropMaterialHeader(
+        backgroundColor: AppTheme.primary,
+      ),
+      child: allAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Center(child: Text('Erro: $e'))),
+        data: (all) {
+          final filtered = widget.filterSubjectId == null
+              ? all
+              : all
+                  .where((c) => c.subjectId == widget.filterSubjectId)
+                  .toList();
 
-        return Column(
-          children: [
-            // Filter chips
-            if (subjects.isNotEmpty)
-              SizedBox(
-                height: 52,
-                child: ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _FilterChip(
-                      label: 'Todas',
-                      selected: filterSubjectId == null,
-                      color: AppTheme.primary,
-                      onTap: () => onFilterChanged(null),
+          return Column(
+            children: [
+              // Filter chips
+              if (subjects.isNotEmpty)
+                SizedBox(
+                  height: 52,
+                  child: ListView(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _FilterChip(
+                        label: 'Todas',
+                        selected: widget.filterSubjectId == null,
+                        color: AppTheme.primary,
+                        onTap: () => widget.onFilterChanged(null),
+                      ),
+                      ...subjects.map((s) {
+                        final color = Color(int.parse(
+                            'FF${s.color.replaceAll('#', '')}',
+                            radix: 16));
+                        return _FilterChip(
+                          label: s.name,
+                          selected: widget.filterSubjectId == s.id,
+                          color: color,
+                          onTap: () => widget.onFilterChanged(
+                              widget.filterSubjectId == s.id ? null : s.id),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+
+              if (filtered.isEmpty)
+                const Expanded(
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: _EmptyState(
+                      icon: Icons.style_outlined,
+                      title: 'Nenhum flashcard',
+                      subtitle:
+                          'Crie seu primeiro card clicando em "+ Novo card".',
                     ),
-                    ...subjects.map((s) {
-                      final color = Color(int.parse(
-                          'FF${s.color.replaceAll('#', '')}',
-                          radix: 16));
-                      return _FilterChip(
-                        label: s.name,
-                        selected: filterSubjectId == s.id,
-                        color: color,
-                        onTap: () => onFilterChanged(
-                            filterSubjectId == s.id ? null : s.id),
-                      );
-                    }),
-                  ],
+                  ),
+                )
+              else
+                Expanded(
+                  child: AnimationLimiter(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) {
+                        final c = filtered[i];
+                        final subject = subjects.firstWhere(
+                          (s) => s.id == c.subjectId,
+                          orElse: () => const Subject(
+                              id: '',
+                              userId: '',
+                              name: 'Matéria',
+                              color: '#7C6FFF',
+                              priority: 1,
+                              weight: 1,
+                              difficulty: 3),
+                        );
+                        return AnimationConfiguration.staggeredList(
+                          position: i,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              child: _FlashcardListTile(
+                                card: c,
+                                subject: subject,
+                                onDelete: () => ref
+                                    .read(flashcardControllerProvider.notifier)
+                                    .delete(c.id),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-
-            if (filtered.isEmpty)
-              Expanded(
-                child: _EmptyState(
-                  icon: Icons.style_outlined,
-                  title: 'Nenhum flashcard',
-                  subtitle: 'Crie seu primeiro card clicando em "+ Novo card".',
-                ),
-              )
-            else
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    final c = filtered[i];
-                    final subject = subjects.firstWhere(
-                      (s) => s.id == c.subjectId,
-                      orElse: () => Subject(
-                          id: '',
-                          userId: '',
-                          name: 'Matéria',
-                          color: '#7C6FFF',
-                          priority: 1,
-                          weight: 1),
-                    );
-                    return _FlashcardListTile(
-                      card: c,
-                      subject: subject,
-                      onDelete: () => ref
-                          .read(flashcardControllerProvider.notifier)
-                          .delete(c.id),
-                    );
-                  },
-                ),
-              ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -423,16 +534,21 @@ class _FilterChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.2) : AppTheme.bg2,
+          color: selected
+              ? color.withValues(alpha: 0.2)
+              : (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? color : AppTheme.border,
+            color: selected ? color : Theme.of(context).dividerColor,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? color : AppTheme.textSecondary,
+            color: selected
+                ? color
+                : (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -466,7 +582,7 @@ class _FlashcardListTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFFEF4444).withOpacity(0.15),
+          color: const Color(0xFFEF4444).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child:
@@ -476,11 +592,13 @@ class _FlashcardListTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppTheme.bg2,
+          color: (Theme.of(context).cardTheme.color ??
+              Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color:
-                  isDue ? AppTheme.primary.withOpacity(0.3) : AppTheme.border),
+              color: isDue
+                  ? AppTheme.primary.withValues(alpha: 0.3)
+                  : Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
@@ -501,8 +619,9 @@ class _FlashcardListTile extends StatelessWidget {
                     card.front,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -510,8 +629,10 @@ class _FlashcardListTile extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Próxima revisão: ${AppDateUtils.formatRelativeDate(card.due)}',
-                    style: const TextStyle(
-                        color: AppTheme.textMuted, fontSize: 11),
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 11),
                   ),
                 ],
               ),
@@ -520,7 +641,7 @@ class _FlashcardListTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.15),
+                  color: AppTheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
@@ -589,10 +710,11 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Novo flashcard',
             style: TextStyle(
-              color: AppTheme.textPrimary,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -605,7 +727,9 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               labelText: 'Frente (pergunta)',
               prefixIcon: Icon(Icons.help_outline_rounded),
             ),
-            style: const TextStyle(color: AppTheme.textPrimary),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white)),
             maxLines: 2,
           ),
           const SizedBox(height: 12),
@@ -616,15 +740,20 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               labelText: 'Verso (resposta)',
               prefixIcon: Icon(Icons.lightbulb_outline_rounded),
             ),
-            style: const TextStyle(color: AppTheme.textPrimary),
+            style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white)),
             maxLines: 2,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedSubjectId,
-            hint: const Text('Matéria',
-                style: TextStyle(color: AppTheme.textMuted)),
-            dropdownColor: AppTheme.bg2,
+            initialValue: _selectedSubjectId,
+            hint: Text('Matéria',
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey))),
+            dropdownColor: (Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.book_rounded),
             ),
@@ -632,7 +761,9 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
               return DropdownMenuItem(
                 value: s.id,
                 child: Text(s.name,
-                    style: const TextStyle(color: AppTheme.textPrimary)),
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white))),
               );
             }).toList(),
             onChanged: (v) => setState(() {
@@ -643,10 +774,13 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
           if (topics.isNotEmpty) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedTopicId,
-              hint: const Text('Tópico (opcional)',
-                  style: TextStyle(color: AppTheme.textMuted)),
-              dropdownColor: AppTheme.bg2,
+              initialValue: _selectedTopicId,
+              hint: Text('Tópico (opcional)',
+                  style: TextStyle(
+                      color: (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey))),
+              dropdownColor: (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.topic_rounded),
               ),
@@ -654,7 +788,10 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
                 return DropdownMenuItem(
                   value: t.id,
                   child: Text(t.name,
-                      style: const TextStyle(color: AppTheme.textPrimary)),
+                      style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white))),
                 );
               }).toList(),
               onChanged: (v) => setState(() => _selectedTopicId = v),
@@ -691,9 +828,11 @@ class _AddCardSheetState extends ConsumerState<_AddCardSheet> {
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) return;
 
+    final activeGoalId = ref.read(activeGoalIdProvider);
     final card = Flashcard(
       id: '',
       userId: user.uid,
+      goalId: activeGoalId,
       subjectId: _selectedSubjectId!,
       topicId: _selectedTopicId ?? '',
       front: _frontCtrl.text.trim(),
@@ -731,12 +870,16 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppTheme.textMuted),
+            Icon(icon,
+                size: 64,
+                color: (Theme.of(context).textTheme.labelSmall?.color ??
+                    Colors.grey)),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -745,8 +888,10 @@ class _EmptyState extends StatelessWidget {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 13),
             ),
           ],
         ),

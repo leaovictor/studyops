@@ -26,6 +26,20 @@ class AppTheme {
   // Border
   static const Color border = Color(0xFF2A2A45);
 
+  // Light Background palette
+  static const Color lightBg0 = Color(0xFFFAFAFA);
+  static const Color lightBg1 = Color(0xFFFFFFFF);
+  static const Color lightBg2 = Color(0xFFF0F0F0);
+  static const Color lightBg3 = Color(0xFFE0E0E0);
+
+  // Light Text
+  static const Color lightTextPrimary = Color(0xFF212121);
+  static const Color lightTextSecondary = Color(0xFF616161);
+  static const Color lightTextMuted = Color(0xFF9E9E9E);
+
+  // Light Border
+  static const Color lightBorder = Color(0xFFE0E0E0);
+
   static ThemeData get darkTheme {
     final base = ThemeData.dark(useMaterial3: true);
 
@@ -80,7 +94,7 @@ class AppTheme {
           color: textSecondary,
           fontSize: 12,
         ),
-        indicatorColor: primary.withOpacity(0.15),
+        indicatorColor: primary.withValues(alpha: 0.15),
         useIndicator: true,
       ),
       drawerTheme: const DrawerThemeData(
@@ -151,7 +165,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: bg3,
-        selectedColor: primary.withOpacity(0.2),
+        selectedColor: primary.withValues(alpha: 0.2),
         disabledColor: bg3,
         side: const BorderSide(color: border),
         labelStyle: GoogleFonts.inter(color: textSecondary, fontSize: 12),
@@ -170,6 +184,156 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: bg3,
         contentTextStyle: GoogleFonts.inter(color: textPrimary),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    final base = ThemeData.light(useMaterial3: true);
+
+    return base.copyWith(
+      colorScheme: const ColorScheme.light(
+        primary: primary,
+        onPrimary: Colors.white,
+        secondary: secondary,
+        onSecondary: Colors.white,
+        tertiary: accent,
+        error: error,
+        surface: lightBg1,
+        onSurface: lightTextPrimary,
+      ),
+      scaffoldBackgroundColor: lightBg0,
+      textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(
+        bodyColor: lightTextPrimary,
+        displayColor: lightTextPrimary,
+      ),
+      cardTheme: CardThemeData(
+        color: lightBg1,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: lightBorder, width: 1),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: lightBg0,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: lightTextPrimary,
+        ),
+        iconTheme: const IconThemeData(color: lightTextPrimary),
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: lightBg1,
+        selectedIconTheme: const IconThemeData(color: primary, size: 22),
+        unselectedIconTheme:
+            const IconThemeData(color: lightTextSecondary, size: 22),
+        selectedLabelTextStyle: GoogleFonts.inter(
+          color: primary,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+        unselectedLabelTextStyle: GoogleFonts.inter(
+          color: lightTextSecondary,
+          fontSize: 12,
+        ),
+        indicatorColor: primary.withValues(alpha: 0.15),
+        useIndicator: true,
+      ),
+      drawerTheme: const DrawerThemeData(
+        backgroundColor: lightBg1,
+        elevation: 0,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: lightBg1,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: lightBorder),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: lightBg2,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: lightBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: lightBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: error),
+        ),
+        hintStyle: GoogleFonts.inter(color: lightTextMuted),
+        labelStyle: GoogleFonts.inter(color: lightTextSecondary),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          textStyle:
+              GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primary,
+          side: const BorderSide(color: lightBorder),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          textStyle:
+              GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primary,
+          textStyle:
+              GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: lightBg2,
+        selectedColor: primary.withValues(alpha: 0.2),
+        disabledColor: lightBg2,
+        side: const BorderSide(color: lightBorder),
+        labelStyle: GoogleFonts.inter(color: lightTextSecondary, fontSize: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: lightBorder,
+        thickness: 1,
+        space: 1,
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: lightBg3,
+        contentTextStyle: GoogleFonts.inter(color: lightTextPrimary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         behavior: SnackBarBehavior.floating,
       ),

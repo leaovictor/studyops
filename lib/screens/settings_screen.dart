@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/auth_controller.dart';
-import '../controllers/study_plan_controller.dart';
-import '../controllers/subject_controller.dart';
-import '../models/study_plan_model.dart';
 import '../core/theme/app_theme.dart';
-import '../core/constants/app_constants.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -15,24 +11,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  int _selectedDuration = 30;
-  double _dailyHours = 3.0;
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).valueOrNull;
-    final activePlan = ref.watch(activePlanProvider).valueOrNull;
-    final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
-    final planCtrl = ref.read(studyPlanControllerProvider.notifier);
-    final planState = ref.watch(studyPlanControllerProvider);
-
-    if (activePlan != null) {
-      _selectedDuration = activePlan.durationDays;
-      _dailyHours = activePlan.dailyHours;
-    }
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
@@ -40,12 +24,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Configurações',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.textPrimary,
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                 ),
               ),
               const SizedBox(height: 24),
@@ -58,7 +43,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
-                        backgroundColor: AppTheme.primary.withOpacity(0.2),
+                        backgroundColor:
+                            AppTheme.primary.withValues(alpha: 0.2),
                         child: Text(
                           user?.email?.substring(0, 1).toUpperCase() ?? 'U',
                           style: const TextStyle(
@@ -68,14 +54,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       title: Text(
                         user?.displayName ?? 'Usuário',
-                        style: const TextStyle(
-                            color: AppTheme.textPrimary,
+                        style: TextStyle(
+                            color:
+                                (Theme.of(context).textTheme.bodyLarge?.color ??
+                                    Colors.white),
                             fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
                         user?.email ?? '',
-                        style: const TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
+                            fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const Divider(),
@@ -92,183 +87,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Study plan section
-              const _SectionHeader(title: 'Plano de Estudo'),
-              if (activePlan != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: AppTheme.accent.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.check_circle_rounded,
-                            color: AppTheme.accent, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Plano ativo: ${activePlan.durationDays} dias • ${activePlan.dailyHours}h/dia',
-                          style: const TextStyle(
-                              color: AppTheme.accent, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              _SettingsCard(
-                child: StatefulBuilder(builder: (ctx, setS) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Duration
-                      const Text(
-                        'Duração do plano',
-                        style: TextStyle(
-                            color: AppTheme.textSecondary, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: AppConstants.planDurations.map((d) {
-                          final selected = _selectedDuration == d;
-                          return ChoiceChip(
-                            label: Text('$d dias'),
-                            selected: selected,
-                            onSelected: (_) =>
-                                setState(() => _selectedDuration = d),
-                            selectedColor: AppTheme.primary.withOpacity(0.2),
-                            labelStyle: TextStyle(
-                              color: selected
-                                  ? AppTheme.primary
-                                  : AppTheme.textSecondary,
-                              fontWeight: selected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      // Daily hours
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Horas de estudo por dia',
-                            style: TextStyle(
-                                color: AppTheme.textSecondary, fontSize: 13),
-                          ),
-                          Text(
-                            '${_dailyHours.toStringAsFixed(1)}h',
-                            style: const TextStyle(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _dailyHours,
-                        min: 1,
-                        max: 12,
-                        divisions: 22,
-                        activeColor: AppTheme.primary,
-                        onChanged: (v) => setState(() => _dailyHours = v),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: planState.isLoading || subjects.isEmpty
-                              ? null
-                              : () async {
-                                  if (user == null) return;
-                                  final plan = StudyPlan(
-                                    id: '',
-                                    userId: user.uid,
-                                    startDate: DateTime.now(),
-                                    durationDays: _selectedDuration,
-                                    dailyHours: _dailyHours,
-                                  );
-                                  await planCtrl.createPlanAndGenerate(plan);
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            '✅ Cronograma gerado com sucesso!'),
-                                      ),
-                                    );
-                                  }
-                                },
-                          icon: planState.isLoading
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white))
-                              : const Icon(Icons.auto_awesome_rounded,
-                                  size: 16),
-                          label: Text(
-                            subjects.isEmpty
-                                ? 'Cadastre matérias primeiro'
-                                : activePlan != null
-                                    ? 'Regenerar Cronograma'
-                                    : 'Criar Plano de Estudo',
-                          ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
-                      if (subjects.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text(
-                            'Vá em Matérias para cadastrar as matérias e tópicos antes de criar o plano.',
-                            style: TextStyle(
-                                color: AppTheme.textMuted, fontSize: 11),
-                          ),
-                        ),
-                    ],
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
-
-              // Pomodoro section
-              const _SectionHeader(title: 'Pomodoro'),
-              const _SettingsCard(
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          Icon(Icons.timer_rounded, color: AppTheme.primary),
-                      title: Text('Duração do foco',
-                          style: TextStyle(color: AppTheme.textPrimary)),
-                      trailing: Text('25 min',
-                          style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13)),
-                    ),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading:
-                          Icon(Icons.coffee_rounded, color: AppTheme.accent),
-                      title: Text('Pausa curta',
-                          style: TextStyle(color: AppTheme.textPrimary)),
-                      trailing: Text('5 min',
-                          style: TextStyle(
-                              color: AppTheme.textSecondary, fontSize: 13)),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
@@ -287,8 +105,8 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          color: AppTheme.textSecondary,
+        style: TextStyle(
+          color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
@@ -309,9 +127,10 @@ class _SettingsCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppTheme.bg2,
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: child,
     );

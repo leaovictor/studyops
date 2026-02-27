@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/error_note_model.dart';
 import '../services/error_notebook_service.dart';
 import 'auth_controller.dart';
+import 'goal_controller.dart';
 
 final errorNotebookServiceProvider =
     Provider<ErrorNotebookService>((ref) => ErrorNotebookService());
@@ -9,13 +10,19 @@ final errorNotebookServiceProvider =
 final errorNotesProvider = StreamProvider<List<ErrorNote>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
-  return ref.watch(errorNotebookServiceProvider).watchAllNotes(user.uid);
+  final goalId = ref.watch(activeGoalIdProvider);
+  return ref
+      .watch(errorNotebookServiceProvider)
+      .watchAllNotes(user.uid, goalId: goalId);
 });
 
 final dueTodayNotesProvider = FutureProvider<List<ErrorNote>>((ref) async {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return [];
-  return ref.watch(errorNotebookServiceProvider).getDueToday(user.uid);
+  final goalId = ref.watch(activeGoalIdProvider);
+  return ref
+      .watch(errorNotebookServiceProvider)
+      .getDueToday(user.uid, goalId: goalId);
 });
 
 class ErrorNotebookController extends AsyncNotifier<void> {

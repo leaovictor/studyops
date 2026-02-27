@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/study_plan_controller.dart';
 import 'controllers/subject_controller.dart';
+import 'controllers/goal_controller.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -14,8 +15,10 @@ import 'screens/performance_screen.dart';
 import 'screens/error_notebook_screen.dart';
 import 'screens/subjects_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/manual_screen.dart';
 import 'screens/flashcards_screen.dart';
 import 'screens/flashcard_study_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -30,42 +33,56 @@ class _ShellPage extends ConsumerWidget {
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Track auth + loading state of data providers to avoid race conditions
   final notifier = ValueNotifier<Object>(0);
 
-  ref.listen(authStateProvider, (_, __) => notifier.value = Object());
-  ref.listen(subjectsProvider, (_, __) => notifier.value = Object());
-  ref.listen(activePlanProvider, (_, __) => notifier.value = Object());
+  // Use listenSelf or similar to avoid race conditions if needed,
+  // but here we just want to refresh GoRouter when these providers change.
+  void refresh() => notifier.value = Object();
+
+  ref.listen(authControllerProvider, (_, __) => refresh());
+  ref.listen(subjectsProvider, (_, __) => refresh());
+  ref.listen(activePlanProvider, (_, __) => refresh());
+  ref.listen(goalsProvider, (_, __) => refresh());
 
   return GoRouter(
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: (context, state) {
-      final authAsync = ref.read(authStateProvider);
+      final authState = ref.read(authControllerProvider);
       final path = state.uri.path;
 
-      // While auth is still resolving, stay on splash
-      if (authAsync.isLoading) return path == '/' ? null : '/';
+      // While auth is still resolving, stay on splash or login
+      if (authState.isLoading) {
+        if (path == '/' || path == '/login') return null;
+        return '/';
+      }
 
-      final loggedIn = authAsync.valueOrNull != null;
+      final user = authState.valueOrNull;
+      final loggedIn = user != null;
       final isPublicRoute = path == '/login' || path == '/';
 
-      if (!loggedIn && !isPublicRoute) return '/login';
+      if (!loggedIn) {
+        if (path == '/login') return null;
+        return '/login';
+      }
 
-      if (loggedIn && isPublicRoute) {
+      // If logged in and on a public route, determine where to go next
+      if (isPublicRoute) {
         final planAsync = ref.read(activePlanProvider);
         final subjectsAsync = ref.read(subjectsProvider);
+        final goalsAsync = ref.read(goalsProvider);
 
-        // Wait for data providers to finish loading before deciding
-        if (planAsync.isLoading || subjectsAsync.isLoading) {
+        // Wait for essential data providers to finish loading before deciding
+        if (planAsync.isLoading ||
+            subjectsAsync.isLoading ||
+            goalsAsync.isLoading) {
           return path == '/' ? null : '/';
         }
 
-        final activePlan = planAsync.valueOrNull;
-        final subjects = subjectsAsync.valueOrNull ?? [];
+        final goals = goalsAsync.valueOrNull ?? [];
 
         // Only redirect to onboarding when data is confirmed empty
-        if (activePlan == null && subjects.isEmpty && path != '/onboarding') {
+        if (goals.isEmpty && path != '/onboarding') {
           return '/onboarding';
         }
         return '/dashboard';
@@ -114,6 +131,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               }),
           GoRoute(
               path: '/settings', builder: (_, __) => const SettingsScreen()),
+          GoRoute(path: '/manual', builder: (_, __) => const ManualScreen()),
+          GoRoute(path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
         ],
       ),
     ],

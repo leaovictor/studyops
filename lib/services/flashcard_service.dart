@@ -10,19 +10,26 @@ class FlashcardService {
 
   // ── Streams ──────────────────────────────────
 
-  Stream<List<Flashcard>> watchAll(String userId) {
-    return _col
-        .where('userId', isEqualTo: userId)
+  Stream<List<Flashcard>> watchAll(String userId, {String? goalId}) {
+    Query query = _col.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query
         .orderBy('due')
         .snapshots()
         .map((s) => s.docs.map((d) => Flashcard.fromDoc(d)).toList());
   }
 
-  Stream<List<Flashcard>> watchDueToday(String userId) {
+  Stream<List<Flashcard>> watchDueToday(String userId, {String? goalId}) {
     final endOfDay = DateTime.now();
-    return _col
+    Query query = _col
         .where('userId', isEqualTo: userId)
-        .where('due', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+        .where('due', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay));
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query
         .snapshots()
         .map((s) => s.docs.map((d) => Flashcard.fromDoc(d)).toList());
   }

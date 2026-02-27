@@ -84,9 +84,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             if (MediaQuery.of(context).size.width >= 800)
               Expanded(
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppTheme.bg0, AppTheme.bg1],
+                      colors: [
+                        Theme.of(context).scaffoldBackgroundColor,
+                        Theme.of(context).colorScheme.surface
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -114,17 +117,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         ),
                         const SizedBox(height: 32),
                         RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             children: [
                               TextSpan(
                                 text: 'Study',
                                 style: TextStyle(
-                                  color: AppTheme.textPrimary,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white),
                                   fontSize: 40,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              TextSpan(
+                              const TextSpan(
                                 text: 'Ops',
                                 style: TextStyle(
                                   color: AppTheme.primary,
@@ -136,10 +143,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Sistema inteligente de\nperformance para estudos.',
                           style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color:
+                                (Theme.of(context).textTheme.bodySmall?.color ??
+                                    Colors.grey),
                             fontSize: 18,
                             height: 1.5,
                           ),
@@ -173,7 +182,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(
+                      MediaQuery.of(context).size.width >= 600 ? 32 : 16),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
                     child: Form(
@@ -183,10 +193,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         children: [
                           Text(
                             _isSignUp ? 'Criar conta' : 'Entrar',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.textPrimary,
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.color ??
+                                  Colors.white),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -194,8 +208,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             _isSignUp
                                 ? 'Crie sua conta e comece a estudar com método'
                                 : 'Bem-vindo de volta ao StudyOps',
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
+                            style: TextStyle(
+                              color: (Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.color ??
+                                  Colors.grey),
                               fontSize: 14,
                             ),
                           ),
@@ -261,16 +279,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const SizedBox(height: 16),
 
                           // Divider
-                          const Row(
+                          Row(
                             children: [
-                              Expanded(child: Divider()),
+                              const Expanded(child: Divider()),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text('ou',
-                                    style:
-                                        TextStyle(color: AppTheme.textMuted)),
+                                    style: TextStyle(
+                                        color: (Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.color ??
+                                            Colors.grey))),
                               ),
-                              Expanded(child: Divider()),
+                              const Expanded(child: Divider()),
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -327,13 +350,18 @@ class _Feature extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.15),
+              color: AppTheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: AppTheme.primary, size: 16),
           ),
           const SizedBox(width: 12),
-          Text(text, style: const TextStyle(color: AppTheme.textSecondary)),
+          Expanded(
+            child: Text(text,
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey))),
+          ),
         ],
       ),
     );

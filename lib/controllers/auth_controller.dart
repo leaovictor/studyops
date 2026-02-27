@@ -5,14 +5,15 @@ import '../services/auth_service.dart';
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 final authStateProvider = StreamProvider<User?>((ref) {
-  return ref.watch(authServiceProvider).authStateChanges;
+  final service = ref.watch(authServiceProvider);
+  return service.authStateChanges;
 });
 
 class AuthController extends AsyncNotifier<User?> {
   AuthService get _service => ref.read(authServiceProvider);
 
   @override
-  Future<User?> build() async {
+  User? build() {
     return _service.currentUser;
   }
 

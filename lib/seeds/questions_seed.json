@@ -1,0 +1,62 @@
+[
+    {
+        "id": "q_math_01",
+        "text": "Qual a raiz quadrada de 144?",
+        "options": [
+            "10",
+            "12",
+            "14",
+            "16"
+        ],
+        "correctOptionIndex": 1,
+        "explanation": "Sabendo que 12 * 12 = 144. Outras propriedades podem ser derivadas.",
+        "subjectId": "matematica_id",
+        "goalId": "enem_2026",
+        "difficulty": 1,
+        "tags": [
+            "matemática",
+            "básica"
+        ],
+        "ownerId": "admin"
+    },
+    {
+        "id": "q_port_01",
+        "text": "Qual figura de linguagem é evidenciada na frase: 'Estou morrendo de rir'?",
+        "options": [
+            "Metáfora",
+            "Metonímia",
+            "Hipérbole",
+            "Eufemismo"
+        ],
+        "correctOptionIndex": 2,
+        "explanation": "A hipérbole consiste no exagero intencional para dar ênfase a uma ideia.",
+        "subjectId": "portugues_id",
+        "goalId": "enem_2026",
+        "difficulty": 2,
+        "tags": [
+            "português",
+            "figuras de linguagem"
+        ],
+        "ownerId": "admin"
+    },
+    {
+        "id": "q_info_01",
+        "text": "O agrupamento de transações em banco de dados que devem ser executadas como uma unidade única é garantido pela propriedade de:",
+        "options": [
+            "Atomicidade",
+            "Consistência",
+            "Isolamento",
+            "Durabilidade"
+        ],
+        "correctOptionIndex": 0,
+        "explanation": "A Atomicidade (do modelo ACID) garante que uma transação seja tratada como uma unidade indivisível: ou tudo ocorre, ou nada ocorre.",
+        "subjectId": "informatica_id",
+        "goalId": "concurso_ti_2026",
+        "difficulty": 3,
+        "tags": [
+            "banco de dados",
+            "acid"
+        ],
+        "ownerId": "admin"
+    }
+]

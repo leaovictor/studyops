@@ -3,57 +3,59 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Subjects: user owns docs
-    match /subjects/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Topics: authenticated users can read/write (no direct userId field)
-    match /topics/{docId} {
-      allow read, write: if request.auth != null;
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Study plans: user owns docs
-    match /study_plans/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    function isAdmin() {
+      return isAuthenticated() && request.auth.uid == 'M9CWoXUk1HaW1e5CaxlarH6LxE83';
     }
 
-    // Daily tasks: user owns docs
-    match /daily_tasks/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // Configs: Users need to read the API Key to use AI, but only Admin can write.
+    match /configs/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
-    // Study logs: user owns docs
-    match /study_logs/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // Shared Questions: Everyone can read and create, only Admin can moderate (update/delete).
+    match /shared_questions/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
-    // Error notes: user owns docs
-    match /error_notebook/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // AI Usage tracking: Users can only create their own logs, Admin can see everything.
+    match /usage/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
-    // Flashcards: user owns docs
-    match /flashcards/{docId} {
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    // Performance Logs: Strictly private.
+    match /question_logs/{docId} {
+      allow get, list: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // User Data (Goals, Subjects, Topics, etc.): Strictly private.
+    match /{collection}/{docId} {
+      allow read, write: if (
+        collection in ['goals', 'subjects', 'topics', 'study_plans', 'daily_tasks', 'study_logs', 'error_notebook', 'flashcards', 'pomodoro_settings']
+      ) && (
+        (resource != null && isOwner(resource.data.userId)) || 
+        (resource == null && isOwner(request.resource.data.userId)) ||
+        (collection == 'pomodoro_settings' && isOwner(docId))
+      );
+    }
+
+    // FSRS Review Logs
+    match /fsrs_review_logs/{docId} {
+       allow read, write: if isAuthenticated();
     }
   }
 }

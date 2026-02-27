@@ -3,7 +3,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  GoogleSignIn? _googleSignInInstance;
+
+  GoogleSignIn get _googleSignIn {
+    _googleSignInInstance ??= GoogleSignIn();
+    return _googleSignInInstance!;
+  }
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -30,10 +35,11 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await Future.wait([
-      _auth.signOut(),
-      _googleSignIn.signOut(),
-    ]);
+    final futures = <Future>[_auth.signOut()];
+    if (_googleSignInInstance != null) {
+      futures.add(_googleSignInInstance!.signOut());
+    }
+    await Future.wait(futures);
   }
 
   Future<void> resetPassword(String email) async {

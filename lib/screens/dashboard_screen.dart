@@ -1,31 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../controllers/dashboard_controller.dart';
+import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/flashcard_controller.dart';
+import '../controllers/goal_controller.dart';
+import '../controllers/performance_controller.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import 'package:el_tooltip/el_tooltip.dart';
+import '../widgets/relevance_tooltip.dart';
 import '../widgets/metric_card.dart';
+import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
+import '../widgets/goal_switcher.dart';
+import '../controllers/quote_controller.dart';
 
-class DashboardScreen extends ConsumerWidget {
+import 'package:pull_to_refresh/pull_to_refresh.dart';
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
+
+  void _onRefresh() async {
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(subjectsProvider);
+    ref.invalidate(dueTodayNotesProvider);
+    ref.invalidate(dueFlashcardsProvider);
+
+    try {
+      await ref.read(dashboardProvider.future);
+    } catch (_) {}
+
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final dashAsync = ref.watch(dashboardProvider);
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final dueNotes = ref.watch(dueTodayNotesProvider).valueOrNull ?? [];
     final dueFlashcards = ref.watch(dueFlashcardsProvider).valueOrNull ?? [];
+    final activeId = ref.watch(activeGoalIdProvider);
+    final activePlan = ref.watch(activePlanProvider).valueOrNull;
 
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 1100;
     final isTablet = width >= 700 && width < 1100;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: dashAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(
@@ -39,125 +79,221 @@ class DashboardScreen extends ConsumerWidget {
             for (final s in subjects) s.id: s.name,
           };
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isDesktop ? 40 : 20,
-              vertical: 32,
+          return SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _onRefresh,
+            header: const WaterDropMaterialHeader(
+              backgroundColor: AppTheme.primary,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _Header(userName: 'Victor'), // Mocked name
-                const SizedBox(height: 32),
-
-                // Top Metrics
-                _TopMetricsRow(
-                  data: data,
-                  isDesktop: isDesktop,
-                  isTablet: isTablet,
-                ),
-                const SizedBox(height: 32),
-
-                // Main Content (Charts)
-                if (isDesktop || isTablet)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 40 : (isTablet ? 30 : 16),
+                vertical: 32,
+              ),
+              child: AnimationLimiter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: AnimationConfiguration.toStaggeredList(
+                    duration: const Duration(milliseconds: 375),
+                    childAnimationBuilder: (widget) => SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: widget,
+                      ),
+                    ),
                     children: [
-                      Expanded(
-                        flex: 3,
-                        child: _ChartCard(
-                          title: 'Progresso Semanal (horas)',
-                          height: 300,
-                          child: data.weeklyTrend.isEmpty
-                              ? _emptyChart()
-                              : WeeklyBarChart(data: data.weeklyTrend),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 2,
-                        child: _ChartCard(
-                          title: 'Foco por Matéria',
-                          height: 300,
-                          child: subjects.isEmpty
-                              ? _emptyChart()
-                              : SubjectPieChart(
-                                  data: data.minutesBySubject,
-                                  subjectColors: subjectColorMap,
-                                  subjectNames: subjectNameMap,
-                                ),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _ChartCard(
-                        title: 'Progresso Semanal (horas)',
-                        height: 240,
-                        child: data.weeklyTrend.isEmpty
-                            ? _emptyChart()
-                            : WeeklyBarChart(data: data.weeklyTrend),
-                      ),
-                      const SizedBox(height: 24),
-                      _ChartCard(
-                        title: 'Foco por Matéria',
-                        height: 240,
-                        child: subjects.isEmpty
-                            ? _emptyChart()
-                            : SubjectPieChart(
-                                data: data.minutesBySubject,
-                                subjectColors: subjectColorMap,
-                                subjectNames: subjectNameMap,
-                              ),
-                      ),
-                    ],
-                  ),
+                      const _Header(userName: 'Victor'), // Mocked name
+                      const SizedBox(height: 32),
 
-                const SizedBox(height: 32),
+                      // Top Metrics
+                      _TopMetricsRow(
+                        data: data,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
+                      ),
+                      const SizedBox(height: 32),
 
-                // Bottom Section: Activities & Summary
-                if (isDesktop)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _SectionCard(
-                          title: 'Pendências de Hoje',
-                          child: _TodaySummary(
-                            dueNotesCount: dueNotes.length,
-                            dueFlashcardsCount: dueFlashcards.length,
+                      // Motivational Quote
+                      const _MotivationalQuoteCard(),
+                      const SizedBox(height: 32),
+
+                      // No Active Plan CTA
+                      if (activeId != null && activePlan == null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: _NoPlanCTA(
+                            onTap: () => context.go('/settings'),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: _SectionCard(
-                          title: 'Últimas Conquistas',
-                          child: _AchievementsList(streak: data.streakDays),
+
+                      // Suggested Study Subject
+                      if (activeId != null &&
+                          activePlan != null &&
+                          data.suggestedSubjectId != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 32),
+                          child: _SuggestedSubjectCTA(
+                            subject: subjects.firstWhere(
+                              (s) => s.id == data.suggestedSubjectId,
+                              orElse: () => subjects.isNotEmpty
+                                  ? subjects.first
+                                  : const Subject(
+                                      id: '',
+                                      userId: '',
+                                      name: 'Desconhecida',
+                                      color: '#7C6FFF',
+                                      priority: 3,
+                                      weight: 5,
+                                      difficulty: 3),
+                            ),
+                            suggestedMinutes: data.suggestedMinutes,
+                            onTap: () => context.go('/subjects'),
+                          ),
                         ),
-                      ),
-                    ],
-                  )
-                else
-                  Column(
-                    children: [
-                      _SectionCard(
-                        title: 'Pendências de Hoje',
-                        child: _TodaySummary(
-                          dueNotesCount: dueNotes.length,
-                          dueFlashcardsCount: dueFlashcards.length,
+
+                      // Main Content (Charts)
+                      if (isDesktop || isTablet)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: _ChartCard(
+                                title: 'Progresso Semanal (horas)',
+                                height: 300,
+                                child: data.weeklyTrend.isEmpty
+                                    ? _emptyChart()
+                                    : WeeklyBarChart(data: data.weeklyTrend),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              flex: 2,
+                              child: _ChartCard(
+                                title: 'Foco por Matéria',
+                                height: 300,
+                                child: subjects.isEmpty
+                                    ? _emptyChart()
+                                    : SubjectPieChart(
+                                        data: data.minutesBySubject,
+                                        subjectColors: subjectColorMap,
+                                        subjectNames: subjectNameMap,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          children: [
+                            _ChartCard(
+                              title: 'Progresso Semanal (horas)',
+                              height: 240,
+                              child: data.weeklyTrend.isEmpty
+                                  ? _emptyChart()
+                                  : WeeklyBarChart(data: data.weeklyTrend),
+                            ),
+                            const SizedBox(height: 24),
+                            _ChartCard(
+                              title: 'Foco por Matéria',
+                              height: 240,
+                              child: subjects.isEmpty
+                                  ? _emptyChart()
+                                  : SubjectPieChart(
+                                      data: data.minutesBySubject,
+                                      subjectColors: subjectColorMap,
+                                      subjectNames: subjectNameMap,
+                                    ),
+                            ),
+                          ],
                         ),
-                      ),
+
                       const SizedBox(height: 24),
+
+                      // Planned vs Read Row
+                      if (isDesktop || isTablet)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: _ChartCard(
+                                title: 'Planejado vs Lido Hoje',
+                                height: 280,
+                                child: PlannedVsReadChart(
+                                  data: data.plannedVsRead,
+                                  subjectNames: subjectNameMap,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        _ChartCard(
+                          title: 'Planejado vs Lido Hoje',
+                          height: 240,
+                          child: PlannedVsReadChart(
+                            data: data.plannedVsRead,
+                            subjectNames: subjectNameMap,
+                          ),
+                        ),
+
+                      // Syllabus Progress Section
                       _SectionCard(
-                        title: 'Últimas Conquistas',
-                        child: _AchievementsList(streak: data.streakDays),
+                        title: 'Cobertura do Edital',
+                        child: _SyllabusProgressRow(data: data),
                       ),
+                      const SizedBox(height: 32),
+
+                      // General Performance Card
+                      const _GeneralPerformanceCard(),
+                      const SizedBox(height: 32),
+
+                      // Bottom Section: Activities & Summary
+                      if (isDesktop)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _SectionCard(
+                                title: 'Pendências de Hoje',
+                                child: _TodaySummary(
+                                  dueNotesCount: dueNotes.length,
+                                  dueFlashcardsCount: dueFlashcards.length,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              child: _SectionCard(
+                                title: 'Últimas Conquistas',
+                                child:
+                                    _AchievementsList(streak: data.streakDays),
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        Column(
+                          children: [
+                            _SectionCard(
+                              title: 'Pendências de Hoje',
+                              child: _TodaySummary(
+                                dueNotesCount: dueNotes.length,
+                                dueFlashcardsCount: dueFlashcards.length,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            _SectionCard(
+                              title: 'Últimas Conquistas',
+                              child: _AchievementsList(streak: data.streakDays),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
-              ],
+                ),
+              ),
             ),
           );
         },
@@ -165,13 +301,364 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _emptyChart() => const Center(
+  Widget _emptyChart() => Center(
         child: Text(
           'Sem dados ainda.\nEstude e registre suas sessões!',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+          style: TextStyle(
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              fontSize: 13),
         ),
       );
+}
+
+class _MotivationalQuoteCard extends ConsumerWidget {
+  const _MotivationalQuoteCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final quoteAsync = ref.watch(quoteProvider);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: quoteAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+          ),
+        ),
+        error: (_, __) => const SizedBox(),
+        data: (quote) => Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.format_quote_rounded,
+                  color: AppTheme.accent, size: 28),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '"${quote.text}"',
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      height: 1.4,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '- ${quote.author}',
+                    style: TextStyle(
+                      color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: () => ref.read(quoteProvider.notifier).fetchQuote(),
+              icon: const Icon(Icons.refresh_rounded),
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              tooltip: 'Nova frase',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoPlanCTA extends StatelessWidget {
+  final VoidCallback onTap;
+  const _NoPlanCTA({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 8.0),
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.calendar_month_rounded,
+                  color: AppTheme.accent, size: 24),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Plano de Estudo não configurado',
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  'Gere seu cronograma para começar a estudar hoje!',
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            FilledButton(
+              onPressed: onTap,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.accent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Configurar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestedSubjectCTA extends StatefulWidget {
+  final Subject subject;
+  final int suggestedMinutes;
+  final VoidCallback onTap;
+
+  const _SuggestedSubjectCTA({
+    required this.subject,
+    required this.suggestedMinutes,
+    required this.onTap,
+  });
+
+  @override
+  State<_SuggestedSubjectCTA> createState() => _SuggestedSubjectCTAState();
+}
+
+class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  double? _lastScore;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _pulseAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.05), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.05, end: 1.0), weight: 50),
+    ]).animate(
+        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+
+    _lastScore = _calculateScore(widget.subject);
+  }
+
+  double _calculateScore(Subject s) =>
+      s.priority * s.weight * s.difficulty.toDouble();
+
+  @override
+  void didUpdateWidget(_SuggestedSubjectCTA oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newScore = _calculateScore(widget.subject);
+    if (_lastScore != null && newScore != _lastScore) {
+      _pulseController.forward(from: 0);
+    }
+    _lastScore = newScore;
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = widget.subject;
+    final suggestedMinutes = widget.suggestedMinutes;
+    final onTap = widget.onTap;
+    final color =
+        Color(int.parse('FF${subject.color.replaceAll('#', '')}', radix: 16));
+
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return ScaleTransition(
+          scale: _pulseAnimation,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.15),
+                    color.withValues(alpha: 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        color.withValues(alpha: 0.2 * _pulseController.value),
+                    blurRadius: 15 * _pulseController.value,
+                    spreadRadius: 2 * _pulseController.value,
+                  )
+                ],
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.psychology_alt_rounded, color: color, size: 36),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'ALOCAÇÃO INTELIGENTE',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    ElTooltip(
+                      position: ElTooltipPosition.topCenter,
+                      padding: EdgeInsets.zero,
+                      color: Colors.transparent,
+                      content: RelevanceTooltip(
+                        subject: subject,
+                      ),
+                      child: Icon(Icons.info_outline_rounded,
+                          color: color, size: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Sua prioridade agora é  ',
+                        style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                          fontSize: 16,
+                        ),
+                      ),
+                      TextSpan(
+                        text: subject.name,
+                        style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.bodyLarge?.color ??
+                                  Colors.white),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Meta sugerida: ${AppDateUtils.formatMinutes(suggestedMinutes)} de foco contínuo.',
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.labelSmall?.color ??
+                        Colors.grey),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Icon(Icons.arrow_forward_rounded,
+              color:
+                  (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey)
+                      .withValues(alpha: 0.5)),
+        ],
+      ),
+    );
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -180,31 +667,44 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 16,
+      runSpacing: 16,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Olá, $userName 👋',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textPrimary,
-                  letterSpacing: -0.5,
-                ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Olá, $userName 👋',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
+                letterSpacing: -0.5,
               ),
-              const SizedBox(height: 4),
-              Text(
-                AppDateUtils.weekdayLabel(DateTime.now()),
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 15,
-                ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              AppDateUtils.weekdayLabel(DateTime.now()),
+              style: TextStyle(
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+                fontSize: 15,
               ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            const SizedBox(
+              width: 250,
+              child: GoalSwitcher(),
+            ),
+          ],
         ),
         FilledButton.icon(
           onPressed: () => context.go('/checklist'),
@@ -222,6 +722,216 @@ class _Header extends StatelessWidget {
   }
 }
 
+class _GeneralPerformanceCard extends ConsumerWidget {
+  const _GeneralPerformanceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(performanceStatsProvider);
+
+    return InkWell(
+      onTap: () => context.go('/performance'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primary.withValues(alpha: 0.1),
+              AppTheme.accent.withValues(alpha: 0.1),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Aproveitamento Geral',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${stats.totalQuestions} questões',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${stats.totalCorrect} acertos',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.accent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            const Icon(Icons.chevron_right_rounded, color: AppTheme.primary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SyllabusProgressRow extends StatelessWidget {
+  final DashboardData data;
+  const _SyllabusProgressRow({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final isSmall = constraints.maxWidth < 600;
+      return Column(
+        children: [
+          Row(
+            children: [
+              _ProgressCol(
+                label: 'Teoria',
+                completed: data.completedTheory,
+                total: data.totalTheory,
+                color: AppTheme.primary,
+              ),
+              const SizedBox(width: 16),
+              _ProgressCol(
+                label: 'Revisão',
+                completed: data.completedReview,
+                total: data.totalReview,
+                color: AppTheme.secondary,
+              ),
+              const SizedBox(width: 16),
+              _ProgressCol(
+                label: 'Exercícios',
+                completed: data.completedExercises,
+                total: data.totalExercises,
+                color: AppTheme.accent,
+              ),
+            ],
+          ),
+          if (data.totalTheory > 0) ...[
+            const SizedBox(height: 24),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: (data.completedTheory +
+                        data.completedReview +
+                        data.completedExercises) /
+                    (data.totalTheory * 3),
+                minHeight: 12,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${(((data.completedTheory + data.completedReview + data.completedExercises) / (data.totalTheory * 3)) * 100).toInt()}% do edital concluído',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: (Theme.of(context).textTheme.bodySmall?.color ??
+                    Colors.grey),
+              ),
+            ),
+          ],
+        ],
+      );
+    });
+  }
+}
+
+class _ProgressCol extends StatelessWidget {
+  final String label;
+  final int completed;
+  final int total;
+  final Color color;
+
+  const _ProgressCol({
+    required this.label,
+    required this.completed,
+    required this.total,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = total > 0 ? completed / total : 0.0;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$completed/$total',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Stack(
+            children: [
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: pct.clamp(0.0, 1.0),
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TopMetricsRow extends StatelessWidget {
   final DashboardData data;
   final bool isDesktop;
@@ -235,7 +945,7 @@ class _TopMetricsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
+    final List<Widget> cards = [
       MetricCard(
         icon: Icons.today_rounded,
         label: 'Hoje',
@@ -309,9 +1019,9 @@ class _ChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -328,13 +1038,16 @@ class _ChartCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                 ),
               ),
-              const Icon(Icons.more_horiz_rounded, color: AppTheme.textMuted),
+              Icon(Icons.more_horiz_rounded,
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey)),
             ],
           ),
           const SizedBox(height: 24),
@@ -355,17 +1068,18 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.bg1,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
+            style: TextStyle(
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -452,8 +1166,9 @@ class _SummaryTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -536,16 +1251,18 @@ class _AchievementRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                      Colors.white),
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
               ),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
                   fontSize: 12,
                 ),
               ),

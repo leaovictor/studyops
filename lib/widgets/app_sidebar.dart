@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/theme_provider.dart';
+import 'goal_switcher.dart';
+import 'pomodoro_global_listener.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../controllers/admin_controller.dart';
 
-class AppSidebar extends StatelessWidget {
+class AppSidebar extends ConsumerWidget {
   final Widget child;
 
   const AppSidebar({super.key, required this.child});
@@ -23,47 +28,58 @@ class AppSidebar extends StatelessWidget {
     _Dest(icon: Icons.book_rounded, label: 'Caderno', path: '/errors'),
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
     _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
+    _Dest(
+        icon: Icons.help_outline_rounded,
+        label: 'Guia do App',
+        path: '/manual'),
     _Dest(icon: Icons.settings_rounded, label: 'Config', path: '/settings'),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.of(context).size.width;
     final isDesktop = width >= 900;
     final isTablet = width >= 600 && width < 900;
+    final isAdmin = ref.watch(adminControllerProvider.notifier).isAdmin;
 
     if (isDesktop) {
-      return Scaffold(
-        body: Row(
-          children: [
-            _ExpandedSidebar(destinations: _destinations),
-            Expanded(child: child),
-          ],
+      return PomodoroGlobalListener(
+        child: Scaffold(
+          body: Row(
+            children: [
+              _ExpandedSidebar(destinations: _destinations, isAdmin: isAdmin),
+              Expanded(child: child),
+            ],
+          ),
         ),
       );
     }
 
     if (isTablet) {
-      return Scaffold(
-        body: Row(
-          children: [
-            _CompactRail(destinations: _destinations),
-            const VerticalDivider(width: 1),
-            Expanded(child: child),
-          ],
+      return PomodoroGlobalListener(
+        child: Scaffold(
+          body: Row(
+            children: [
+              _CompactRail(destinations: _destinations, isAdmin: isAdmin),
+              const VerticalDivider(width: 1),
+              Expanded(child: child),
+            ],
+          ),
         ),
       );
     }
 
     // Mobile: drawer + app bar
-    return Scaffold(
-      appBar: AppBar(
-        title: const _Logo(),
-        // Removed explicit IconButton from actions since 'drawer' automatically
-        // adds a hamburger menu as the leading widget.
+    return PomodoroGlobalListener(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const _Logo(),
+          // Removed explicit IconButton from actions since 'drawer' automatically
+          // adds a hamburger menu as the leading widget.
+        ),
+        drawer: _MobileDrawer(destinations: _destinations, isAdmin: isAdmin),
+        body: child,
       ),
-      drawer: _MobileDrawer(destinations: _destinations),
-      body: child,
     );
   }
 }
@@ -73,7 +89,8 @@ class AppSidebar extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _ExpandedSidebar extends StatelessWidget {
   final List<_Dest> destinations;
-  const _ExpandedSidebar({required this.destinations});
+  final bool isAdmin;
+  const _ExpandedSidebar({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +98,7 @@ class _ExpandedSidebar extends StatelessWidget {
 
     return Container(
       width: 240,
-      color: AppTheme.bg1,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -93,21 +110,45 @@ class _ExpandedSidebar extends StatelessWidget {
               child: _Logo(),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.border),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
           const SizedBox(height: 12),
           // Nav items
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: destinations.map((d) {
-                final selected = location.startsWith(d.path);
-                return _SidebarItem(
-                  dest: d,
-                  selected: selected,
-                  onTap: () => context.go(d.path),
-                );
-              }).toList(),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: GoalSwitcher(),
+                ),
+                const SizedBox(height: 8),
+                ...destinations.map((d) {
+                  final selected = location.startsWith(d.path);
+                  return _SidebarItem(
+                    dest: d,
+                    selected: selected,
+                    onTap: () => context.go(d.path),
+                  );
+                }),
+                if (isAdmin) ...[
+                  const Divider(height: 24),
+                  _SidebarItem(
+                    dest: const _Dest(
+                      icon: Icons.admin_panel_settings_rounded,
+                      label: 'Painel Admin',
+                      path: '/admin',
+                    ),
+                    selected: location.startsWith('/admin'),
+                    onTap: () => context.go('/admin'),
+                  ),
+                ],
+              ],
             ),
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _ThemeToggle(),
           ),
           const SizedBox(height: 16),
         ],
@@ -157,15 +198,25 @@ class _SidebarItem extends StatelessWidget {
             Icon(
               dest.icon,
               size: 20,
-              color: selected ? AppTheme.primary : AppTheme.textSecondary,
+              color: selected
+                  ? AppTheme.primary
+                  : (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
             ),
             const SizedBox(width: 12),
-            Text(
-              dest.label,
-              style: TextStyle(
-                color: selected ? AppTheme.primary : AppTheme.textSecondary,
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            Expanded(
+              child: Text(
+                dest.label,
+                style: TextStyle(
+                  color: selected
+                      ? AppTheme.primary
+                      : (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey),
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -180,7 +231,8 @@ class _SidebarItem extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _CompactRail extends StatelessWidget {
   final List<_Dest> destinations;
-  const _CompactRail({required this.destinations});
+  final bool isAdmin;
+  const _CompactRail({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +240,7 @@ class _CompactRail extends StatelessWidget {
 
     return Container(
       width: 72,
-      color: AppTheme.bg1,
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           const SafeArea(
@@ -199,41 +251,78 @@ class _CompactRail extends StatelessWidget {
                   Icon(Icons.school_rounded, color: AppTheme.primary, size: 28),
             ),
           ),
-          const Divider(height: 1, color: AppTheme.border),
+          Divider(height: 1, color: Theme.of(context).dividerColor),
+          const SizedBox(height: 8),
+          const GoalSwitcher(compact: true),
           const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              children: destinations.map((d) {
-                final selected = location.startsWith(d.path);
-                return Tooltip(
-                  message: d.label,
-                  preferBelow: false,
-                  child: GestureDetector(
-                    onTap: () => context.go(d.path),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppTheme.primary.withValues(alpha: 0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
+              children: [
+                ...destinations.map((d) {
+                  final selected = location.startsWith(d.path);
+                  return Tooltip(
+                    message: d.label,
+                    preferBelow: false,
+                    child: GestureDetector(
+                      onTap: () => context.go(d.path),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppTheme.primary.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          d.icon,
+                          size: 22,
+                          color: selected
+                              ? AppTheme.primary
+                              : (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                        ),
                       ),
-                      child: Icon(
-                        d.icon,
-                        size: 22,
-                        color: selected
-                            ? AppTheme.primary
-                            : AppTheme.textSecondary,
+                    ),
+                  );
+                }),
+                if (isAdmin)
+                  Tooltip(
+                    message: 'Painel Admin',
+                    preferBelow: false,
+                    child: GestureDetector(
+                      onTap: () => context.go('/admin'),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: location.startsWith('/admin')
+                              ? AppTheme.primary.withValues(alpha: 0.15)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.admin_panel_settings_rounded,
+                          size: 22,
+                          color: location.startsWith('/admin')
+                              ? AppTheme.primary
+                              : (Theme.of(context).textTheme.bodySmall?.color ??
+                                  Colors.grey),
+                        ),
                       ),
                     ),
                   ),
-                );
-              }).toList(),
+              ],
             ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 24),
+            child: _ThemeToggle(compact: true),
           ),
         ],
       ),
@@ -246,7 +335,8 @@ class _CompactRail extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _MobileDrawer extends StatelessWidget {
   final List<_Dest> destinations;
-  const _MobileDrawer({required this.destinations});
+  final bool isAdmin;
+  const _MobileDrawer({required this.destinations, required this.isAdmin});
 
   @override
   Widget build(BuildContext context) {
@@ -263,19 +353,47 @@ class _MobileDrawer extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: destinations.map((d) {
-                  final selected = location.startsWith(d.path);
-                  return _SidebarItem(
-                    dest: d,
-                    selected: selected,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.go(d.path);
-                    },
-                  );
-                }).toList(),
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: GoalSwitcher(),
+                  ),
+                  const Divider(),
+                  ...destinations.map((d) {
+                    final selected = location.startsWith(d.path);
+                    return _SidebarItem(
+                      dest: d,
+                      selected: selected,
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go(d.path);
+                      },
+                    );
+                  }),
+                  if (isAdmin) ...[
+                    const Divider(),
+                    _SidebarItem(
+                      dest: const _Dest(
+                        icon: Icons.admin_panel_settings_rounded,
+                        label: 'Painel Admin',
+                        path: '/admin',
+                      ),
+                      selected: location.startsWith('/admin'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go('/admin');
+                      },
+                    ),
+                  ],
+                ],
               ),
             ),
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _ThemeToggle(),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -308,10 +426,11 @@ class _Logo extends StatelessWidget {
           child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
         ),
         const SizedBox(width: 10),
-        const Text(
+        Text(
           'StudyOps',
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color:
+                (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
             fontSize: 17,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.3,
@@ -330,4 +449,78 @@ class _Dest {
   final String label;
   final String path;
   const _Dest({required this.icon, required this.label, required this.path});
+}
+
+// ---------------------------------------------------------------------------
+// Theme Toggle
+// ---------------------------------------------------------------------------
+class _ThemeToggle extends ConsumerWidget {
+  final bool compact;
+
+  const _ThemeToggle({this.compact = false});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDark = themeMode == ThemeMode.dark ||
+        (themeMode == ThemeMode.system &&
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+
+    if (compact) {
+      return IconButton(
+        icon: Icon(
+          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+          color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+          size: 22,
+        ),
+        onPressed: () {
+          ref.read(themeProvider.notifier).setThemeMode(
+                isDark ? ThemeMode.light : ThemeMode.dark,
+              );
+        },
+        tooltip: isDark ? 'Modo Claro' : 'Modo Escuro',
+      );
+    }
+
+    return InkWell(
+      onTap: () {
+        ref.read(themeProvider.notifier).setThemeMode(
+              isDark ? ThemeMode.light : ThemeMode.dark,
+            );
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              size: 20,
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                isDark ? 'Modo Claro' : 'Modo Escuro',
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.grey),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

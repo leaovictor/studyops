@@ -2,8 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/study_plan_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
+import '../models/daily_task_model.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/schedule_generator.dart';
+import 'ai_service.dart';
 
 class StudyPlanService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -11,9 +13,12 @@ class StudyPlanService {
   CollectionReference get _plans => _db.collection(AppConstants.colStudyPlans);
   CollectionReference get _tasks => _db.collection(AppConstants.colDailyTasks);
 
-  Stream<StudyPlan?> watchActivePlan(String userId) {
-    return _plans
-        .where('userId', isEqualTo: userId)
+  Stream<StudyPlan?> watchActivePlan(String userId, {String? goalId}) {
+    Query query = _plans.where('userId', isEqualTo: userId);
+    if (goalId != null) {
+      query = query.where('goalId', isEqualTo: goalId);
+    }
+    return query
         .orderBy('startDate', descending: true)
         .limit(1)
         .snapshots()
@@ -39,10 +44,14 @@ class StudyPlanService {
     required StudyPlan plan,
     required List<Subject> subjects,
     required List<Topic> topics,
+    AIService? aiService,
+    String? routineContext,
   }) async {
-    // Delete existing tasks for this user (regenerate from scratch)
-    final existingSnap =
-        await _tasks.where('userId', isEqualTo: plan.userId).get();
+    // Delete existing tasks for this user (regenerate from scratch) for the current goal
+    final existingSnap = await _tasks
+        .where('userId', isEqualTo: plan.userId)
+        .where('goalId', isEqualTo: plan.goalId)
+        .get();
 
     const batchLimit = 400;
     var batch = _db.batch();
@@ -58,11 +67,27 @@ class StudyPlanService {
       }
     }
 
-    final newTasks = ScheduleGenerator.generate(
-      plan: plan,
-      subjects: subjects,
-      topics: topics,
-    );
+    List<DailyTask> newTasks;
+
+    if (aiService != null &&
+        routineContext != null &&
+        routineContext.trim().isNotEmpty) {
+      newTasks = await aiService.generateSmartSchedule(
+        userId: plan.userId,
+        goalId: plan.goalId,
+        subjects: subjects,
+        topics: topics,
+        startDate: plan.startDate,
+        durationDays: plan.durationDays,
+        routineContext: routineContext,
+      );
+    } else {
+      newTasks = ScheduleGenerator.generate(
+        plan: plan,
+        subjects: subjects,
+        topics: topics,
+      );
+    }
 
     for (final task in newTasks) {
       final ref = _tasks.doc(task.id);
