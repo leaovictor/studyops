@@ -558,7 +558,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _FlashcardListTile extends StatelessWidget {
+class _FlashcardListTile extends StatefulWidget {
   final Flashcard card;
   final Subject subject;
   final VoidCallback onDelete;
@@ -570,13 +570,20 @@ class _FlashcardListTile extends StatelessWidget {
   });
 
   @override
+  State<_FlashcardListTile> createState() => _FlashcardListTileState();
+}
+
+class _FlashcardListTileState extends State<_FlashcardListTile> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final color =
-        Color(int.parse('FF${subject.color.replaceAll('#', '')}', radix: 16));
-    final isDue = card.isDueToday;
+    final color = Color(
+        int.parse('FF${widget.subject.color.replaceAll('#', '')}', radix: 16));
+    final isDue = widget.card.isDueToday;
 
     return Dismissible(
-      key: ValueKey(card.id),
+      key: ValueKey(widget.card.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -588,72 +595,78 @@ class _FlashcardListTile extends StatelessWidget {
         child:
             const Icon(Icons.delete_outline_rounded, color: Color(0xFFEF4444)),
       ),
-      onDismissed: (_) => onDelete(),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: (Theme.of(context).cardTheme.color ??
-              Theme.of(context).colorScheme.surface),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDue
-                  ? AppTheme.primary.withValues(alpha: 0.3)
-                  : Theme.of(context).dividerColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 6,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(4),
+      onDismissed: (_) => widget.onDelete(),
+      child: GestureDetector(
+        onTap: () => setState(() => _isExpanded = !_isExpanded),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: (Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: isDue
+                    ? AppTheme.primary.withValues(alpha: 0.3)
+                    : Theme.of(context).dividerColor),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    card.front,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.card.front,
+                      maxLines: _isExpanded ? null : 1,
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Próxima revisão: ${AppDateUtils.formatRelativeDate(widget.card.due)}',
+                      style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              if (isDue)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Revisar',
                     style: TextStyle(
-                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                          Colors.white),
+                      color: AppTheme.primary,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Próxima revisão: ${AppDateUtils.formatRelativeDate(card.due)}',
-                    style: TextStyle(
-                        color: (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey),
-                        fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-            if (isDue)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'Revisar',
-                  style: TextStyle(
-                    color: AppTheme.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

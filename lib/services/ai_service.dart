@@ -20,6 +20,7 @@ class AIService {
   final String apiKey;
   final UsageService _usageService;
   static const String _model = "llama-3.3-70b-versatile";
+  static const String _visionModel = "llama-3.2-11b-vision-preview";
 
   AIService({required this.apiKey, required UsageService usageService})
       : _usageService = usageService {
@@ -438,7 +439,8 @@ Retorne um JSON seguindo EXATAMENTE esta estrutura:
         "E": "Texto da alternativa E"
       },
       "correctAnswer": "A",
-      "subjectName": "Nome provável da matéria (ex: Direito Penal)"
+      "subjectName": "Nome provável da matéria",
+      "topicName": "Nome provável do tópico"
     }
   ]
 }
@@ -453,15 +455,79 @@ Regras:
     for (var bytes in filesBytes) {
       final base64Image = base64Encode(bytes);
       content.add(OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
-        'data:$mimeType;base64,$base64Image',
+        'data:image/jpeg;base64,$base64Image',
       ));
     }
+
+    final response = await OpenAI.instance.chat.create(
+      model: _visionModel,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: content,
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    ); // Removed responseFormat to avoid 400 with vision in some Groq models
+
+    final String? responseText =
+        response.choices.first.message.content?.first.text;
+    if (responseText == null)
+      throw Exception('FALHA_GERACAO_IA: Resposta vazia.');
+
+    // Manual extraction of JSON if model returns text around it
+    final jsonStart = responseText.indexOf('{');
+    final jsonEnd = responseText.lastIndexOf('}');
+    if (jsonStart == -1 || jsonEnd == -1) {
+      throw Exception('FALHA_GERACAO_IA: Resposta não contém JSON válido.');
+    }
+    final cleanText = responseText.substring(jsonStart, jsonEnd + 1);
+
+    final jsonResponse = jsonDecode(cleanText) as Map<String, dynamic>;
+    return (jsonResponse['questions'] as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<List<Map<String, dynamic>>> generateQuestionsForBank({
+    required String subject,
+    required String topic,
+    int count = 5,
+  }) async {
+    final prompt = '''
+Você é um Especialista em Bancas de Concurso Público.
+Gere $count questões inéditas e de alta qualidade sobre a matéria "$subject" e o tópico "$topic".
+As questões devem ser de múltipla escolha com 5 alternativas (A, B, C, D, E).
+
+Retorne um JSON seguindo EXATAMENTE esta estrutura:
+{
+  "questions": [
+    {
+      "statement": "Enunciado completo da questão",
+      "options": {
+        "A": "Texto da alternativa A",
+        "B": "Texto da alternativa B",
+        "C": "Texto da alternativa C",
+        "D": "Texto da alternativa D",
+        "E": "Texto da alternativa E"
+      },
+      "correctAnswer": "A",
+      "subjectName": "$subject",
+      "topicName": "$topic"
+    }
+  ]
+}
+
+Regras:
+1. As questões devem ser desafiadoras e similares às de bancas reais (ex: FCC, FGV, Cebraspe).
+2. Não use questões óbvias.
+3. Retorne APENAS o JSON.
+''';
 
     final response = await OpenAI.instance.chat.create(
       model: _model,
       messages: [
         OpenAIChatCompletionChoiceMessageModel(
-          content: content,
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
           role: OpenAIChatMessageRole.user,
         ),
       ],
@@ -645,5 +711,54 @@ Retorne APENAS o JSON.
     }
 
     return jsonDecode(responseText) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, String>> generateFlashcardFromQuestion({
+    required String question,
+    required String answer,
+  }) async {
+    final prompt = '''
+Você é um Especialista em Aprendizado Acelerado.
+Com base nesta questão de concurso e seu gabarito, crie um flashcard conciso e eficaz (Frente e Verso).
+A frente deve ser uma pergunta ou lacuna desafiadora. O verso deve ser a resposta direta.
+
+QUESTÃO: $question
+GABARITO: $answer
+
+Retorne um JSON seguindo EXATAMENTE esta estrutura:
+{
+  "front": "Texto da frente do flashcard",
+  "back": "Texto do verso do flashcard"
+}
+
+Regras:
+1. Seja muito conciso.
+2. Evite repetir todo o enunciado se não for necessário.
+3. Foque no conceito chave cobrado na questão.
+4. Retorne APENAS o JSON.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {"type": "json_object"},
+    );
+
+    final String? responseText =
+        response.choices.first.message.content?.first.text;
+    if (responseText == null) throw Exception('Resposta da IA vazia.');
+
+    final jsonResponse = jsonDecode(responseText) as Map<String, dynamic>;
+    return {
+      "front": jsonResponse["front"] as String,
+      "back": jsonResponse["back"] as String,
+    };
   }
 }

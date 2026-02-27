@@ -27,13 +27,16 @@ class QuestionBankService {
   }
 
   Stream<List<SharedQuestion>> watchSharedQuestions(
-      {String? subjectName, bool onlyApproved = true}) {
+      {String? subjectName, String? topicName, bool onlyApproved = true}) {
     Query query = _shared;
     if (onlyApproved) {
       query = query.where('isApproved', isEqualTo: true);
     }
     if (subjectName != null) {
       query = query.where('subjectName', isEqualTo: subjectName);
+    }
+    if (topicName != null) {
+      query = query.where('topicName', isEqualTo: topicName);
     }
 
     return query.snapshots().map((snap) => snap.docs

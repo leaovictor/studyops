@@ -153,6 +153,17 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                       style: TextButton.styleFrom(
                                           foregroundColor: AppTheme.primary),
                                     ),
+                                    TextButton.icon(
+                                      onPressed: () =>
+                                          _showGenerateAIDialog(context),
+                                      icon: const Icon(
+                                          Icons.auto_awesome_rounded,
+                                          size: 18),
+                                      label: const Text('Gerar com IA',
+                                          style: TextStyle(fontSize: 13)),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: AppTheme.accent),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -375,6 +386,187 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     showDialog(
         context: context, builder: (context) => const _UploadExamDialog());
   }
+
+  void _showGenerateAIDialog(BuildContext context) {
+    showDialog(
+        context: context,
+        builder: (context) => const _GenerateAIPortalDialog());
+  }
+}
+
+class _GenerateAIPortalDialog extends ConsumerStatefulWidget {
+  const _GenerateAIPortalDialog();
+
+  @override
+  ConsumerState<_GenerateAIPortalDialog> createState() =>
+      _GenerateAIPortalDialogState();
+}
+
+class _GenerateAIPortalDialogState
+    extends ConsumerState<_GenerateAIPortalDialog> {
+  String? _selectedSubjectId;
+  String? _selectedTopicId;
+  int _count = 5;
+  bool _isLoading = false;
+  String? _status;
+
+  Future<void> _generate() async {
+    if (_selectedSubjectId == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _status = "A IA está elaborando as questões...";
+    });
+
+    try {
+      final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+      final subject = subjects.firstWhere((s) => s.id == _selectedSubjectId);
+      final topics = ref.read(allTopicsProvider).valueOrNull ?? [];
+      final topicName = _selectedTopicId != null
+          ? topics.firstWhere((t) => t.id == _selectedTopicId).name
+          : "Geral";
+
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception("IA não configurada.");
+
+      final generated = await aiService.generateQuestionsForBank(
+        subject: subject.name,
+        topic: topicName,
+        count: _count,
+      );
+
+      setState(() => _status = "Alimentando o banco compartilhado...");
+
+      final List<SharedQuestion> toAdd = generated.map((qData) {
+        final statement = qData["statement"] as String;
+        final options = Map<String, String>.from(qData["options"]);
+        return SharedQuestion(
+          id: "",
+          statement: statement,
+          options: options,
+          correctAnswer: qData["correctAnswer"],
+          subjectName: qData["subjectName"],
+          topicName: qData["topicName"],
+          source: "Gerado por IA",
+          textHash: SharedQuestion.generateHash(statement, options),
+        );
+      }).toList();
+
+      final bankService = ref.read(questionBankServiceProvider);
+      final added = await bankService.addQuestions(toAdd);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _status = "Sucesso! $added novas questões geradas e adicionadas.";
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _status = "Erro: $e";
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+    final topics = _selectedSubjectId != null
+        ? ref
+                .watch(topicsForSubjectProvider(_selectedSubjectId!))
+                .valueOrNull ??
+            []
+        : [];
+
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: AppTheme.accent),
+          SizedBox(width: 12),
+          Text("Gerar com IA"),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "A IA vai buscar e elaborar questões reais ou similares para alimentar o banco global do StudyOps.",
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else if (_status != null)
+              Text(_status!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: AppTheme.accent))
+            else ...[
+              DropdownButtonFormField<String>(
+                value: _selectedSubjectId,
+                decoration: const InputDecoration(labelText: 'Matéria'),
+                items: subjects
+                    .map((s) => DropdownMenuItem<String>(
+                        value: s.id, child: Text(s.name)))
+                    .toList(),
+                onChanged: (val) => setState(() {
+                  _selectedSubjectId = val;
+                  _selectedTopicId = null;
+                }),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedTopicId,
+                decoration:
+                    const InputDecoration(labelText: 'Tópico (Opcional)'),
+                items: topics
+                    .map((t) => DropdownMenuItem<String>(
+                        value: t.id, child: Text(t.name)))
+                    .toList(),
+                onChanged: (val) => setState(() => _selectedTopicId = val),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text("Quantidade: "),
+                  const Spacer(),
+                  SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 3, label: Text("3")),
+                      ButtonSegment(value: 5, label: Text("5")),
+                      ButtonSegment(value: 10, label: Text("10")),
+                    ],
+                    selected: {_count},
+                    onSelectionChanged: (val) =>
+                        setState(() => _count = val.first),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _selectedSubjectId == null ? null : _generate,
+                icon: const Icon(Icons.rocket_launch_rounded),
+                label: const Text("Iniciar Geração"),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accent,
+                    minimumSize: const Size(double.infinity, 45)),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text("Fechar"),
+        ),
+      ],
+    );
+  }
 }
 
 class _AIAnalysisDialog extends ConsumerStatefulWidget {
@@ -498,10 +690,15 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
       final bankService = ref.read(questionBankServiceProvider);
       final file = result.files.first;
 
+      if (file.extension == 'pdf') {
+        throw Exception(
+            "Por enquanto, a extração automática suporta apenas imagens (PNG/JPG). Para PDFs, tente converter as páginas em imagens.");
+      }
+
       final extracted = await aiService.extractQuestionsFromFiles(
         user.uid,
         [file.bytes!],
-        file.extension == "pdf" ? "application/pdf" : "image/${file.extension}",
+        "image/${file.extension}",
       );
 
       setState(() => _status =
@@ -515,6 +712,7 @@ class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
           options: options,
           correctAnswer: qData["correctAnswer"],
           subjectName: qData["subjectName"],
+          topicName: qData["topicName"],
           source: file.name,
           textHash: SharedQuestion.generateHash(statement, options),
         );

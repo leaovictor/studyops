@@ -7,10 +7,40 @@ final questionBankServiceProvider =
 
 /// Stream of all shared questions.
 /// We set [onlyApproved] to false for the global quiz right now to see all uploaded questions.
+final selectedQuizSubjectProvider = StateProvider<String?>((ref) => null);
+final selectedQuizTopicProvider = StateProvider<String?>((ref) => null);
+
+/// Stream of all shared questions.
+/// We set [onlyApproved] to false for the global quiz right now to see all uploaded questions.
 final sharedQuestionsProvider = StreamProvider<List<SharedQuestion>>((ref) {
+  final subject = ref.watch(selectedQuizSubjectProvider);
+  final topic = ref.watch(selectedQuizTopicProvider);
+
+  return ref.watch(questionBankServiceProvider).watchSharedQuestions(
+        subjectName: subject,
+        topicName: topic,
+        onlyApproved: false,
+      ); // allow all for now
+});
+
+/// Unique topic names for the currently selected subject.
+final availableQuizTopicsProvider = StreamProvider<List<String>>((ref) {
+  final subject = ref.watch(selectedQuizSubjectProvider);
+  if (subject == null) return Stream.value([]);
+
   return ref
       .watch(questionBankServiceProvider)
-      .watchSharedQuestions(onlyApproved: false); // allow all for now
+      .watchSharedQuestions(subjectName: subject, onlyApproved: false)
+      .map((questions) {
+    final topics = questions
+        .map((q) => q.topicName)
+        .where((t) => t != null && t.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
+    topics.sort();
+    return topics;
+  });
 });
 
 class QuestionBankController extends AsyncNotifier<void> {

@@ -126,61 +126,25 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                       children: [
                         // Header with date picker
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'Checklist Diário',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      color: (Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color ??
-                                          Colors.white),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  PopupMenuButton<String>(
-                                    icon: Icon(Icons.more_vert_rounded,
-                                        size: 20,
-                                        color: (Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color ??
-                                            Colors.grey)),
-                                    onSelected: (value) {
-                                      if (value == 'config') {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) =>
-                                              StudyPlanWizardDialog(
-                                                  activePlan: ref
-                                                      .read(activePlanProvider)
-                                                      .valueOrNull),
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'config',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.auto_awesome_rounded,
-                                                size: 18,
-                                                color: AppTheme.primary),
-                                            SizedBox(width: 12),
-                                            Text('Gerenciar Plano (IA)'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              child: Text(
+                                'Checklist Diário',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             // Date picker
                             OutlinedButton.icon(
                               onPressed: () async {
@@ -204,6 +168,39 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                   size: 16),
                               label:
                                   Text(AppDateUtils.displayDate(selectedDate)),
+                            ),
+                            PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert_rounded,
+                                  size: 20,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color ??
+                                      Colors.grey)),
+                              onSelected: (value) {
+                                if (value == 'config') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => StudyPlanWizardDialog(
+                                        activePlan: ref
+                                            .read(activePlanProvider)
+                                            .valueOrNull),
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'config',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.auto_awesome_rounded,
+                                          size: 18, color: AppTheme.primary),
+                                      SizedBox(width: 12),
+                                      Text('Gerenciar Plano (IA)'),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -262,7 +259,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                         _AIMentorCard(
                           insight: _aiInsight,
                           isLoading: _isFetchingInsight,
-                          onRefresh: _fetchAIInsight,
+                          onRefresh: () => _fetchAIInsight(forceRefresh: true),
                         ),
 
                         const SizedBox(height: 24),
@@ -587,7 +584,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     );
   }
 
-  Future<void> _fetchAIInsight() async {
+  Future<void> _fetchAIInsight({bool forceRefresh = false}) async {
     final activeGoal = ref.read(activeGoalProvider);
     final tasks = ref.read(dailyTasksProvider).valueOrNull ?? [];
     final user = ref.read(authStateProvider).valueOrNull;
@@ -598,7 +595,8 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
     final taskIds = tasks.map((t) => t.id).join(',');
     final currentKey = "${activeGoal.id}_$taskIds";
-    if (currentKey == _lastInsightKey && _aiInsight != null) return;
+    if (!forceRefresh && currentKey == _lastInsightKey && _aiInsight != null)
+      return;
 
     setState(() {
       _isFetchingInsight = true;
@@ -644,7 +642,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   }
 }
 
-class _ChecklistCard extends StatelessWidget {
+class _ChecklistCard extends StatefulWidget {
   final String title;
   final bool isDone;
   final Subject? subject;
@@ -667,9 +665,16 @@ class _ChecklistCard extends StatelessWidget {
     this.isErrorNote = false,
   });
 
+  @override
+  State<_ChecklistCard> createState() => _ChecklistCardState();
+}
+
+class _ChecklistCardState extends State<_ChecklistCard> {
+  bool _isExpanded = false;
+
   Color _subjectColor() {
-    if (subject == null) return AppTheme.primary;
-    final hex = subject!.color.replaceAll('#', '');
+    if (widget.subject == null) return AppTheme.primary;
+    final hex = widget.subject!.color.replaceAll('#', '');
     return Color(int.parse('FF$hex', radix: 16));
   }
 
@@ -677,158 +682,174 @@ class _ChecklistCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _subjectColor();
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDone
-            ? Theme.of(context).colorScheme.surface
-            : (Theme.of(context).cardTheme.color ??
-                Theme.of(context).colorScheme.surface),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDone
-              ? Theme.of(context).dividerColor
-              : color.withValues(alpha: 0.3),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: widget.isDone
+              ? Theme.of(context).colorScheme.surface
+              : (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isDone
+                ? Theme.of(context).dividerColor
+                : color.withValues(alpha: 0.3),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Checkbox
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  value: isDone,
-                  onChanged: (_) => onToggleDone(plannedMinutes ?? 0),
-                  activeColor: AppTheme.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Subject name
-              Flexible(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Checkbox
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: widget.isDone,
+                    onChanged: (_) =>
+                        widget.onToggleDone(widget.plannedMinutes ?? 0),
+                    activeColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
                   ),
-                  child: Text(
-                    subject?.name ?? 'Matéria',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(width: 12),
+
+                // Subject name
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: isDone
-                        ? (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey)
-                        : (Theme.of(context).textTheme.bodyLarge?.color ??
-                            Colors.white),
-                    fontWeight: FontWeight.w500,
-                    decoration: isDone ? TextDecoration.lineThrough : null,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // Trailing actions group
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isErrorNote)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(4),
+                    child: Text(
+                      widget.subject?.name ?? 'Matéria',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
-                      child: const Text(
-                        'REVISÃO',
+                      maxLines: _isExpanded ? null : 1,
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  flex: 5,
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: widget.isDone
+                          ? (Theme.of(context).textTheme.labelSmall?.color ??
+                              Colors.grey)
+                          : (Theme.of(context).textTheme.bodyLarge?.color ??
+                              Colors.white),
+                      fontWeight: FontWeight.w500,
+                      decoration:
+                          widget.isDone ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: _isExpanded ? null : 1,
+                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Trailing actions group
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.isErrorNote)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'REVISÃO',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    else if (widget.plannedMinutes != null)
+                      Text(
+                        AppDateUtils.formatMinutes(widget.plannedMinutes!),
                         style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    )
-                  else if (plannedMinutes != null)
-                    Text(
-                      AppDateUtils.formatMinutes(plannedMinutes!),
-                      style: TextStyle(
-                        color: (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Pomodoro toggle
-                  if (!isDone && onTogglePomodoro != null)
-                    IconButton(
-                      icon: Icon(
-                        Icons.timer_rounded,
-                        color: showPomodoro
-                            ? AppTheme.primary
-                            : (Theme.of(context).textTheme.labelSmall?.color ??
-                                Colors.grey),
-                        size: 18,
+                    // Pomodoro toggle
+                    if (!widget.isDone && widget.onTogglePomodoro != null)
+                      IconButton(
+                        icon: Icon(
+                          Icons.timer_rounded,
+                          color: widget.showPomodoro
+                              ? AppTheme.primary
+                              : (Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.color ??
+                                  Colors.grey),
+                          size: 18,
+                        ),
+                        onPressed: widget.onTogglePomodoro,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      onPressed: onTogglePomodoro,
+
+                    const SizedBox(width: 12),
+
+                    // Delete
+                    IconButton(
+                      icon: Icon(Icons.delete_outline_rounded,
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          size: 18),
+                      onPressed: widget.onDelete,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-
-                  const SizedBox(width: 12),
-
-                  // Delete
-                  IconButton(
-                    icon: Icon(Icons.delete_outline_rounded,
-                        color: (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey),
-                        size: 18),
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          if (showPomodoro)
-            const Padding(
-              padding: EdgeInsets.only(top: 12, left: 40),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: PomodoroTimer(),
-              ),
+                  ],
+                ),
+              ],
             ),
-        ],
+            if (widget.showPomodoro)
+              const Padding(
+                padding: EdgeInsets.only(top: 12, left: 40),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: PomodoroTimer(),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

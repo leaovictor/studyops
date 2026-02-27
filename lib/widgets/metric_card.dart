@@ -27,12 +27,13 @@ class MetricCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16), // Reduced from 20
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           color: (Theme.of(context).cardTheme.color ??
               Theme.of(context).colorScheme.surface),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,30 +42,30 @@ class MetricCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6), // Reduced from 8
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(icon, color: color, size: 18), // Reduced from 20
+                  child: Icon(icon, color: color, size: 14),
                 ),
               ],
             ),
-            const SizedBox(height: 12), // Reduced from 16
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 24, // Reduced from 28
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: color,
                   letterSpacing: -0.5,
                 ),
               ),
             ),
-            const SizedBox(height: 2), // Reduced from 4
+            const SizedBox(height: 1),
             Text(
               label,
               maxLines: 1,
