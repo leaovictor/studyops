@@ -19,7 +19,7 @@ class AIService {
 
   AIService({required this.apiKey, required this.usageService}) {
     _model = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
@@ -27,7 +27,8 @@ class AIService {
     );
   }
 
-  Future<AISyllabusImportResult> parseSyllabus(String rawText, String userId, String? goalId) async {
+  Future<AISyllabusImportResult> parseSyllabus(
+      String rawText, String userId, String? goalId) async {
     await usageService.logAIUsage(userId, 'syllabus_import');
     final prompt = '''
 Analise o texto a seguir, que é um conteúdo programático de um edital de concurso público.
@@ -53,19 +54,20 @@ $rawText
 
     final content = [Content.text(prompt)];
     final response = await _model.generateContent(content);
-    
+
     final jsonResponse = jsonDecode(response.text!) as Map<String, dynamic>;
     final List<Subject> subjects = [];
     final List<Topic> topics = [];
 
     final subjectsData = jsonResponse['subjects'] as List;
-    
+
     for (var sData in subjectsData) {
       final subjectName = sData['name'] as String;
       final topicNames = sData['topics'] as List;
 
-      final subjectId = DateTime.now().millisecondsSinceEpoch.toString() + subjects.length.toString();
-      
+      final subjectId = DateTime.now().millisecondsSinceEpoch.toString() +
+          subjects.length.toString();
+
       subjects.add(Subject(
         id: subjectId,
         userId: userId,
@@ -91,7 +93,8 @@ $rawText
     return AISyllabusImportResult(subjects: subjects, topics: topics);
   }
 
-  Future<List<Map<String, String>>> generateFlashcardsFromError(String userId, String question, String answer, String reason) async {
+  Future<List<Map<String, String>>> generateFlashcardsFromError(
+      String userId, String question, String answer, String reason) async {
     await usageService.logAIUsage(userId, 'flashcard_generation');
     final prompt = '''
 Com base no seguinte erro cometido por um estudante em uma questão de concurso, crie 3 flashcards (Pergunta e Resposta) que ajudem a memorizar o conceito correto e evitar o erro novamente.
@@ -117,14 +120,16 @@ Regras:
 
     final content = [Content.text(prompt)];
     final response = await _model.generateContent(content);
-    
+
     final jsonResponse = jsonDecode(response.text!) as Map<String, dynamic>;
     final flashcardsData = jsonResponse['flashcards'] as List;
-    
-    return flashcardsData.map((f) => {
-      'front': f['front'] as String,
-      'back': f['back'] as String,
-    }).toList();
+
+    return flashcardsData
+        .map((f) => {
+              'front': f['front'] as String,
+              'back': f['back'] as String,
+            })
+        .toList();
   }
 
   Future<String> analyzePerformance({
@@ -136,7 +141,7 @@ Regras:
   }) async {
     await usageService.logAIUsage(userId, 'performance_analysis');
     final textModel = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       apiKey: apiKey,
     );
 
@@ -169,7 +174,7 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
   }) async {
     await usageService.logAIUsage(userId, 'question_explanation');
     final textModel = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       apiKey: apiKey,
     );
 
@@ -196,7 +201,8 @@ Use Markdown para negrito e listas. Seja breve (máximo 150 palavras).
     return response.text?.trim() ?? 'Não foi possível gerar a explicação.';
   }
 
-  Future<List<Map<String, dynamic>>> extractQuestionsFromFiles(String userId, List<Uint8List> filesBytes, String mimeType) async {
+  Future<List<Map<String, dynamic>>> extractQuestionsFromFiles(
+      String userId, List<Uint8List> filesBytes, String mimeType) async {
     await usageService.logAIUsage(userId, 'exam_extraction');
     const prompt = '''
 Você é um extrator de dados de alta precisão. Analise as imagens ou PDFs de provas de concurso fornecidos.
