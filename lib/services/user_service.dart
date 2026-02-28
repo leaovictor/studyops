@@ -20,7 +20,8 @@ class UserService {
       return;
     }
 
-    // UID not found, check if a document with the same email exists
+    // UID not found — check if another document exists for the same email
+    // (e.g. user registered with email/password AND Google for the same address)
     final emailQuery = await _db
         .collection(AppConstants.colUsers)
         .where('email', isEqualTo: firebaseUser.email)
@@ -28,15 +29,17 @@ class UserService {
         .get();
 
     if (emailQuery.docs.isNotEmpty) {
-      // Existing email with different UID found!
-      final existingDoc = emailQuery.docs.first;
-      // Option: Migrate UID or just link them. For now, since Firebase "One account per email"
-      // is active, this case is rare but can happen during transitions.
-      // We'll update the existing document to also include this UID or just log it.
-      // Better: Update the existing document's timestamp and info.
-      await existingDoc.reference.update({
+      // There is already a profile for this email (possibly created by a
+      // different auth provider). We create a NEW document keyed by the
+      // current UID so that Firestore rules (uid == docId) are satisfied.
+      // The old document is left intact so the other provider still works.
+      final existingData = emailQuery.docs.first.data();
+      await userRef.set({
+        ...existingData,
+        'id': firebaseUser.uid,
         'lastLogin': FieldValue.serverTimestamp(),
-        'id': firebaseUser.uid, // Update ID to current UID
+        'displayName': firebaseUser.displayName ?? existingData['displayName'],
+        'photoUrl': firebaseUser.photoURL ?? existingData['photoUrl'],
       });
       return;
     }

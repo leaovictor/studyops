@@ -57,5 +57,11 @@ service cloud.firestore {
     match /fsrs_review_logs/{docId} {
        allow read, write: if isAuthenticated();
     }
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
   }
 }
