@@ -13,6 +13,7 @@ import '../controllers/quote_controller.dart';
 import '../core/theme/theme_provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import '../models/study_plan_model.dart';
+import '../widgets/weakness_insight_card.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -269,7 +270,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // 🧠 Adaptive Weakness Insights (shown only when plan is active)
+            if (activePlan != null) ...[
+              const WeaknessInsightCard(),
+              const SizedBox(height: 16),
+            ],
 
             // Tasks for selected day
             Expanded(
