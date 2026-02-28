@@ -675,11 +675,12 @@ CONTEXTO DA ROTINA:
 $routineContext
 
 REGRAS CRÍTICAS PARA O CRONOGRAMA:
-1. LIMITE E SEQUÊNCIA (Obrigatório): JAMAIS sugira mais de 2 matérias por dia. O ideal é 1 ou 2 para manter o foco.
-2. PROGRESSÃO LÓGICA: Comece pelos tópicos fundamentais e siga uma ordem didática.
-3. REVISÃO: Reserve um dia na semana (preferencialmente domingo) EXCLUSIVO para revisão. Não coloque matéria nova no dia de revisão.
-4. CARGA HORÁRIA: Respeite a rotina. Se o aluno descreveu poucas horas, diminua a quantidade de tarefas, não as diminua o tempo de cada uma para menos de 45min.
-5. DESCRIÇÃO: Tente alocar os tópicos de forma que o aluno termine um antes de começar o outro, se possível.
+1. DISTRIBUIÇÃO E FOCO: Se o aluno tiver mais de 2h disponíveis, sugira de 2 a 3 matérias diferentes por dia para evitar a fadiga mental. Se tiver menos, 1 ou 2.
+2. SESSÕES DE ESTUDO: Cada tópico deve ter entre 45 a 90 minutos. Não coloque blocos de 3h para um único tópico, a menos que seja extremamente denso.
+3. PROGRESSÃO LÓGICA: Comece pelos tópicos fundamentais e siga uma ordem didática.
+4. REVISÃO: Reserve um dia na semana (preferencialmente domingo) EXCLUSIVO para revisão geral e simulados. Não coloque matéria nova no dia de revisão.
+5. CARGA HORÁRIA: Use integralmente a carga horária diária informada ou deduzida da rotina ($routineContext).
+6. EQUILÍBRIO: Alterne entre matérias de exatas e humanas (se houver) para manter o cérebro engajado.
 
 Retorne um JSON seguindo EXATAMENTE esta estrutura:
 {
