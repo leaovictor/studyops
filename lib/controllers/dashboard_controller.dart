@@ -105,149 +105,156 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final minutesBySubject = <String, int>{};
   final dailyMap = <String, int>{};
 
-  // Wait for essential domain data to avoid intermediate empty states
-  final subjects = await ref.watch(subjectsProvider.future);
-  final activeSubjectIds = subjects.map((s) => s.id).toSet();
-  final allTopics = await ref.watch(allTopicsProvider.future);
+  try {
+    // Wait for essential domain data to avoid intermediate empty states
+    final subjects = await ref.watch(subjectsProvider.future);
+    final activeSubjectIds = subjects.map((s) => s.id).toSet();
+    final allTopics = await ref.watch(allTopicsProvider.future);
 
-  for (final log in logs) {
-    if (!activeSubjectIds.contains(log.subjectId)) continue; // Filter deleted
+    for (final log in logs) {
+      if (!activeSubjectIds.contains(log.subjectId)) continue; // Filter deleted
 
-    if (log.date.startsWith(currentMonthPrefix)) {
-      monthMinutes += log.minutes;
-      minutesBySubject[log.subjectId] =
-          (minutesBySubject[log.subjectId] ?? 0) + log.minutes;
+      if (log.date.startsWith(currentMonthPrefix)) {
+        monthMinutes += log.minutes;
+        minutesBySubject[log.subjectId] =
+            (minutesBySubject[log.subjectId] ?? 0) + log.minutes;
+      }
+      dailyMap[log.date] = (dailyMap[log.date] ?? 0) + log.minutes;
+
+      if (log.date == todayKey) {
+        todayMinutes += log.minutes;
+        // We will add productiveMinutes mapping here shortly
+        todayProductiveMinutes += log.productiveMinutes ?? log.minutes;
+      }
+
+      final logDate = AppDateUtils.fromKey(log.date);
+      if (!logDate.isBefore(weekStart) && !logDate.isAfter(weekEnd)) {
+        weekMinutes += log.minutes;
+      }
     }
-    dailyMap[log.date] = (dailyMap[log.date] ?? 0) + log.minutes;
 
-    if (log.date == todayKey) {
-      todayMinutes += log.minutes;
-      // We will add productiveMinutes mapping here shortly
-      todayProductiveMinutes += log.productiveMinutes ?? log.minutes;
+    // Build weekly trend (last 7 days)
+    final trend = <MapEntry<String, int>>[];
+    for (int i = 6; i >= 0; i--) {
+      final d = now.subtract(Duration(days: i));
+      final k = AppDateUtils.toKey(d);
+      trend.add(MapEntry(k, dailyMap[k] ?? 0));
     }
 
-    final logDate = AppDateUtils.fromKey(log.date);
-    if (!logDate.isBefore(weekStart) && !logDate.isAfter(weekEnd)) {
-      weekMinutes += log.minutes;
+    // Consistency: how many of the last 7 days had ANY study
+    final studiedDaysLast7 = trend.where((e) => e.value > 0).length;
+    final consistencyPct = studiedDaysLast7 / 7.0;
+
+    // Streak: consecutive days ending today with study
+    int streak = 0;
+    for (int i = 0; i < 30; i++) {
+      final d = now.subtract(Duration(days: i));
+      final k = AppDateUtils.toKey(d);
+      if ((dailyMap[k] ?? 0) > 0) {
+        streak++;
+      } else {
+        break;
+      }
     }
-  }
 
-  // Build weekly trend (last 7 days)
-  final trend = <MapEntry<String, int>>[];
-  for (int i = 6; i >= 0; i--) {
-    final d = now.subtract(Duration(days: i));
-    final k = AppDateUtils.toKey(d);
-    trend.add(MapEntry(k, dailyMap[k] ?? 0));
-  }
+    // Generate Suggested Subject based on Time Allocation vs Read Time
+    String? suggestedSubjectId;
+    int suggestedMinutes = 0;
 
-  // Consistency: how many of the last 7 days had ANY study
-  final studiedDaysLast7 = trend.where((e) => e.value > 0).length;
-  final consistencyPct = studiedDaysLast7 / 7.0;
+    final plannedVsRead = <String, Map<String, int>>{};
+    final subjectDifficulties = <String, double>{};
 
-  // Streak: consecutive days ending today with study
-  int streak = 0;
-  for (int i = 0; i < 30; i++) {
-    final d = now.subtract(Duration(days: i));
-    final k = AppDateUtils.toKey(d);
-    if ((dailyMap[k] ?? 0) > 0) {
-      streak++;
-    } else {
-      break;
-    }
-  }
+    if (subjects.isNotEmpty) {
+      // We base the active plan target daily time, default 3h (180 mins)
+      final plan = await ref.watch(activePlanProvider.future);
+      final dailyTotalTarget =
+          plan != null ? (plan.dailyHours * 60).toInt() : 180;
 
-  // Generate Suggested Subject based on Time Allocation vs Read Time
-  String? suggestedSubjectId;
-  int suggestedMinutes = 0;
+      final scheduleService = ref.read(scheduleGeneratorServiceProvider);
+      final distribution = scheduleService.distributeDailyTime(
+          subjects, allTopics, dailyTotalTarget);
 
-  final plannedVsRead = <String, Map<String, int>>{};
-  final subjectDifficulties = <String, double>{};
+      // Find the subject with the largest gap between planned and studied today
+      int maxGap = -1;
 
-  if (subjects.isNotEmpty) {
-    // We base the active plan target daily time, default 3h (180 mins)
-    final plan = await ref.watch(activePlanProvider.future);
-    final dailyTotalTarget =
-        plan != null ? (plan.dailyHours * 60).toInt() : 180;
+      for (final subject in subjects) {
+        final allocated = distribution[subject.id] ?? 0;
 
-    final scheduleService = ref.read(scheduleGeneratorServiceProvider);
-    final distribution = scheduleService.distributeDailyTime(
-        subjects, allTopics, dailyTotalTarget);
+        // How much studied today for this specific subject
+        int todaySubjMinutes = 0;
+        for (final log in logs) {
+          if (log.subjectId == subject.id && log.date == todayKey) {
+            todaySubjMinutes += log.minutes;
+          }
+        }
 
-    // Find the subject with the largest gap between planned and studied today
-    int maxGap = -1;
+        // Add to planned vs read map
+        plannedVsRead[subject.id] = {
+          'planned': allocated,
+          'read': todaySubjMinutes,
+        };
 
-    for (final subject in subjects) {
-      final allocated = distribution[subject.id] ?? 0;
+        final gap = allocated - todaySubjMinutes;
+        if (gap > maxGap && gap > 0) {
+          maxGap = gap;
+          suggestedSubjectId = subject.id;
+          suggestedMinutes = gap;
+        }
 
-      // How much studied today for this specific subject
-      int todaySubjMinutes = 0;
-      for (final log in logs) {
-        if (log.subjectId == subject.id && log.date == todayKey) {
-          todaySubjMinutes += log.minutes;
+        // Calculate avg difficulty for the subject
+        final subTopics = allTopics.where((t) => t.subjectId == subject.id);
+        if (subTopics.isNotEmpty) {
+          subjectDifficulties[subject.id] =
+              subTopics.fold(0, (sum, t) => sum + t.difficulty) /
+                  subTopics.length;
+        } else {
+          subjectDifficulties[subject.id] = 3.0;
         }
       }
 
-      // Add to planned vs read map
-      plannedVsRead[subject.id] = {
-        'planned': allocated,
-        'read': todaySubjMinutes,
-      };
-
-      final gap = allocated - todaySubjMinutes;
-      if (gap > maxGap && gap > 0) {
-        maxGap = gap;
-        suggestedSubjectId = subject.id;
-        suggestedMinutes = gap;
-      }
-
-      // Calculate avg difficulty for the subject
-      final subTopics = allTopics.where((t) => t.subjectId == subject.id);
-      if (subTopics.isNotEmpty) {
-        subjectDifficulties[subject.id] =
-            subTopics.fold(0, (sum, t) => sum + t.difficulty) /
-                subTopics.length;
-      } else {
-        subjectDifficulties[subject.id] = 3.0;
+      // If all subjects are completed for the day, simply suggest the most relevant overall
+      if (suggestedSubjectId == null && distribution.isNotEmpty) {
+        suggestedSubjectId = distribution.entries
+            .reduce((a, b) => a.value > b.value ? a : b)
+            .key;
+        suggestedMinutes = distribution[suggestedSubjectId]!;
       }
     }
 
-    // If all subjects are completed for the day, simply suggest the most relevant overall
-    if (suggestedSubjectId == null && distribution.isNotEmpty) {
-      suggestedSubjectId =
-          distribution.entries.reduce((a, b) => a.value > b.value ? a : b).key;
-      suggestedMinutes = distribution[suggestedSubjectId]!;
+    // Calculate Syllabus Progress
+    int completedTheory = 0;
+    int completedReview = 0;
+    int completedExercises = 0;
+
+    for (final topic in allTopics) {
+      if (topic.isTheoryDone) completedTheory++;
+      if (topic.isReviewDone) completedReview++;
+      if (topic.isExercisesDone) completedExercises++;
     }
+
+    return DashboardData(
+      todayMinutes: todayMinutes,
+      todayProductiveMinutes: todayProductiveMinutes,
+      weekMinutes: weekMinutes,
+      monthMinutes: monthMinutes,
+      minutesBySubject: minutesBySubject,
+      weeklyTrend: trend,
+      streakDays: streak,
+      consistencyPct: consistencyPct,
+      suggestedSubjectId: suggestedSubjectId,
+      suggestedMinutes: suggestedMinutes,
+      plannedVsRead: plannedVsRead,
+      subjectDifficulties: subjectDifficulties,
+      totalTheory: allTopics.length,
+      completedTheory: completedTheory,
+      totalReview: allTopics.length,
+      completedReview: completedReview,
+      totalExercises: allTopics.length,
+      completedExercises: completedExercises,
+    );
+  } catch (e, st) {
+    print('Dashboard Provider Error: $e');
+    print('Stack trace: $st');
+    rethrow;
   }
-
-  // Calculate Syllabus Progress
-  int completedTheory = 0;
-  int completedReview = 0;
-  int completedExercises = 0;
-
-  for (final topic in allTopics) {
-    if (topic.isTheoryDone) completedTheory++;
-    if (topic.isReviewDone) completedReview++;
-    if (topic.isExercisesDone) completedExercises++;
-  }
-
-  return DashboardData(
-    todayMinutes: todayMinutes,
-    todayProductiveMinutes: todayProductiveMinutes,
-    weekMinutes: weekMinutes,
-    monthMinutes: monthMinutes,
-    minutesBySubject: minutesBySubject,
-    weeklyTrend: trend,
-    streakDays: streak,
-    consistencyPct: consistencyPct,
-    suggestedSubjectId: suggestedSubjectId,
-    suggestedMinutes: suggestedMinutes,
-    plannedVsRead: plannedVsRead,
-    subjectDifficulties: subjectDifficulties,
-    totalTheory: allTopics.length,
-    completedTheory: completedTheory,
-    totalReview: allTopics.length,
-    completedReview: completedReview,
-    totalExercises: allTopics.length,
-    completedExercises: completedExercises,
-  );
 });

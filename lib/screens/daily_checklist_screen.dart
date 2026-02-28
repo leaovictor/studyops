@@ -265,7 +265,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                         const SizedBox(height: 24),
 
                         if (combinedItems.isEmpty)
-                          _EmptyChecklistState()
+                          _EmptyChecklistState(subjects: subjects)
                         else
                           AnimationLimiter(
                             child: Column(
@@ -606,12 +606,15 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     try {
       final aiServiceProviderFuture = ref.read(aiServiceProvider.future);
       final aiService = await aiServiceProviderFuture;
+      final userModel = ref.read(userSessionProvider).valueOrNull;
+
       if (aiService != null) {
         final insight = await aiService.getDailyInsight(
           userId: user.uid,
           objective: activeGoal.name,
           streak: dashboard?.streakDays ?? 0,
           consistency: dashboard?.consistencyPct ?? 0.0,
+          personalContext: userModel?.personalContext,
           taskNames: tasks.map((t) {
             final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
             final s = subjects.firstWhere((s) => s.id == t.subjectId,
@@ -953,6 +956,10 @@ class _AIMentorCard extends StatelessWidget {
 }
 
 class _EmptyChecklistState extends StatelessWidget {
+  final List<Subject> subjects;
+
+  const _EmptyChecklistState({required this.subjects});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -981,34 +988,64 @@ class _EmptyChecklistState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Crie um plano de estudo para gerar seu cronograma\nou adicione uma tarefa manualmente.',
+            subjects.isEmpty
+                ? 'Comece cadastrando as matérias que você precisa estudar para o seu objetivo.'
+                : 'Crie um plano de estudo para que a IA gere seu cronograma diário.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: (Theme.of(context).textTheme.labelSmall?.color ??
                     Colors.grey),
                 fontSize: 13),
           ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/subjects'),
-            icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-            label: const Text('Sugerir com IA'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accent,
-              side: const BorderSide(color: AppTheme.accent),
+          const SizedBox(height: 24),
+          if (subjects.isEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.go('/subjects'),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: const Text('Sugerir Matérias com IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) => const StudyPlanWizardDialog(),
+                ),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: const Text('Gerar Cronograma com IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
             ),
-          ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => const StudyPlanWizardDialog(),
-            ),
-            icon: const Icon(Icons.calendar_month_rounded, size: 16),
-            label: const Text('Configurar Plano de Estudo'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary),
+          TextButton.icon(
+            onPressed: () => subjects.isEmpty
+                ? context.go('/subjects')
+                : showDialog(
+                    context: context,
+                    builder: (context) => const StudyPlanWizardDialog(),
+                  ),
+            icon: Icon(
+                subjects.isEmpty
+                    ? Icons.list_alt_rounded
+                    : Icons.calendar_month_rounded,
+                size: 16),
+            label: Text(subjects.isEmpty
+                ? 'Cadastrar Matérias Manualmente'
+                : 'Configurar Plano de Estudo'),
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
             ),
           ),
         ],

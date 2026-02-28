@@ -210,8 +210,14 @@ Regras:
     required List<String> taskNames,
     int streak = 0,
     double consistency = 0.0,
+    String? personalContext,
   }) async {
     await _usageService.logAIUsage(userId, 'daily_insight');
+
+    final personalContextInfo =
+        personalContext != null && personalContext.isNotEmpty
+            ? "\n- Contexto Pessoal: $personalContext"
+            : "";
 
     final tasksContext = taskNames.isEmpty
         ? "Nenhuma tarefa planejada para hoje."
@@ -227,6 +233,7 @@ Regras:
     final prompt = '''
 Você é um Coach de Estudos motivador e pragmático.
 Com base no objetivo "$objective", nas tarefas de hoje e no desempenho recente, forneça um briefing curto (máximo 2-3 frases) e encorajador.
+$personalContextInfo
 
 DADOS DO ALUNO:
 - Objetivo: $objective
@@ -237,9 +244,10 @@ DADOS DO ALUNO:
 REGRAS:
 1. Seja muito breve e direto. Use um tom de "parceiro de estudos".
 2. Mencione a sequência (streak) ou constância apenas se for relevante para motivar.
-3. Se não houver tarefas, incentive o planejamento ou o descanso produtivo.
-4. Fale em Português do Brasil.
-5. NÃO use mais de 150 caracteres.
+3. Se o aluno forneceu um contexto pessoal (ex: horas de trabalho, família), use isso para tornar a mensagem mais empática e realista.
+4. Se não houver tarefas, incentive o planejamento ou o descanso produtivo.
+5. Fale em Português do Brasil.
+6. NÃO use mais de 150 caracteres.
 ''';
 
     final response = await OpenAI.instance.chat.create(

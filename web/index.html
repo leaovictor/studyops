@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
@@ -7,6 +8,8 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="StudyOps — Intelligent study performance management.">
   <meta name="theme-color" content="#0F0F1A">
+  <meta name="google-signin-client_id"
+    content="379727416390-po7ijsos4c45i6k9c547mtct9smjl496.apps.googleusercontent.com">
 
   <!-- PWA -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -14,7 +17,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="StudyOps">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="manifest" href="manifest.json">
 
   <title>StudyOps</title>
@@ -22,7 +25,8 @@
   <!-- Inter Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 
   <style>
     body {
@@ -30,6 +34,7 @@
       background-color: #0F0F1A;
       font-family: 'Inter', sans-serif;
     }
+
     #loading-screen {
       position: fixed;
       inset: 0;
@@ -41,15 +46,18 @@
       z-index: 9999;
       transition: opacity 0.4s ease;
     }
+
     #loading-screen .logo-text {
       font-size: 2rem;
       font-weight: 800;
       color: #7C6FFF;
       letter-spacing: -0.5px;
     }
+
     #loading-screen .logo-dot {
       color: #A78BFA;
     }
+
     .spinner {
       margin-top: 24px;
       width: 36px;
@@ -59,23 +67,30 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
+
 <body>
   <div id="loading-screen">
     <div class="logo-text">Study<span class="logo-dot">Ops</span></div>
     <div class="spinner"></div>
   </div>
   <script>
-    window.addEventListener('flutter-first-frame', function() {
+    window.addEventListener('flutter-first-frame', function () {
       var loadingScreen = document.getElementById('loading-screen');
       if (loadingScreen) {
         loadingScreen.style.opacity = '0';
-        setTimeout(function() { loadingScreen.remove(); }, 400);
+        setTimeout(function () { loadingScreen.remove(); }, 400);
       }
     });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>

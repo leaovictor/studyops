@@ -69,7 +69,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         loading: () => const Center(
             child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation(AppTheme.primary))),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, st) {
+          debugPrint('Dashboard Error: $e');
+          debugPrint('Stack trace: $st');
+          return Center(
+              child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+                'Erro ao carregar dashboard. Verifique o console para mais detalhes.\n\n$e',
+                textAlign: TextAlign.center),
+          ));
+        },
         data: (data) {
           final subjectColorMap = {
             for (final s in subjects) s.id: s.color,

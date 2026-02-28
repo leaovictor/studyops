@@ -14,6 +14,7 @@ class AppConstants {
   static const String colSharedQuestions = 'shared_questions';
   static const String colUsage = 'usage';
   static const String colConfigs = 'configs';
+  static const String colUsers = 'users';
 
   // Plan durations
   static const List<int> planDurations = [30, 60, 90];
