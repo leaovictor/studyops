@@ -52,6 +52,7 @@ dependencies:
   http: ^1.6.0
 
   shared_preferences: any
+  flutter_slidable: ^4.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

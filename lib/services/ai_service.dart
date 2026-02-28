@@ -309,7 +309,117 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
         'Não foi possível gerar a análise.';
   }
 
-  Future<String> explainQuestion({
+  Future<String> getQuickHint({
+    required String userId,
+    required String question,
+    required List<String> options,
+  }) async {
+    await _usageService.logAIUsage(userId, 'question_hint');
+
+    final prompt = '''
+Você é um Tutor IA pedagógico. O aluno está tentando resolver uma questão e precisa de uma DICA.
+JAMAIS dê a resposta direta. Forneça uma pista que ajude o aluno a raciocinar por conta própria.
+
+Questão:
+$question
+
+Alternativas:
+${options.join('\n')}
+
+Regras:
+1. Seja breve (máximo 2 sentenças).
+2. Use um tom instigante.
+3. Foque no conceito ou na lógica por trás do problema.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    return response.choices.first.message.content?.first.text?.trim() ??
+        'Pense na base do conceito discutido.';
+  }
+
+  Future<List<String>> eliminateAlternatives({
+    required String userId,
+    required String question,
+    required Map<String, String> options,
+    required String correctAnswer,
+  }) async {
+    await _usageService.logAIUsage(userId, 'eliminate_alternatives');
+
+    final prompt = '''
+Você é um assistente de exames. Dada a questão e as alternativas abaixo, identifique EXATAMENTE duas alternativas incorretas que podem ser eliminadas para ajudar o aluno.
+
+Questão:
+$question
+
+Alternativas:
+${options.entries.map((e) => "${e.key}: ${e.value}").join('\n')}
+
+Resposta Correta:
+$correctAnswer
+
+Retorne apenas as letras das duas alternativas incorretas separadas por vírgula (ex: B, D).
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    final text =
+        response.choices.first.message.content?.first.text?.trim() ?? '';
+    return text.split(',').map((e) => e.trim().toUpperCase()).toList();
+  }
+
+  Future<String> explainConcept({
+    required String userId,
+    required String question,
+  }) async {
+    await _usageService.logAIUsage(userId, 'explain_concept');
+
+    final prompt = '''
+Você é um Professor Especialista. O aluno quer entender o CONCEITO TEÓRICO por trás desta questão, sem necessariamente ver a explicação da resposta ainda.
+
+Questão:
+$question
+
+Explique o tema central desta questão de forma didática e técnica. No máximo 100 palavras.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    return response.choices.first.message.content?.first.text?.trim() ??
+        'Não foi possível extrair o conceito agora.';
+  }
+
+  Future<String> getDetailedExplanation({
     required String userId,
     required String question,
     required String correctAnswer,

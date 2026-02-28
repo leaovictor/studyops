@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:go_router/go_router.dart';
 import '../controllers/question_bank_controller.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/auth_controller.dart';
@@ -9,10 +10,12 @@ import '../models/error_note_model.dart';
 import '../core/theme/app_theme.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/subject_controller.dart';
-import '../controllers/flashcard_controller.dart';
-import '../models/flashcard_model.dart';
-import 'package:fsrs/fsrs.dart' as fsrs_pkg;
-// AI professor logic uses aiServiceProvider internally
+
+// New Widgets
+import '../widgets/quiz/quiz_top_bar.dart';
+import '../widgets/quiz/quiz_progress_bar.dart';
+import '../widgets/quiz/question_view.dart';
+import '../widgets/quiz/ai_tutor_sheet.dart';
 
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key});
@@ -23,8 +26,12 @@ class QuizScreen extends ConsumerStatefulWidget {
 
 class _QuizScreenState extends ConsumerState<QuizScreen> {
   final PageController _pageController = PageController();
+  int _currentIndex = 0;
   int _hits = 0;
   int _misses = 0;
+  bool _isFocusMode = false;
+  final Set<String> _flaggedForReview = {};
+  double _fontSizeDelta = 0;
 
   void _recordResult(bool isCorrect) {
     setState(() {
@@ -32,6 +39,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         _hits++;
       else
         _misses++;
+    });
+  }
+
+  void _toggleFocusMode() {
+    setState(() => _isFocusMode = !_isFocusMode);
+  }
+
+  void _toggleReviewFlag(String questionId) {
+    setState(() {
+      if (_flaggedForReview.contains(questionId)) {
+        _flaggedForReview.remove(questionId);
+      } else {
+        _flaggedForReview.add(questionId);
+      }
     });
   }
 
@@ -44,141 +65,49 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final questionsAsync = ref.watch(sharedQuestionsProvider);
-    final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
-    final selectedSubject = ref.watch(selectedQuizSubjectProvider);
-    final selectedTopic = ref.watch(selectedQuizTopicProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Simulado (Banco Global)'),
-        elevation: 0,
-        actions: [
-          if (_hits + _misses > 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Center(
-                child: Text(
-                  'Precisão: ${((_hits / (_hits + _misses)) * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: AppTheme.accent),
-                ),
-              ),
+      backgroundColor: const Color(0xFF0B1220),
+      appBar: _isFocusMode
+          ? null
+          : QuizTopBar(
+              title: 'Simulado Premium',
+              fontSizeDelta: _fontSizeDelta,
+              onFontSizeChanged: (val) => setState(() => _fontSizeDelta = val),
+              onExit: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/dashboard');
+                }
+              },
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filters Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Theme.of(context).cardColor,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: selectedSubject,
-                          hint: const Text("Filtrar Matéria",
-                              style: TextStyle(fontSize: 13)),
-                          items: [
-                            const DropdownMenuItem(
-                                value: null,
-                                child: Text("Todas as Matérias",
-                                    style: TextStyle(fontSize: 13))),
-                            ...subjects.map((s) => DropdownMenuItem(
-                                value: s.name,
-                                child: Text(s.name,
-                                    style: TextStyle(fontSize: 13)))),
-                          ],
-                          onChanged: (val) {
-                            ref
-                                .read(selectedQuizSubjectProvider.notifier)
-                                .state = val;
-                            ref.read(selectedQuizTopicProvider.notifier).state =
-                                null;
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: DropdownButtonHideUnderline(
-                        child: ref.watch(availableQuizTopicsProvider).when(
-                              data: (topics) => DropdownButton<String>(
-                                isExpanded: true,
-                                value: (selectedTopic != null &&
-                                        topics.contains(selectedTopic))
-                                    ? selectedTopic
-                                    : null,
-                                hint: const Text("Filtrar Tópico",
-                                    style: TextStyle(fontSize: 13)),
-                                items: [
-                                  const DropdownMenuItem(
-                                      value: null,
-                                      child: Text("Todos os Tópicos",
-                                          style: TextStyle(fontSize: 13))),
-                                  ...topics.map((t) => DropdownMenuItem(
-                                      value: t,
-                                      child: Text(t,
-                                          style: TextStyle(fontSize: 13)))),
-                                ],
-                                onChanged: (val) => ref
-                                    .read(selectedQuizTopicProvider.notifier)
-                                    .state = val,
-                              ),
-                              loading: () => const Center(
-                                child: SizedBox(
-                                  width: 15,
-                                  height: 15,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                              error: (_, __) => const Text("Erro"),
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Session Stats Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _StatItem(
-                        label: 'Acertos', value: '$_hits', color: Colors.green),
-                    _StatItem(
-                        label: 'Erros', value: '$_misses', color: Colors.red),
-                    _StatItem(
-                        label: 'Total',
-                        value: '${_hits + _misses}',
-                        color: Colors.blue),
-                  ],
+      body: questionsAsync.when(
+        data: (questions) {
+          if (questions.isEmpty) {
+            return const Center(
+              child: Text(
+                'Nenhuma questão encontrada.',
+                style: TextStyle(color: Colors.white70),
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              if (!_isFocusMode) ...[
+                QuizProgressBar(
+                  current: _currentIndex + 1,
+                  total: questions.length,
                 ),
               ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: questionsAsync.when(
-              data: (questions) {
-                if (questions.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Nenhuma questão encontrada.\nTente usar os botões na aba Desempenho!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return PageView.builder(
+              Expanded(
+                child: PageView.builder(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: questions.length,
+                  onPageChanged: (index) =>
+                      setState(() => _currentIndex = index),
                   itemBuilder: (context, index) {
                     final question = questions[index];
                     return _QuestionPage(
@@ -186,50 +115,49 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                       questionIndex: index,
                       totalQuestions: questions.length,
                       onResult: _recordResult,
+                      isFocusMode: _isFocusMode,
+                      isFlagged: _flaggedForReview.contains(question.id),
+                      onToggleReview: () => _toggleReviewFlag(question.id),
+                      onToggleFocus: _toggleFocusMode,
+                      fontSizeDelta: _fontSizeDelta,
                       onNext: () {
                         if (index < questions.length - 1) {
                           _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeInOutCubic,
                           );
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Fim do Simulado! 🎉')),
-                          );
+                          _showSummary(questions);
                         }
                       },
                     );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                  child: Text('Erro: $e',
-                      style: const TextStyle(color: AppTheme.error))),
-            ),
-          ),
-        ],
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+            child: Text('Erro: $e',
+                style: const TextStyle(color: AppTheme.error))),
       ),
     );
   }
-}
 
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _StatItem(
-      {required this.label, required this.value, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value,
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-      ],
+  void _showSummary(List<SharedQuestion> questions) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF151A2C),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      builder: (context) => _QuizSummarySheet(
+        hits: _hits,
+        misses: _misses,
+        total: questions.length,
+        flaggedCount: _flaggedForReview.length,
+      ),
     );
   }
 }
@@ -240,6 +168,11 @@ class _QuestionPage extends ConsumerStatefulWidget {
   final int totalQuestions;
   final Function(bool) onResult;
   final VoidCallback onNext;
+  final bool isFocusMode;
+  final bool isFlagged;
+  final VoidCallback onToggleReview;
+  final VoidCallback onToggleFocus;
+  final double fontSizeDelta;
 
   const _QuestionPage({
     required this.question,
@@ -247,6 +180,11 @@ class _QuestionPage extends ConsumerStatefulWidget {
     required this.totalQuestions,
     required this.onResult,
     required this.onNext,
+    required this.isFocusMode,
+    required this.isFlagged,
+    required this.onToggleReview,
+    required this.onToggleFocus,
+    required this.fontSizeDelta,
   });
 
   @override
@@ -257,6 +195,7 @@ class _QuestionPageState extends ConsumerState<_QuestionPage> {
   String? _selectedOption;
   bool _hasAnswered = false;
   bool _isCorrect = false;
+  List<String> _eliminatedOptions = [];
 
   void _submitAnswer() {
     if (_selectedOption == null) return;
@@ -280,356 +219,342 @@ class _QuestionPageState extends ConsumerState<_QuestionPage> {
     final activeGoalId = ref.read(activeGoalIdProvider);
     final errorCtrl = ref.read(errorNotebookControllerProvider.notifier);
 
-    // Provide a dummy Subject/Topic if not mapped properly,
-    // ideally the user would select this, but for the global bank we autogenerate for now.
     final note = ErrorNote(
       id: const Uuid().v4(),
       userId: user.uid,
-      goalId: activeGoalId, // Can be null
-      subjectId: 'GLOBAL_BANK', // Placeholder or match via subject name
+      goalId: activeGoalId,
+      subjectId: 'GLOBAL_BANK',
       topicId: widget.question.subjectName ?? 'Tópico Geral',
       question: widget.question.statement,
       correctAnswer:
-          'A resposta correta era: ${widget.question.correctAnswer} (${widget.question.options[widget.question.correctAnswer]}). Fonte: ${widget.question.source ?? "Banco Global"}',
-      errorReason: 'Errei no simulado marcando a opção $_selectedOption.',
+          'Correta: ${widget.question.correctAnswer}. ${widget.question.options[widget.question.correctAnswer]}',
+      errorReason: 'Errei no simulado.',
       nextReview: DateTime.now().add(const Duration(days: 1)),
       reviewStage: 0,
     );
 
-    try {
-      await errorCtrl.createNote(note);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Questão salva no Caderno de Erros! 📓'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint("Erro ao salvar no caderno: $e");
-    }
+    await errorCtrl.createNote(note);
   }
 
-  void _showAIExplanation() async {
-    final user = ref.read(authStateProvider).valueOrNull;
-    if (user == null) return;
+  void _openAITutor() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AITutorSheet(
+        questionStatement: widget.question.statement,
+        options: widget.question.options,
+        correctAnswer: widget.question.correctAnswer,
+        onAlternativesEliminated: (eliminated) {
+          setState(() => _eliminatedOptions = eliminated);
+        },
+      ),
+    );
+  }
 
-    // Show loading dialog and store its navigator state
-    bool dialogShowing = true;
+  void _showFullExplanation() async {
+    final aiService = await ref.read(aiServiceProvider.future);
+    final user = ref.read(authStateProvider).valueOrNull;
+
+    if (aiService == null || user == null) return;
+
     showDialog(
       context: context,
-      barrierDismissible: false,
-      useRootNavigator: true,
-      builder: (ctx) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Expanded(child: Text('Professor IA pensando...')),
-          ],
-        ),
-      ),
-    ).then((_) => dialogShowing = false);
-
-    try {
-      final aiService = await ref.read(aiServiceProvider.future);
-      if (aiService == null) throw Exception("IA não configurada.");
-
-      final explanation = await aiService.explainQuestion(
-        userId: user.uid,
-        question: widget.question.statement +
-            "\\nAlternativas:\\n" +
-            widget.question.options.entries
-                .map((e) => "${e.key}) ${e.value}")
-                .join("\\n"),
-        correctAnswer:
-            "${widget.question.correctAnswer}) ${widget.question.options[widget.question.correctAnswer]}",
-      );
-
-      if (mounted) {
-        // Safe pop of loading dialog
-        if (dialogShowing) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
-
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.auto_awesome_rounded, color: AppTheme.primary),
-                SizedBox(width: 8),
-                Text('Explicação IA'),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Text(explanation, style: const TextStyle(fontSize: 14)),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Entendi')),
-            ],
+      builder: (context) => FutureBuilder<String>(
+          future: aiService.getDetailedExplanation(
+            userId: user.uid,
+            question: widget.question.statement,
+            correctAnswer: widget.question.correctAnswer,
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        if (dialogShowing) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro na IA: $e')));
-      }
-    }
+          builder: (context, snapshot) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF151A2C),
+              title: const Text('Explicação do Professor IA',
+                  style: TextStyle(color: Colors.white)),
+              content: snapshot.hasData
+                  ? SingleChildScrollView(
+                      child: Text(snapshot.data!,
+                          style: const TextStyle(color: Colors.white)))
+                  : const Center(child: CircularProgressIndicator()),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Entendi')),
+              ],
+            );
+          }),
+    );
   }
-
-  void _createFlashcard() async {
-    final user = ref.read(authStateProvider).valueOrNull;
-    if (user == null) return;
-
-    setState(() => _isLoadingFlashcard = true);
-    try {
-      final aiService = await ref.read(aiServiceProvider.future);
-      if (aiService == null) throw Exception("IA não configurada.");
-
-      final flashcardData = await aiService.generateFlashcardFromQuestion(
-        question: widget.question.statement,
-        answer: widget.question.options[widget.question.correctAnswer] ?? "",
-      );
-
-      // Attempt to find the real subject ID from user's subjects
-      final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
-      String subjectId = 'GLOBAL_BANK';
-
-      if (widget.question.subjectName != null &&
-          widget.question.subjectName!.isNotEmpty) {
-        try {
-          final matchedSubject = subjects.firstWhere(
-            (s) =>
-                s.name.toLowerCase() ==
-                widget.question.subjectName!.toLowerCase(),
-          );
-          subjectId = matchedSubject.id;
-        } catch (_) {
-          // If no match by name, and we have a selected subject in the filter, use that as a bias
-          final selectedSubject = ref.read(selectedQuizSubjectProvider);
-          if (selectedSubject != null) {
-            subjectId = selectedSubject;
-          }
-        }
-      }
-
-      final flashcard = Flashcard(
-        id: const Uuid().v4(),
-        userId: user.uid,
-        goalId: ref.read(activeGoalIdProvider),
-        subjectId: subjectId,
-        topicId:
-            widget.question.topicName ?? widget.question.subjectName ?? 'Geral',
-        front: flashcardData['front'] ?? widget.question.statement,
-        back: flashcardData['back'] ??
-            widget.question.options[widget.question.correctAnswer]!,
-        fsrsCard: fsrs_pkg.Card(cardId: 1).toMap(),
-        due: DateTime.now(),
-        createdAt: DateTime.now(),
-      );
-
-      await ref.read(flashcardControllerProvider.notifier).create(flashcard);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Flashcard criado com sucesso! 🗂️')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao criar flashcard: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoadingFlashcard = false);
-    }
-  }
-
-  bool _isLoadingFlashcard = false;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Questão ${widget.questionIndex + 1} de ${widget.totalQuestions}',
-                style: const TextStyle(
-                    color: Colors.grey, fontWeight: FontWeight.bold),
-              ),
-              if (widget.question.subjectName != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
+    return Column(
+      children: [
+        Expanded(
+          child: QuestionView(
+            question: widget.question,
+            selectedOption: _selectedOption,
+            hasAnswered: _hasAnswered,
+            eliminatedOptions: _eliminatedOptions,
+            onOptionSelected: (val) => setState(() => _selectedOption = val),
+            fontSizeDelta: widget.fontSizeDelta,
+          ),
+        ),
+        _buildBottomActions(),
+      ],
+    );
+  }
+
+  Widget _buildBottomActions() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1220),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, -5)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!_hasAnswered) ...[
+              Row(
+                children: [
+                  _IconButton(
+                    icon: widget.isFlagged
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
+                    color: widget.isFlagged ? Colors.orange : Colors.white38,
+                    onTap: widget.onToggleReview,
                   ),
-                  child: Text(
-                    widget.question.subjectName!,
-                    style: const TextStyle(
-                        color: AppTheme.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
+                  const SizedBox(width: 12),
+                  _IconButton(
+                    icon: widget.isFocusMode
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
+                    color: Colors.white38,
+                    onTap: widget.onToggleFocus,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _selectedOption == null ? null : _submitAnswer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00A3FF),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('RESPONDER',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, letterSpacing: 1.1)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openAITutor,
+                  icon: const Icon(Icons.psychology_outlined, size: 20),
+                  label: const Text('PEDIR DICA AO TUTOR IA'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showFullExplanation,
+                      icon: const Icon(Icons.auto_awesome_rounded,
+                          size: 18, color: AppTheme.primary),
+                      label: const Text('VER EXPLICAÇÃO'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: AppTheme.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: widget.onNext,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.05),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: const Text('PRÓXIMA',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _IconButton(
+      {required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Icon(icon, color: color),
+      ),
+    );
+  }
+}
+
+class _QuizSummarySheet extends StatelessWidget {
+  final int hits;
+  final int misses;
+  final int total;
+  final int flaggedCount;
+
+  const _QuizSummarySheet({
+    required this.hits,
+    required this.misses,
+    required this.total,
+    required this.flaggedCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    double accuracy = (hits / total) * 100;
+
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 24),
+          const Text('Simulado Concluído!',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _SummaryItem(
+                  label: 'Acertos',
+                  value: '$hits',
+                  color: const Color(0xFF4ADE80)),
+              _SummaryItem(
+                  label: 'Erros',
+                  value: '$misses',
+                  color: const Color(0xFFFB7185)),
+              _SummaryItem(
+                  label: 'Precisão',
+                  value: '${accuracy.toStringAsFixed(0)}%',
+                  color: const Color(0xFF00A3FF)),
             ],
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 40),
+          if (flaggedCount > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.orange.withOpacity(0.2))),
+              child: Row(
                 children: [
-                  Text(
-                    widget.question.statement,
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                  ),
-                  const SizedBox(height: 24),
-                  ...widget.question.options.entries.map((entry) {
-                    final isSelected = _selectedOption == entry.key;
-                    final isCorrectOption =
-                        entry.key == widget.question.correctAnswer;
-
-                    Color borderColor = Theme.of(context).dividerColor;
-                    Color bgColor =
-                        Theme.of(context).cardTheme.color ?? Colors.transparent;
-
-                    if (_hasAnswered) {
-                      if (isCorrectOption) {
-                        borderColor = Colors.green;
-                        bgColor = Colors.green.withValues(alpha: 0.1);
-                      } else if (isSelected && !isCorrectOption) {
-                        borderColor = AppTheme.error;
-                        bgColor = AppTheme.error.withValues(alpha: 0.1);
-                      }
-                    } else if (isSelected) {
-                      borderColor = AppTheme.primary;
-                      bgColor = AppTheme.primary.withValues(alpha: 0.1);
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: _hasAnswered
-                            ? null
-                            : () => setState(() => _selectedOption = entry.key),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: bgColor,
-                            border: Border.all(
-                                color: borderColor,
-                                width: isSelected ||
-                                        (_hasAnswered && isCorrectOption)
-                                    ? 2
-                                    : 1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${entry.key})',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _hasAnswered && isCorrectOption
-                                      ? Colors.green
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  entry.value,
-                                  style: const TextStyle(height: 1.4),
-                                ),
-                              ),
-                              if (_hasAnswered && isCorrectOption)
-                                const Icon(Icons.check_circle_rounded,
-                                    color: Colors.green, size: 20)
-                              else if (_hasAnswered &&
-                                  isSelected &&
-                                  !isCorrectOption)
-                                const Icon(Icons.cancel_rounded,
-                                    color: AppTheme.error, size: 20)
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                  const Icon(Icons.star_rounded, color: Colors.orange),
+                  const SizedBox(width: 12),
+                  Text('Você marcou $flaggedCount questões para revisão.',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
             ),
-          ),
-          if (_hasAnswered) ...[
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 44) / 2,
-                  child: OutlinedButton.icon(
-                    onPressed: _showAIExplanation,
-                    icon: const Icon(Icons.auto_awesome_rounded,
-                        color: AppTheme.primary, size: 18),
-                    label: const Text('Explicação IA',
-                        style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-                SizedBox(
-                  width: (MediaQuery.of(context).size.width - 44) / 2,
-                  child: OutlinedButton.icon(
-                    onPressed: _isLoadingFlashcard ? null : _createFlashcard,
-                    icon: _isLoadingFlashcard
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.style_rounded,
-                            color: Colors.orange, size: 18),
-                    label: const Text('Criar Flashcard',
-                        style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: widget.onNext,
-                    child: const Text('Próxima Questão'),
-                  ),
-                ),
-              ],
-            )
-          ] else ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton(
-                onPressed: _selectedOption == null ? null : _submitAnswer,
-                child: const Text('Responder'),
-              ),
+            const SizedBox(height: 24),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => context.go('/dashboard'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00A3FF),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16))),
+              child: const Text('VOLTAR AO INÍCIO',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white)),
             ),
-          ]
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _SummaryItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _SummaryItem(
+      {required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value,
+            style: TextStyle(
+                color: color, fontSize: 28, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(label,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+      ],
     );
   }
 }

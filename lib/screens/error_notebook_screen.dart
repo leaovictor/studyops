@@ -566,7 +566,7 @@ class _NoteCardState extends State<_NoteCard> {
       if (aiService == null) {
         throw Exception("Gemini API Key não configurada.");
       }
-      final result = await aiService.explainQuestion(
+      final result = await aiService.getDetailedExplanation(
           userId: user.uid,
           question: widget.note.question,
           correctAnswer: widget.note.correctAnswer);
