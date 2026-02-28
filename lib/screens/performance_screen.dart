@@ -5,12 +5,12 @@ import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/performance_controller.dart';
-import '../controllers/admin_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../models/shared_question_model.dart';
 import '../core/theme/app_theme.dart';
 import '../widgets/app_charts.dart';
-import '../services/ai_service.dart';
+import '../widgets/performance_insight_card.dart';
+import '../widgets/study_heatmap.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class PerformanceScreen extends ConsumerStatefulWidget {
@@ -167,6 +167,10 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                       Colors.grey),
                                   fontSize: 13),
                             ),
+                            const SizedBox(height: 20),
+
+                            // ── Performance Insight Card ──────────────────
+                            const PerformanceInsightCard(),
                             const SizedBox(height: 20),
 
                             // KPI Row
@@ -343,6 +347,18 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                     : WeeklyBarChart(data: trend),
                               ),
                             ),
+                            _SectionCard(
+                              title: 'Atividade — Últimos 35 Dias',
+                              child: StudyHeatmap(
+                                dailyMinutes: ref
+                                        .watch(thirtyDayHeatmapProvider)
+                                        .valueOrNull ??
+                                    {},
+                                isDark: Theme.of(context).brightness ==
+                                    Brightness.dark,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
@@ -490,7 +506,7 @@ class _GenerateAIPortalDialogState
                       fontWeight: FontWeight.bold, color: AppTheme.accent))
             else ...[
               DropdownButtonFormField<String>(
-                value: _selectedSubjectId,
+                initialValue: _selectedSubjectId,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Matéria',
@@ -507,7 +523,7 @@ class _GenerateAIPortalDialogState
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedTopicId,
+                initialValue: _selectedTopicId,
                 isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Tópico (Opcional)',
@@ -611,17 +627,19 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
         consistencyPct: widget.data.consistencyPct,
         streakDays: widget.data.streakDays,
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _analysis = result;
           _isLoading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _isLoading = false;
         });
+      }
     }
   }
 

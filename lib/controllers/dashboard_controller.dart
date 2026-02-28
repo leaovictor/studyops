@@ -290,3 +290,28 @@ final studyScoreProvider = Provider<StudyScore>((ref) {
     },
   );
 });
+
+/// Returns a Map<dateKey, minutes> for the past 35 days, used by StudyHeatmap.
+/// Leverages the same StudyLogService + auth already used by dashboardProvider.
+final thirtyDayHeatmapProvider = FutureProvider<Map<String, int>>((ref) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null) return {};
+
+  final activeGoalId = ref.watch(activeGoalIdProvider);
+  final service = ref.watch(studyLogServiceProvider);
+  final now = DateTime.now();
+  final start = now.subtract(const Duration(days: 35));
+
+  final logs = await service.getLogsForRange(
+    user.uid,
+    AppDateUtils.toKey(start),
+    AppDateUtils.toKey(now),
+    goalId: activeGoalId,
+  );
+
+  final map = <String, int>{};
+  for (final log in logs) {
+    map[log.date] = (map[log.date] ?? 0) + log.minutes;
+  }
+  return map;
+});
