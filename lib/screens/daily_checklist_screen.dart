@@ -10,10 +10,13 @@ import '../controllers/auth_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
+import '../controllers/error_notebook_controller.dart';
 import '../widgets/study_plan_wizard_dialog.dart';
 import '../models/daily_task_model.dart';
+import '../models/error_note_model.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
+import '../models/knowledge_check_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
 import '../widgets/pomodoro_timer.dart';
@@ -66,15 +69,24 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     final tasks = ref.watch(dailyTasksProvider).valueOrNull ?? [];
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? [];
+    final allErrorNotes = ref.watch(errorNotesProvider).valueOrNull ?? [];
     final selectedDate = ref.watch(selectedDateProvider);
     final controller = ref.read(dailyTaskControllerProvider.notifier);
+    final errorController = ref.read(errorNotebookControllerProvider.notifier);
 
-    final done = tasks.where((t) => t.done).length;
-    final total = tasks.length;
-    final progress = total > 0 ? done / total : 0.0;
+    // Filter error notes due today (only for today's view)
+    final isViewingToday =
+        AppDateUtils.toKey(selectedDate) == AppDateUtils.toKey(DateTime.now());
+    final dueErrorNotes = isViewingToday
+        ? allErrorNotes.where((n) => n.isDueToday).toList()
+        : <ErrorNote>[];
+
+    final doneTasks = tasks.where((t) => t.done).length;
+    final totalTasks = tasks.length + dueErrorNotes.length;
+    final progress = totalTasks > 0 ? doneTasks / totalTasks : 0.0;
 
     // Trigger confetti when hitting 100%
-    if (progress == 1.0 && total > 0 && !_wasDone) {
+    if (progress == 1.0 && totalTasks > 0 && !_wasDone) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _confettiController.play();
       });
@@ -85,6 +97,9 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
     final subjectMap = {for (final s in subjects) s.id: s};
     final topicMap = {for (final t in allTopics) t.id: t};
+
+    // Combine tasks and error notes for display
+    final List<dynamic> combinedItems = [...tasks, ...dueErrorNotes];
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -111,61 +126,25 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                       children: [
                         // Header with date picker
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: Row(
-                                children: [
-                                  Text(
-                                    'Checklist Diário',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      color: (Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color ??
-                                          Colors.white),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  PopupMenuButton<String>(
-                                    icon: Icon(Icons.more_vert_rounded,
-                                        size: 20,
-                                        color: (Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.color ??
-                                            Colors.grey)),
-                                    onSelected: (value) {
-                                      if (value == 'config') {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) =>
-                                              StudyPlanWizardDialog(
-                                                  activePlan: ref
-                                                      .read(activePlanProvider)
-                                                      .valueOrNull),
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'config',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.auto_awesome_rounded,
-                                                size: 18,
-                                                color: AppTheme.primary),
-                                            SizedBox(width: 12),
-                                            Text('Gerenciar Plano (IA)'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              child: Text(
+                                'Checklist Diário',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             // Date picker
                             OutlinedButton.icon(
                               onPressed: () async {
@@ -190,6 +169,39 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                               label:
                                   Text(AppDateUtils.displayDate(selectedDate)),
                             ),
+                            PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert_rounded,
+                                  size: 20,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color ??
+                                      Colors.grey)),
+                              onSelected: (value) {
+                                if (value == 'config') {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => StudyPlanWizardDialog(
+                                        activePlan: ref
+                                            .read(activePlanProvider)
+                                            .valueOrNull),
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'config',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.auto_awesome_rounded,
+                                          size: 18, color: AppTheme.primary),
+                                      SizedBox(width: 12),
+                                      Text('Gerenciar Plano (IA)'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -202,7 +214,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '$done/$total tarefas concluídas',
+                                  '$doneTasks/$totalTasks tarefas concluídas',
                                   style: TextStyle(
                                     color: (Theme.of(context)
                                             .textTheme
@@ -247,13 +259,13 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                         _AIMentorCard(
                           insight: _aiInsight,
                           isLoading: _isFetchingInsight,
-                          onRefresh: _fetchAIInsight,
+                          onRefresh: () => _fetchAIInsight(forceRefresh: true),
                         ),
 
                         const SizedBox(height: 24),
 
-                        if (tasks.isEmpty)
-                          _EmptyChecklistState()
+                        if (combinedItems.isEmpty)
+                          _EmptyChecklistState(subjects: subjects)
                         else
                           AnimationLimiter(
                             child: Column(
@@ -266,64 +278,182 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                                     child: widget,
                                   ),
                                 ),
-                                children: tasks.map((task) {
-                                  final subject = subjectMap[task.subjectId];
-                                  final topic = topicMap[task.topicId];
-                                  final showPomodoro =
-                                      _pomodoroTaskId == task.id;
+                                children: combinedItems.map((item) {
+                                  if (item is DailyTask) {
+                                    final subject = subjectMap[item.subjectId];
+                                    final topic = topicMap[item.topicId];
+                                    final showPomodoro =
+                                        _pomodoroTaskId == item.id;
 
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: _TaskCard(
-                                      task: task,
-                                      subject: subject,
-                                      topicName: topic?.name ?? 'Tópico',
-                                      showPomodoro: showPomodoro,
-                                      onTogglePomodoro: () {
-                                        setState(() {
-                                          _pomodoroTaskId =
-                                              showPomodoro ? null : task.id;
-                                        });
-                                      },
-                                      onToggleDone: (minutes) {
-                                        if (task.done) {
-                                          controller.markUndone(task.id);
-                                        } else {
-                                          controller.markDone(task, minutes);
-                                        }
-                                      },
-                                      onDelete: () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Excluir Tarefa'),
-                                            content: const Text(
-                                                'Tem certeza que deseja excluir esta tarefa?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, false),
-                                                child: const Text('Cancelar'),
-                                              ),
-                                              FilledButton(
-                                                style: FilledButton.styleFrom(
-                                                  backgroundColor:
-                                                      AppTheme.error,
-                                                  foregroundColor: Colors.white,
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10),
+                                      child: _ChecklistCard(
+                                        title: topic?.name ?? 'Tópico',
+                                        isDone: item.done,
+                                        subject: subject,
+                                        plannedMinutes: item.plannedMinutes,
+                                        showPomodoro: showPomodoro,
+                                        onTogglePomodoro: () {
+                                          setState(() {
+                                            _pomodoroTaskId =
+                                                showPomodoro ? null : item.id;
+                                          });
+                                        },
+                                        onToggleDone: (minutes) {
+                                          if (item.done) {
+                                            controller.markUndone(item.id);
+                                          } else {
+                                            // Trigger AI Knowledge Check before marking as done
+                                            if (subject != null &&
+                                                topic != null) {
+                                              showDialog(
+                                                context: context,
+                                                barrierDismissible: false,
+                                                builder: (context) =>
+                                                    _KnowledgeCheckDialog(
+                                                  subject: subject,
+                                                  topicName: topic.name,
+                                                  onCompleted: (correctCount,
+                                                      totalQuestions) {
+                                                    Navigator.pop(
+                                                        context); // Close dialog
+
+                                                    // Calculate productive minutes
+                                                    int productiveMins = 0;
+                                                    if (totalQuestions > 0) {
+                                                      final score =
+                                                          correctCount /
+                                                              totalQuestions;
+                                                      if (score >= 0.6) {
+                                                        productiveMins =
+                                                            minutes; // Approve all tracked minutes
+                                                      } else {
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                              content: Text(
+                                                                  'Sua nota foi ${(score * 100).toInt()}% (Abaixo da média de 60%). Seu tempo não foi contabilizado como produtivo.')),
+                                                        );
+                                                      }
+                                                    }
+
+                                                    final updatedItem =
+                                                        item.copyWith(
+                                                            productiveMinutes:
+                                                                productiveMins);
+                                                    controller.markDone(
+                                                        updatedItem, minutes);
+                                                    _confettiController.play();
+                                                  },
                                                 ),
-                                                onPressed: () => Navigator.pop(
-                                                    context, true),
-                                                child: const Text('Excluir'),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                        if (confirm == true) {
-                                          controller.deleteTask(task.id);
-                                        }
-                                      },
-                                    ),
-                                  );
+                                              );
+                                            } else {
+                                              // Fallback if no subject mapping
+                                              controller.markDone(
+                                                  item, minutes);
+                                              _confettiController.play();
+                                            }
+                                          }
+                                        },
+                                        onDelete: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title:
+                                                  const Text('Excluir Tarefa'),
+                                              content: const Text(
+                                                  'Tem certeza que deseja excluir esta tarefa?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                FilledButton(
+                                                  style: FilledButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppTheme.error,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: const Text('Excluir'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            controller.deleteTask(item.id);
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  } else if (item is ErrorNote) {
+                                    final subject = subjectMap[item.subjectId];
+                                    return Padding(
+                                      padding:
+                                          const EdgeInsets.only(bottom: 10),
+                                      child: _ChecklistCard(
+                                        title: item.question,
+                                        isDone: false,
+                                        subject: subject,
+                                        isErrorNote: true,
+                                        onToggleDone: (_) {
+                                          errorController.markReviewed(item);
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Revisão adiada com sucesso! 🧠'),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        },
+                                        onDelete: () async {
+                                          final confirm =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Excluir Nota'),
+                                              content: const Text(
+                                                  'Tem certeza que deseja remover esta nota do Caderno de Erros?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, false),
+                                                  child: const Text('Cancelar'),
+                                                ),
+                                                FilledButton(
+                                                  style: FilledButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppTheme.error,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          context, true),
+                                                  child: const Text('Excluir'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            errorController.deleteNote(item.id);
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
                                 }).toList(),
                               ),
                             ),
@@ -454,7 +584,7 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     );
   }
 
-  Future<void> _fetchAIInsight() async {
+  Future<void> _fetchAIInsight({bool forceRefresh = false}) async {
     final activeGoal = ref.read(activeGoalProvider);
     final tasks = ref.read(dailyTasksProvider).valueOrNull ?? [];
     final user = ref.read(authStateProvider).valueOrNull;
@@ -465,7 +595,8 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
 
     final taskIds = tasks.map((t) => t.id).join(',');
     final currentKey = "${activeGoal.id}_$taskIds";
-    if (currentKey == _lastInsightKey && _aiInsight != null) return;
+    if (!forceRefresh && currentKey == _lastInsightKey && _aiInsight != null)
+      return;
 
     setState(() {
       _isFetchingInsight = true;
@@ -475,12 +606,15 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     try {
       final aiServiceProviderFuture = ref.read(aiServiceProvider.future);
       final aiService = await aiServiceProviderFuture;
+      final userModel = ref.read(userSessionProvider).valueOrNull;
+
       if (aiService != null) {
         final insight = await aiService.getDailyInsight(
           userId: user.uid,
           objective: activeGoal.name,
           streak: dashboard?.streakDays ?? 0,
           consistency: dashboard?.consistencyPct ?? 0.0,
+          personalContext: userModel?.personalContext,
           taskNames: tasks.map((t) {
             final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
             final s = subjects.firstWhere((s) => s.id == t.subjectId,
@@ -511,28 +645,39 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
   }
 }
 
-class _TaskCard extends StatelessWidget {
-  final DailyTask task;
+class _ChecklistCard extends StatefulWidget {
+  final String title;
+  final bool isDone;
   final Subject? subject;
-  final String topicName;
+  final int? plannedMinutes;
   final bool showPomodoro;
-  final VoidCallback onTogglePomodoro;
+  final VoidCallback? onTogglePomodoro;
   final void Function(int minutes) onToggleDone;
   final VoidCallback onDelete;
+  final bool isErrorNote;
 
-  const _TaskCard({
-    required this.task,
+  const _ChecklistCard({
+    required this.title,
+    required this.isDone,
     required this.subject,
-    required this.topicName,
-    required this.showPomodoro,
-    required this.onTogglePomodoro,
+    this.plannedMinutes,
+    this.showPomodoro = false,
+    this.onTogglePomodoro,
     required this.onToggleDone,
     required this.onDelete,
+    this.isErrorNote = false,
   });
 
+  @override
+  State<_ChecklistCard> createState() => _ChecklistCardState();
+}
+
+class _ChecklistCardState extends State<_ChecklistCard> {
+  bool _isExpanded = false;
+
   Color _subjectColor() {
-    if (subject == null) return AppTheme.primary;
-    final hex = subject!.color.replaceAll('#', '');
+    if (widget.subject == null) return AppTheme.primary;
+    final hex = widget.subject!.color.replaceAll('#', '');
     return Color(int.parse('FF$hex', radix: 16));
   }
 
@@ -540,141 +685,174 @@ class _TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _subjectColor();
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: task.done
-            ? Theme.of(context).colorScheme.surface
-            : (Theme.of(context).cardTheme.color ??
-                Theme.of(context).colorScheme.surface),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: task.done
-              ? Theme.of(context).dividerColor
-              : color.withValues(alpha: 0.3),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isExpanded = !_isExpanded;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: widget.isDone
+              ? Theme.of(context).colorScheme.surface
+              : (Theme.of(context).cardTheme.color ??
+                  Theme.of(context).colorScheme.surface),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isDone
+                ? Theme.of(context).dividerColor
+                : color.withValues(alpha: 0.3),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Checkbox
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  value: task.done,
-                  onChanged: (_) => onToggleDone(task.plannedMinutes),
-                  activeColor: AppTheme.primary,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Subject name
-              Flexible(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Checkbox
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: widget.isDone,
+                    onChanged: (_) =>
+                        widget.onToggleDone(widget.plannedMinutes ?? 0),
+                    activeColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4)),
                   ),
-                  child: Text(
-                    subject?.name ?? 'Matéria',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                ),
+                const SizedBox(width: 12),
+
+                // Subject name
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Text(
-                  topicName,
-                  style: TextStyle(
-                    color: task.done
-                        ? (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey)
-                        : (Theme.of(context).textTheme.bodyLarge?.color ??
-                            Colors.white),
-                    fontWeight: FontWeight.w500,
-                    decoration: task.done ? TextDecoration.lineThrough : null,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // Trailing actions group
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Time
-                  Text(
-                    AppDateUtils.formatMinutes(task.plannedMinutes),
-                    style: TextStyle(
-                      color: (Theme.of(context).textTheme.labelSmall?.color ??
-                          Colors.grey),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Pomodoro toggle
-                  if (!task.done)
-                    IconButton(
-                      icon: Icon(
-                        Icons.timer_rounded,
-                        color: showPomodoro
-                            ? AppTheme.primary
-                            : (Theme.of(context).textTheme.labelSmall?.color ??
-                                Colors.grey),
-                        size: 18,
+                    child: Text(
+                      widget.subject?.name ?? 'Matéria',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
-                      onPressed: onTogglePomodoro,
+                      maxLines: _isExpanded ? null : 1,
+                      overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  flex: 5,
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: widget.isDone
+                          ? (Theme.of(context).textTheme.labelSmall?.color ??
+                              Colors.grey)
+                          : (Theme.of(context).textTheme.bodyLarge?.color ??
+                              Colors.white),
+                      fontWeight: FontWeight.w500,
+                      decoration:
+                          widget.isDone ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: _isExpanded ? null : 1,
+                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Trailing actions group
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.isErrorNote)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'REVISÃO',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    else if (widget.plannedMinutes != null)
+                      Text(
+                        AppDateUtils.formatMinutes(widget.plannedMinutes!),
+                        style: TextStyle(
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+
+                    // Pomodoro toggle
+                    if (!widget.isDone && widget.onTogglePomodoro != null)
+                      IconButton(
+                        icon: Icon(
+                          Icons.timer_rounded,
+                          color: widget.showPomodoro
+                              ? AppTheme.primary
+                              : (Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.color ??
+                                  Colors.grey),
+                          size: 18,
+                        ),
+                        onPressed: widget.onTogglePomodoro,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+
+                    const SizedBox(width: 12),
+
+                    // Delete
+                    IconButton(
+                      icon: Icon(Icons.delete_outline_rounded,
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
+                          size: 18),
+                      onPressed: widget.onDelete,
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-
-                  const SizedBox(width: 12),
-
-                  // Delete
-                  IconButton(
-                    icon: Icon(Icons.delete_outline_rounded,
-                        color: (Theme.of(context).textTheme.labelSmall?.color ??
-                            Colors.grey),
-                        size: 18),
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          if (showPomodoro)
-            const Padding(
-              padding: EdgeInsets.only(top: 12, left: 40),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: PomodoroTimer(),
-              ),
+                  ],
+                ),
+              ],
             ),
-        ],
+            if (widget.showPomodoro)
+              const Padding(
+                padding: EdgeInsets.only(top: 12, left: 40),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: PomodoroTimer(),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -778,6 +956,10 @@ class _AIMentorCard extends StatelessWidget {
 }
 
 class _EmptyChecklistState extends StatelessWidget {
+  final List<Subject> subjects;
+
+  const _EmptyChecklistState({required this.subjects});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -806,36 +988,333 @@ class _EmptyChecklistState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Crie um plano de estudo para gerar seu cronograma\nou adicione uma tarefa manualmente.',
+            subjects.isEmpty
+                ? 'Comece cadastrando as matérias que você precisa estudar para o seu objetivo.'
+                : 'Crie um plano de estudo para que a IA gere seu cronograma diário.',
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: (Theme.of(context).textTheme.labelSmall?.color ??
                     Colors.grey),
                 fontSize: 13),
           ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/subjects'),
-            icon: const Icon(Icons.auto_awesome_rounded, size: 16),
-            label: const Text('Sugerir com IA'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.accent,
-              side: const BorderSide(color: AppTheme.accent),
+          const SizedBox(height: 24),
+          if (subjects.isEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.go('/subjects'),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: const Text('Sugerir Matérias com IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.accent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) => const StudyPlanWizardDialog(),
+                ),
+                icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: const Text('Gerar Cronograma com IA'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
             ),
-          ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => const StudyPlanWizardDialog(),
-            ),
-            icon: const Icon(Icons.calendar_month_rounded, size: 16),
-            label: const Text('Configurar Plano de Estudo'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppTheme.primary,
-              side: const BorderSide(color: AppTheme.primary),
+          TextButton.icon(
+            onPressed: () => subjects.isEmpty
+                ? context.go('/subjects')
+                : showDialog(
+                    context: context,
+                    builder: (context) => const StudyPlanWizardDialog(),
+                  ),
+            icon: Icon(
+                subjects.isEmpty
+                    ? Icons.list_alt_rounded
+                    : Icons.calendar_month_rounded,
+                size: 16),
+            label: Text(subjects.isEmpty
+                ? 'Cadastrar Matérias Manualmente'
+                : 'Configurar Plano de Estudo'),
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KnowledgeCheckDialog extends ConsumerStatefulWidget {
+  final Subject subject;
+  final String topicName;
+  final void Function(int correctAnswers, int totalQuestions) onCompleted;
+
+  const _KnowledgeCheckDialog({
+    required this.subject,
+    required this.topicName,
+    required this.onCompleted,
+  });
+
+  @override
+  ConsumerState<_KnowledgeCheckDialog> createState() =>
+      _KnowledgeCheckDialogState();
+}
+
+class _KnowledgeCheckDialogState extends ConsumerState<_KnowledgeCheckDialog> {
+  List<KnowledgeCheckQuestion>? _questions;
+  bool _isLoading = true;
+  String? _error;
+  int _currentIndex = 0;
+  bool? _lastAnswerCorrect;
+  bool _showExplanation = false;
+  int _correctCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateQuestions();
+  }
+
+  Future<void> _generateQuestions() async {
+    try {
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception("IA não configurada.");
+
+      final questions = await aiService.generateKnowledgeCheck(
+        subject: widget.subject.name,
+        topic: widget.topicName,
+      );
+
+      if (mounted) {
+        setState(() {
+          _questions = questions;
+          _isLoading = false;
+          if (questions.isEmpty) {
+            _error = "Não foi possível gerar as perguntas.";
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _answer(bool isTrue) {
+    if (_questions == null) return;
+    final currentQ = _questions![_currentIndex];
+    final isCorrect = isTrue == currentQ.isTrue;
+
+    setState(() {
+      _lastAnswerCorrect = isCorrect;
+      _showExplanation = true;
+      if (isCorrect) _correctCount++;
+    });
+
+    if (!isCorrect) {
+      _saveToErrorNotebook(currentQ);
+    }
+  }
+
+  Future<void> _saveToErrorNotebook(KnowledgeCheckQuestion question) async {
+    final user = ref.read(authStateProvider).valueOrNull;
+    final activeGoalId = ref.read(activeGoalIdProvider);
+    if (user == null) return;
+
+    final note = ErrorNote(
+      id: const Uuid().v4(),
+      userId: user.uid,
+      goalId: activeGoalId,
+      subjectId: widget.subject.id,
+      topicId: widget.topicName,
+      question: "[V/F] ${question.statement}",
+      correctAnswer: question.isTrue
+          ? "Verdadeiro. ${question.explanation}"
+          : "Falso. ${question.explanation}",
+      errorReason: "Errei no teste rápido ao concluir a tarefa.",
+      nextReview: DateTime.now().add(const Duration(days: 1)),
+      reviewStage: 0,
+    );
+
+    try {
+      await ref.read(errorNotebookControllerProvider.notifier).createNote(note);
+    } catch (e) {
+      debugPrint("Erro salvando no caderno: $e");
+    }
+  }
+
+  void _nextQuestion() {
+    if (_questions == null) return;
+
+    if (_currentIndex < _questions!.length - 1) {
+      setState(() {
+        _currentIndex++;
+        _showExplanation = false;
+        _lastAnswerCorrect = null;
+      });
+    } else {
+      widget.onCompleted(_correctCount, _questions!.length);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Gerando teste rápido de ${widget.subject.name}...'),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null || _questions == null || _questions!.isEmpty) {
+      return AlertDialog(
+        title: const Text('Ops!'),
+        content: Text(_error ?? 'Erro ao gerar o teste.'),
+        actions: [
+          TextButton(
+              onPressed: () => widget.onCompleted(0, 0),
+              child: const Text('Pular Teste e Concluir Tarefa')),
+        ],
+      );
+    }
+
+    final currentQ = _questions![_currentIndex];
+
+    return AlertDialog(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text('Teste Rápido', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          Text(
+            '${_currentIndex + 1}/${_questions!.length}',
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            currentQ.statement,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          if (!_showExplanation) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green,
+                      side: const BorderSide(color: Colors.green),
+                    ),
+                    onPressed: () => _answer(true),
+                    child: const Text('Verdadeiro'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                    ),
+                    onPressed: () => _answer(false),
+                    child: const Text('Falso'),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: _lastAnswerCorrect!
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : AppTheme.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color:
+                          _lastAnswerCorrect! ? Colors.green : AppTheme.error)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _lastAnswerCorrect!
+                            ? Icons.check_circle_rounded
+                            : Icons.cancel_rounded,
+                        color:
+                            _lastAnswerCorrect! ? Colors.green : AppTheme.error,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _lastAnswerCorrect! ? 'Correto!' : 'Incorreto!',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _lastAnswerCorrect!
+                              ? Colors.green
+                              : AppTheme.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    currentQ.explanation,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  if (!_lastAnswerCorrect!) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Salvo no Caderno de Erros 📓',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold),
+                    )
+                  ]
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _nextQuestion,
+              child: Text(_currentIndex < _questions!.length - 1
+                  ? 'Próxima'
+                  : 'Concluir Tarefa'),
+            )
+          ]
         ],
       ),
     );

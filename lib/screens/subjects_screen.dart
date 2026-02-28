@@ -78,6 +78,7 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                   onSelected: (val) {
                     if (val == 'import') _showAIImportDialog(context);
                     if (val == 'suggest') _suggestWithAI();
+                    if (val == 'audit') _auditWithAI();
                     if (val == 'clear') _confirmClearAll();
                   },
                   tooltip: 'Opções',
@@ -90,6 +91,17 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
                               size: 18, color: AppTheme.accent),
                           SizedBox(width: 12),
                           Text('Sugerir com IA'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'audit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.fact_check_rounded,
+                              size: 18, color: AppTheme.primary),
+                          SizedBox(width: 12),
+                          Text('Verificar com IA'),
                         ],
                       ),
                     ),
@@ -504,6 +516,108 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isGeneratingSuggestions = false);
+      }
+    }
+  }
+
+  Future<void> _auditWithAI() async {
+    final activeGoal = ref.read(activeGoalProvider);
+    if (activeGoal == null) return;
+
+    final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+    if (subjects.isEmpty) return;
+
+    setState(() => _isGeneratingSuggestions = true);
+
+    try {
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception("IA não configurada.");
+
+      final user = ref.read(authStateProvider).valueOrNull;
+      if (user == null) return;
+
+      final irrelevantNames = await aiService.identifyIrrelevantSubjects(
+        userId: user.uid,
+        objective: activeGoal.name,
+        subjectNames: subjects.map((s) => s.name).toList(),
+      );
+
+      if (mounted) {
+        setState(() => _isGeneratingSuggestions = false);
+
+        if (irrelevantNames.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Todas as matérias parecem relevantes!")),
+          );
+          return;
+        }
+
+        final List<Subject> toRemove = subjects
+            .where((s) => irrelevantNames.any(
+                (name) => s.name.toLowerCase().contains(name.toLowerCase())))
+            .toList();
+
+        if (toRemove.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Todas as matérias parecem relevantes!")),
+          );
+          return;
+        }
+
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Matérias Irrelevantes Identificadas'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'A IA identificou as seguintes matérias que podem não pertencer a este objetivo:'),
+                const SizedBox(height: 12),
+                ...toRemove.map((s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('• ${s.name}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                    )),
+                const SizedBox(height: 12),
+                const Text('Deseja excluí-las permanentemente?'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Manter Todas'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+                child: const Text('Excluir Irrelevantes'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed == true) {
+          final controller = ref.read(subjectControllerProvider.notifier);
+          for (final s in toRemove) {
+            await controller.deleteSubject(s.id);
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${toRemove.length} matérias removidas.')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGeneratingSuggestions = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro na auditoria: $e')),
+        );
       }
     }
   }

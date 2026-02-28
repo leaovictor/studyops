@@ -7,6 +7,7 @@ class SharedQuestion {
   final Map<String, String> options; // e.g., {"A": "Text", "B": "..."}
   final String correctAnswer;
   final String? subjectName;
+  final String? topicName;
   final String? source; // e.g., "Prova PRF 2021"
   final String textHash; // Used to prevent duplicates
   final bool isApproved;
@@ -17,6 +18,7 @@ class SharedQuestion {
     required this.options,
     required this.correctAnswer,
     this.subjectName,
+    this.topicName,
     this.source,
     required this.textHash,
     this.isApproved = false,
@@ -35,17 +37,20 @@ class SharedQuestion {
         'options': options,
         'correctAnswer': correctAnswer,
         'subjectName': subjectName,
+        'topicName': topicName,
         'source': source,
         'textHash': textHash,
         'isApproved': isApproved,
       };
 
-  factory SharedQuestion.fromMap(String id, Map<String, dynamic> map) => SharedQuestion(
+  factory SharedQuestion.fromMap(String id, Map<String, dynamic> map) =>
+      SharedQuestion(
         id: id,
         statement: map['statement'] ?? '',
         options: Map<String, String>.from(map['options'] ?? {}),
         correctAnswer: map['correctAnswer'] ?? '',
         subjectName: map['subjectName'],
+        topicName: map['topicName'],
         source: map['source'],
         textHash: map['textHash'] ?? '',
         isApproved: map['isApproved'] as bool? ?? false,

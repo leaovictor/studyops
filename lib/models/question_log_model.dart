@@ -19,7 +19,8 @@ class QuestionLog {
     required this.date,
   });
 
-  double get accuracy => totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+  double get accuracy =>
+      totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
 
   Map<String, dynamic> toMap() => {
         'userId': userId,
@@ -30,7 +31,8 @@ class QuestionLog {
         'date': Timestamp.fromDate(date),
       };
 
-  factory QuestionLog.fromMap(String id, Map<String, dynamic> map) => QuestionLog(
+  factory QuestionLog.fromMap(String id, Map<String, dynamic> map) =>
+      QuestionLog(
         id: id,
         userId: map['userId'] ?? '',
         subjectId: map['subjectId'] ?? '',

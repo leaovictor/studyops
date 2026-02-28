@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dart_openai/dart_openai.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -7,6 +6,7 @@ import '../models/daily_task_model.dart';
 import '../core/utils/app_date_utils.dart';
 import 'usage_service.dart';
 import 'package:uuid/uuid.dart';
+import '../models/knowledge_check_model.dart';
 
 class AISyllabusImportResult {
   final List<Subject> subjects;
@@ -157,14 +157,67 @@ Regras:
     return (jsonResponse['subjects'] as List).cast<Map<String, dynamic>>();
   }
 
+  Future<List<String>> identifyIrrelevantSubjects({
+    required String userId,
+    required String objective,
+    required List<String> subjectNames,
+  }) async {
+    await _usageService.logAIUsage(userId, 'subject_audit');
+    final prompt = '''
+Você é um Auditor de Planos de Estudo. O aluno tem o objetivo de estudo: "$objective".
+Analise a seguinte lista de matérias e identifique quais delas NÃO são comuns ou relevantes para esse objetivo específico (materias intrusas ou de outros concursos).
+
+Lista de matérias:
+${subjectNames.join(', ')}
+
+Retorne um JSON seguindo EXATAMENTE esta estrutura:
+{
+  "irrelevant_subjects": ["Matéria 1", "Matéria 2"]
+}
+
+Regras:
+1. Seja criterioso. Se uma matéria for minimamente comum ao objetivo, não a marque como irrelevante.
+2. Foque em matérias que claramente pertencem a outras áreas (ex: "Física" em um concurso bancário).
+3. Se todas forem relevantes, retorne uma lista vazia.
+4. Retorne APENAS o JSON, sem explicações.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {"type": "json_object"},
+    );
+
+    final String? responseText =
+        response.choices.first.message.content?.first.text;
+    if (responseText == null) return [];
+
+    final jsonResponse = jsonDecode(responseText) as Map<String, dynamic>;
+    final List<dynamic> irrelevant = jsonResponse['irrelevant_subjects'] ?? [];
+    return irrelevant.cast<String>();
+  }
+
   Future<String> getDailyInsight({
     required String userId,
     required String objective,
     required List<String> taskNames,
     int streak = 0,
     double consistency = 0.0,
+    String? personalContext,
   }) async {
     await _usageService.logAIUsage(userId, 'daily_insight');
+
+    final personalContextInfo =
+        personalContext != null && personalContext.isNotEmpty
+            ? "\n- Contexto Pessoal: $personalContext"
+            : "";
 
     final tasksContext = taskNames.isEmpty
         ? "Nenhuma tarefa planejada para hoje."
@@ -180,6 +233,7 @@ Regras:
     final prompt = '''
 Você é um Coach de Estudos motivador e pragmático.
 Com base no objetivo "$objective", nas tarefas de hoje e no desempenho recente, forneça um briefing curto (máximo 2-3 frases) e encorajador.
+$personalContextInfo
 
 DADOS DO ALUNO:
 - Objetivo: $objective
@@ -190,9 +244,10 @@ DADOS DO ALUNO:
 REGRAS:
 1. Seja muito breve e direto. Use um tom de "parceiro de estudos".
 2. Mencione a sequência (streak) ou constância apenas se for relevante para motivar.
-3. Se não houver tarefas, incentive o planejamento ou o descanso produtivo.
-4. Fale em Português do Brasil.
-5. NÃO use mais de 150 caracteres.
+3. Se o aluno forneceu um contexto pessoal (ex: horas de trabalho, família), use isso para tornar a mensagem mais empática e realista.
+4. Se não houver tarefas, incentive o planejamento ou o descanso produtivo.
+5. Fale em Português do Brasil.
+6. NÃO use mais de 150 caracteres.
 ''';
 
     final response = await OpenAI.instance.chat.create(
@@ -307,7 +362,120 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
         'Não foi possível gerar a análise.';
   }
 
-  Future<String> explainQuestion({
+  Future<String> getQuickHint({
+    required String userId,
+    required String question,
+    required List<String> options,
+  }) async {
+    await _usageService.logAIUsage(userId, 'question_hint');
+
+    final prompt = '''
+Você é um Tutor de Elite em Concursos Públicos, com um tom encorajador, didático e altamente profissional. O aluno está travado e precisa de uma luz, não da resposta.
+
+ESTIMULE O RACIOCÍNIO:
+Forneça uma pista que ajude o aluno a conectar os pontos por conta própria. Fale como um professor sentado ao lado dele.
+
+QUESTÃO:
+$question
+
+ALTERNATIVAS:
+${options.join('\n')}
+
+REGRAS DE OURO:
+1. CURTO E DIRETO: Máximo 2 sentenças bem estruturadas.
+2. PEDAGÓGICO: Foque na "chave" lógica ou na "pegadinha" conceitual do tema.
+3. SEM SPOILERS: Jamais revele qual alternativa é a correta ou errada.
+4. PORTUGUÊS IMPECÁVEL: Use pontuação correta e evite termos genéricos.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    return response.choices.first.message.content?.first.text?.trim() ??
+        'Pense na base do conceito discutido.';
+  }
+
+  Future<List<String>> eliminateAlternatives({
+    required String userId,
+    required String question,
+    required Map<String, String> options,
+    required String correctAnswer,
+  }) async {
+    await _usageService.logAIUsage(userId, 'eliminate_alternatives');
+
+    final prompt = '''
+Você é um assistente de exames. Dada a questão e as alternativas abaixo, identifique EXATAMENTE duas alternativas incorretas que podem ser eliminadas para ajudar o aluno.
+
+Questão:
+$question
+
+Alternativas:
+${options.entries.map((e) => "${e.key}: ${e.value}").join('\n')}
+
+Resposta Correta:
+$correctAnswer
+
+Retorne apenas as letras das duas alternativas incorretas separadas por vírgula (ex: B, D).
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    final text =
+        response.choices.first.message.content?.first.text?.trim() ?? '';
+    return text.split(',').map((e) => e.trim().toUpperCase()).toList();
+  }
+
+  Future<String> explainConcept({
+    required String userId,
+    required String question,
+  }) async {
+    await _usageService.logAIUsage(userId, 'explain_concept');
+
+    final prompt = '''
+Você é um Professor Especialista. O aluno quer entender o CONCEITO TEÓRICO por trás desta questão, sem necessariamente ver a explicação da resposta ainda.
+
+Questão:
+$question
+
+Explique o tema central desta questão de forma didática e técnica. No máximo 100 palavras.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+    );
+
+    return response.choices.first.message.content?.first.text?.trim() ??
+        'Não foi possível extrair o conceito agora.';
+  }
+
+  Future<String> getDetailedExplanation({
     required String userId,
     required String question,
     required String correctAnswer,
@@ -315,21 +483,30 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
     await _usageService.logAIUsage(userId, 'question_explanation');
 
     final prompt = '''
-Você é um Professor Especialista em Concursos Públicos.
-Explique de forma didática, concisa e técnica por que a resposta abaixo é a correta para a questão fornecida.
+Você é um Professor Especialista em Concursos Públicos, com linguagem clara, técnica e humanizada. Sua tarefa é desvendar a questão para o aluno, garantindo que ele aprenda o conceito para nunca mais errar.
 
-Questão:
+QUESTÃO:
 $question
 
-Resposta Correta:
+GABARITO:
 $correctAnswer
 
-Estruture sua resposta assim:
-1. **Fundamentação**: A base legal ou teórica (seja direto).
-2. **O Pulo do Gato**: Destaque a pegadinha ou o ponto-chave que a banca costuma cobrar.
-3. **Dica de Ouro**: Como não errar isso na próxima vez.
+ESTRUTURA DA RESPOSTA (OBRIGATÓRIA):
+1. **Fundamentação Teórica**  
+   Explique a base legal, doutrinária ou a regra gramatical de forma direta. Use parágrafos curtos e bem pontuados.
 
-Use Markdown para negrito e listas. Seja breve (máximo 150 palavras).
+2. **O "X" da Questão (Dica Prática)**  
+   Onde está a pegadinha? O que a banca tentou fazer para confundir? Identifique o ponto crítico.
+
+3. **Direito ao Ponto (Como não errar)**  
+   Uma técnica de memorização ou um gatilho mental para a próxima vez.
+
+REGRAS DE FORMATAÇÃO:
+- Use Markdown (negrito para termos técnicos).
+- Indente listas e garanta espaços entre os tópicos para legibilidade.
+- Tom de voz: Mentor experiente e parceiro.
+- Idioma: Português do Brasil de alto nível.
+- Máximo 180 palavras.
 ''';
 
     final response = await OpenAI.instance.chat.create(
@@ -348,17 +525,79 @@ Use Markdown para negrito e listas. Seja breve (máximo 150 palavras).
         'Não foi possível gerar a explanation.';
   }
 
-  Future<List<Map<String, dynamic>>> extractQuestionsFromFiles(
-      String userId, List<Uint8List> filesBytes, String mimeType) async {
-    await _usageService.logAIUsage(userId, 'exam_extraction');
-    // Note: OpenAI vision models expect URLs or base64 data.
-    // For simplicity in this refactor, we are using the legacy prompt but OpenAI vision would be better.
-    // However, since the goal is a refactor, we adapt.
+  Future<List<KnowledgeCheckQuestion>> generateKnowledgeCheck({
+    required String subject,
+    required String topic,
+  }) async {
+    final prompt = '''
+Você é um especialista em $subject.
+O aluno acabou de estudar o tópico "$topic".
+Gere exatamente 5 perguntas de VERDADEIRO ou FALSO (fáceis para médias) sobre este tópico para verificar o aprendizado rápido.
+Retorne um objeto JSON com uma chave "questions", cujo valor seja um array com o seguinte formato exato (sem formatação markdown como ```json):
+{
+  "questions": [
+    {
+      "statement": "O Sol gira ao redor da Terra.",
+      "isTrue": false,
+      "explanation": "No modelo heliocêntrico, a Terra gira ao redor do Sol."
+    }
+  ]
+}
+Apenas retorne o JSON.
+''';
 
-    final List<OpenAIChatCompletionChoiceMessageContentItemModel> content = [
-      OpenAIChatCompletionChoiceMessageContentItemModel.text('''
-Você é um extrator de dados de alta precisão. Analise as imagens ou PDFs de provas de concurso fornecidos.
-Extraia TODAS as questões completas, incluindo o enunciado, as alternativas (A, B, C, D, E) e identifique o gabarito correto.
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {
+        "type": "json_object"
+      }, // Not always supported by all models, but groq handles json output if instructed. Wait, we usually parse it raw. Let's just ask for JSON without json_object to be safe with standard models.
+    );
+
+    final rawText =
+        response.choices.first.message.content?.first.text?.trim() ?? '[]';
+    final cleanText =
+        rawText.replaceAll('```json', '').replaceAll('```', '').trim();
+
+    try {
+      final dynamic decoded = jsonDecode(cleanText);
+      List<dynamic> questionsList = [];
+
+      if (decoded is Map<String, dynamic>) {
+        questionsList = decoded['questions'] ?? [];
+        if (questionsList.isEmpty) {
+          final lists = decoded.values.whereType<List<dynamic>>();
+          if (lists.isNotEmpty) questionsList = lists.first;
+        }
+      } else if (decoded is List<dynamic>) {
+        questionsList = decoded;
+      }
+
+      return questionsList
+          .map((e) => KnowledgeCheckQuestion.fromJson(e))
+          .toList();
+    } catch (e) {
+      print('Failed to parse knowledge check JSON: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> generateQuestionsForBank({
+    required String subject,
+    required String topic,
+    int count = 5,
+  }) async {
+    final prompt = '''
+Você é um Especialista em Bancas de Concurso Público.
+Gere $count questões inéditas e de alta qualidade sobre a matéria "$subject" e o tópico "$topic".
+As questões devem ser de múltipla escolha com 5 alternativas (A, B, C, D, E).
 
 Retorne um JSON seguindo EXATAMENTE esta estrutura:
 {
@@ -373,30 +612,25 @@ Retorne um JSON seguindo EXATAMENTE esta estrutura:
         "E": "Texto da alternativa E"
       },
       "correctAnswer": "A",
-      "subjectName": "Nome provável da matéria (ex: Direito Penal)"
+      "subjectName": "$subject",
+      "topicName": "$topic"
     }
   ]
 }
 
 Regras:
-1. Ignore cabeçalhos, rodapés e números de página.
-2. Se não houver certeza do gabarito, tente inferir pela lógica ou deixe em branco.
-3. Não invente questões. Extraia apenas o que está no arquivo.
-'''),
-    ];
-
-    for (var bytes in filesBytes) {
-      final base64Image = base64Encode(bytes);
-      content.add(OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
-        'data:$mimeType;base64,$base64Image',
-      ));
-    }
+1. As questões devem ser desafiadoras e similares às de bancas reais (ex: FCC, FGV, Cebraspe).
+2. Não use questões óbvias.
+3. Retorne APENAS o JSON.
+''';
 
     final response = await OpenAI.instance.chat.create(
       model: _model,
       messages: [
         OpenAIChatCompletionChoiceMessageModel(
-          content: content,
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
           role: OpenAIChatMessageRole.user,
         ),
       ],
@@ -441,11 +675,12 @@ CONTEXTO DA ROTINA:
 $routineContext
 
 REGRAS CRÍTICAS PARA O CRONOGRAMA:
-1. LIMITE E SEQUÊNCIA (Obrigatório): JAMAIS sugira mais de 2 matérias por dia. O ideal é 1 ou 2 para manter o foco.
-2. PROGRESSÃO LÓGICA: Comece pelos tópicos fundamentais e siga uma ordem didática.
-3. REVISÃO: Reserve um dia na semana (preferencialmente domingo) EXCLUSIVO para revisão. Não coloque matéria nova no dia de revisão.
-4. CARGA HORÁRIA: Respeite a rotina. Se o aluno descreveu poucas horas, diminua a quantidade de tarefas, não as diminua o tempo de cada uma para menos de 45min.
-5. DESCRIÇÃO: Tente alocar os tópicos de forma que o aluno termine um antes de começar o outro, se possível.
+1. DISTRIBUIÇÃO E FOCO: Se o aluno tiver mais de 2h disponíveis, sugira de 2 a 3 matérias diferentes por dia para evitar a fadiga mental. Se tiver menos, 1 ou 2.
+2. SESSÕES DE ESTUDO: Cada tópico deve ter entre 45 a 90 minutos. Não coloque blocos de 3h para um único tópico, a menos que seja extremamente denso.
+3. PROGRESSÃO LÓGICA: Comece pelos tópicos fundamentais e siga uma ordem didática.
+4. REVISÃO: Reserve um dia na semana (preferencialmente domingo) EXCLUSIVO para revisão geral e simulados. Não coloque matéria nova no dia de revisão.
+5. CARGA HORÁRIA: Use integralmente a carga horária diária informada ou deduzida da rotina ($routineContext).
+6. EQUILÍBRIO: Alterne entre matérias de exatas e humanas (se houver) para manter o cérebro engajado.
 
 Retorne um JSON seguindo EXATAMENTE esta estrutura:
 {
@@ -580,5 +815,54 @@ Retorne APENAS o JSON.
     }
 
     return jsonDecode(responseText) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, String>> generateFlashcardFromQuestion({
+    required String question,
+    required String answer,
+  }) async {
+    final prompt = '''
+Você é um Especialista em Aprendizado Acelerado.
+Com base nesta questão de concurso e seu gabarito, crie um flashcard conciso e eficaz (Frente e Verso).
+A frente deve ser uma pergunta ou lacuna desafiadora. O verso deve ser a resposta direta.
+
+QUESTÃO: $question
+GABARITO: $answer
+
+Retorne um JSON seguindo EXATAMENTE esta estrutura:
+{
+  "front": "Texto da frente do flashcard",
+  "back": "Texto do verso do flashcard"
+}
+
+Regras:
+1. Seja muito conciso.
+2. Evite repetir todo o enunciado se não for necessário.
+3. Foque no conceito chave cobrado na questão.
+4. Retorne APENAS o JSON.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {"type": "json_object"},
+    );
+
+    final String? responseText =
+        response.choices.first.message.content?.first.text;
+    if (responseText == null) throw Exception('Resposta da IA vazia.');
+
+    final jsonResponse = jsonDecode(responseText) as Map<String, dynamic>;
+    return {
+      "front": jsonResponse["front"] as String,
+      "back": jsonResponse["back"] as String,
+    };
   }
 }

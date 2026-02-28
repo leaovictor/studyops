@@ -54,8 +54,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '379727416390',
     projectId: 'studyops-dev',
     storageBucket: 'studyops-dev.firebasestorage.app',
-    iosClientId: '379727416390-0vu5m1jukfm12ol1vdjprl0ia8i3r5fr.apps.googleusercontent.com',
+    iosClientId:
+        '379727416390-0vu5m1jukfm12ol1vdjprl0ia8i3r5fr.apps.googleusercontent.com',
     iosBundleId: 'com.studyops.app',
   );
-
 }

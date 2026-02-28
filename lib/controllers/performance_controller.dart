@@ -5,8 +5,10 @@ import 'auth_controller.dart';
 
 import '../services/question_bank_service.dart';
 
-final questionServiceProvider = Provider<QuestionService>((ref) => QuestionService());
-final questionBankServiceProvider = Provider<QuestionBankService>((ref) => QuestionBankService());
+final questionServiceProvider =
+    Provider<QuestionService>((ref) => QuestionService());
+final questionBankServiceProvider =
+    Provider<QuestionBankService>((ref) => QuestionBankService());
 
 final questionLogsProvider = StreamProvider<List<QuestionLog>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;

@@ -31,6 +31,7 @@ class DailyTaskService {
     batch.update(_tasks.doc(task.id), {
       'done': true,
       'actualMinutes': actualMinutes,
+      'productiveMinutes': task.productiveMinutes,
     });
 
     // Write a study log entry
@@ -42,6 +43,7 @@ class DailyTaskService {
       date: task.date,
       subjectId: task.subjectId,
       minutes: actualMinutes > 0 ? actualMinutes : task.plannedMinutes,
+      productiveMinutes: task.productiveMinutes,
     );
     batch.set(logRef, log.toMap());
 

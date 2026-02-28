@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:file_picker/file_picker.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
@@ -144,14 +143,14 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                     ),
                                     TextButton.icon(
                                       onPressed: () =>
-                                          _showUploadExamDialog(context),
+                                          _showGenerateAIDialog(context),
                                       icon: const Icon(
-                                          Icons.upload_file_rounded,
+                                          Icons.auto_awesome_rounded,
                                           size: 18),
-                                      label: const Text('Subir Prova',
+                                      label: const Text('Gerar com IA',
                                           style: TextStyle(fontSize: 13)),
                                       style: TextButton.styleFrom(
-                                          foregroundColor: AppTheme.primary),
+                                          foregroundColor: AppTheme.accent),
                                     ),
                                   ],
                                 ),
@@ -371,9 +370,200 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
             data: data, stats: stats, subjectNameMap: subjectNameMap));
   }
 
-  void _showUploadExamDialog(BuildContext context) {
+  void _showGenerateAIDialog(BuildContext context) {
     showDialog(
-        context: context, builder: (context) => const _UploadExamDialog());
+        context: context,
+        builder: (context) => const _GenerateAIPortalDialog());
+  }
+}
+
+class _GenerateAIPortalDialog extends ConsumerStatefulWidget {
+  const _GenerateAIPortalDialog();
+
+  @override
+  ConsumerState<_GenerateAIPortalDialog> createState() =>
+      _GenerateAIPortalDialogState();
+}
+
+class _GenerateAIPortalDialogState
+    extends ConsumerState<_GenerateAIPortalDialog> {
+  String? _selectedSubjectId;
+  String? _selectedTopicId;
+  int _count = 5;
+  bool _isLoading = false;
+  String? _status;
+
+  Future<void> _generate() async {
+    if (_selectedSubjectId == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _status = "A IA está elaborando as questões...";
+    });
+
+    try {
+      final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+      final subject = subjects.firstWhere((s) => s.id == _selectedSubjectId);
+      final topics = ref.read(allTopicsProvider).valueOrNull ?? [];
+      final topicName = _selectedTopicId != null
+          ? topics.firstWhere((t) => t.id == _selectedTopicId).name
+          : "Geral";
+
+      final aiService = await ref.read(aiServiceProvider.future);
+      if (aiService == null) throw Exception("IA não configurada.");
+
+      final generated = await aiService.generateQuestionsForBank(
+        subject: subject.name,
+        topic: topicName,
+        count: _count,
+      );
+
+      setState(() => _status = "Alimentando o banco compartilhado...");
+
+      final List<SharedQuestion> toAdd = generated.map((qData) {
+        final statement = qData["statement"] as String;
+        final options = Map<String, String>.from(qData["options"]);
+        return SharedQuestion(
+          id: "",
+          statement: statement,
+          options: options,
+          correctAnswer: qData["correctAnswer"],
+          subjectName: qData["subjectName"],
+          topicName: qData["topicName"],
+          source: "Gerado por IA",
+          textHash: SharedQuestion.generateHash(statement, options),
+        );
+      }).toList();
+
+      final bankService = ref.read(questionBankServiceProvider);
+      final added = await bankService.addQuestions(toAdd);
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _status = "Sucesso! $added novas questões geradas e adicionadas.";
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _status = "Erro: $e";
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+    final topics = _selectedSubjectId != null
+        ? ref
+                .watch(topicsForSubjectProvider(_selectedSubjectId!))
+                .valueOrNull ??
+            []
+        : [];
+
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: AppTheme.accent),
+          SizedBox(width: 12),
+          Text("Gerar com IA"),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "A IA vai buscar e elaborar questões reais ou similares para alimentar o banco global do StudyOps.",
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else if (_status != null)
+              Text(_status!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: AppTheme.accent))
+            else ...[
+              DropdownButtonFormField<String>(
+                value: _selectedSubjectId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Matéria',
+                  isDense: true,
+                ),
+                items: subjects
+                    .map((s) => DropdownMenuItem<String>(
+                        value: s.id, child: Text(s.name)))
+                    .toList(),
+                onChanged: (val) => setState(() {
+                  _selectedSubjectId = val;
+                  _selectedTopicId = null;
+                }),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedTopicId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Tópico (Opcional)',
+                  isDense: true,
+                ),
+                items: topics
+                    .map((t) => DropdownMenuItem<String>(
+                        value: t.id, child: Text(t.name)))
+                    .toList(),
+                onChanged: (val) => setState(() => _selectedTopicId = val),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text("Quantidade: ", style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(
+                            value: 3,
+                            label: Text("3", style: TextStyle(fontSize: 12))),
+                        ButtonSegment(
+                            value: 5,
+                            label: Text("5", style: TextStyle(fontSize: 12))),
+                        ButtonSegment(
+                            value: 10,
+                            label: Text("10", style: TextStyle(fontSize: 12))),
+                      ],
+                      selected: {_count},
+                      onSelectionChanged: (val) =>
+                          setState(() => _count = val.first),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _selectedSubjectId == null ? null : _generate,
+                icon: const Icon(Icons.rocket_launch_rounded),
+                label: const Text("Iniciar Geração"),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.accent,
+                    minimumSize: const Size(double.infinity, 45)),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text("Fechar"),
+        ),
+      ],
+    );
   }
 }
 
@@ -405,7 +595,7 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
       if (user == null) return;
       final aiService = await ref.read(aiServiceProvider.future);
       if (aiService == null) {
-        throw Exception("Gemini API Key não configurada no Painel Admin.");
+        throw Exception("A chave da IA não está configurada no Painel Admin.");
       }
 
       final accuracyByName = <String, double>{};
@@ -460,107 +650,6 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
           FilledButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Entendi"))
-      ],
-    );
-  }
-}
-
-class _UploadExamDialog extends ConsumerStatefulWidget {
-  const _UploadExamDialog();
-
-  @override
-  ConsumerState<_UploadExamDialog> createState() => _UploadExamDialogState();
-}
-
-class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
-  bool _isLoading = false;
-  String? _status;
-
-  Future<void> _pickAndProcess() async {
-    final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ["pdf", "jpg", "png"],
-        withData: true);
-    if (result == null || result.files.isEmpty) return;
-    setState(() {
-      _isLoading = true;
-      _status = "Enviando arquivo para a IA...";
-    });
-
-    try {
-      final user = ref.read(authStateProvider).valueOrNull;
-      if (user == null) return;
-      final aiService = await ref.read(aiServiceProvider.future);
-      if (aiService == null) {
-        throw Exception("Gemini API Key não configurada no Painel Admin.");
-      }
-
-      final bankService = ref.read(questionBankServiceProvider);
-      final file = result.files.first;
-
-      final extracted = await aiService.extractQuestionsFromFiles(
-        user.uid,
-        [file.bytes!],
-        file.extension == "pdf" ? "application/pdf" : "image/${file.extension}",
-      );
-
-      setState(() => _status =
-          "Processando ${extracted.length} questões e removendo duplicatas...");
-      final List<SharedQuestion> toAdd = extracted.map((qData) {
-        final statement = qData["statement"] as String;
-        final options = Map<String, String>.from(qData["options"]);
-        return SharedQuestion(
-          id: "",
-          statement: statement,
-          options: options,
-          correctAnswer: qData["correctAnswer"],
-          subjectName: qData["subjectName"],
-          source: file.name,
-          textHash: SharedQuestion.generateHash(statement, options),
-        );
-      }).toList();
-
-      final added = await bankService.addQuestions(toAdd);
-      if (mounted)
-        setState(() {
-          _isLoading = false;
-          _status = "Sucesso! $added novas questões adicionadas.";
-        });
-    } catch (e) {
-      if (mounted)
-        setState(() {
-          _isLoading = false;
-          _status = "Erro: $e";
-        });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("Alimentar Banco Global"),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text(
-            "Suba uma prova anterior (PDF ou Imagem). Nossa IA extrairá as questões para o banco compartilhado.",
-            style: TextStyle(fontSize: 13)),
-        const SizedBox(height: 20),
-        if (_isLoading)
-          const CircularProgressIndicator()
-        else if (_status != null)
-          Text(_status!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: AppTheme.accent))
-        else
-          ElevatedButton.icon(
-              onPressed: _pickAndProcess,
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              label: const Text("Selecionar Arquivo")),
-      ]),
-      actions: [
-        TextButton(
-            onPressed: _isLoading ? null : () => Navigator.pop(context),
-            child: const Text("Fechar"))
       ],
     );
   }

@@ -14,7 +14,8 @@ class UsageService {
   }
 
   Stream<int> watchTotalAICalls() {
-    return _db.collection(AppConstants.colUsage)
+    return _db
+        .collection(AppConstants.colUsage)
         .where('type', isEqualTo: 'ai_call')
         .snapshots()
         .map((snap) => snap.docs.length);

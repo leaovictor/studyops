@@ -73,24 +73,25 @@ class GoalController extends AsyncNotifier<void> {
       }
     }
 
-    // Check subjects without goalId
-    final subjectService = SubjectService();
-    final subjects = await _dbGetSubjectsOnce(user.uid);
+    // ONLY migrate subjects/notes if there's exactly one goal to avoid mixing
+    if (goals.length <= 1) {
+      final subjectService = SubjectService();
+      final subjects = await _dbGetSubjectsOnce(user.uid);
 
-    for (final subject in subjects) {
-      if (subject.goalId == null) {
-        await subjectService
-            .updateSubject(subject.copyWith(goalId: activeGoal.id));
+      for (final subject in subjects) {
+        if (subject.goalId == null) {
+          await subjectService
+              .updateSubject(subject.copyWith(goalId: activeGoal.id));
+        }
       }
-    }
 
-    // Check error notes without goalId
-    final errorService = ErrorNotebookService();
-    final notes = await _dbGetErrorNotesOnce(user.uid);
+      final errorService = ErrorNotebookService();
+      final notes = await _dbGetErrorNotesOnce(user.uid);
 
-    for (final note in notes) {
-      if (note.goalId == null) {
-        await errorService.updateNote(note.copyWith(goalId: activeGoal.id));
+      for (final note in notes) {
+        if (note.goalId == null) {
+          await errorService.updateNote(note.copyWith(goalId: activeGoal.id));
+        }
       }
     }
   }

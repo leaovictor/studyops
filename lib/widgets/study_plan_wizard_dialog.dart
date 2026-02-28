@@ -93,6 +93,15 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
     _endDate = widget.activePlan?.endDate ??
         DateTime.now().add(const Duration(days: 29));
     _dailyHours = widget.activePlan?.dailyHours ?? 3.0;
+
+    // Pre-fill routine from user profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userModel = ref.read(userSessionProvider).valueOrNull;
+      if (userModel?.personalContext != null &&
+          _routineController.text.isEmpty) {
+        _routineController.text = userModel!.personalContext!;
+      }
+    });
   }
 
   @override
@@ -382,6 +391,14 @@ class _StudyPlanWizardDialogState extends ConsumerState<StudyPlanWizardDialog> {
                               plan,
                               routineContext: _routineController.text,
                             );
+
+                            // Save routine to user profile for future use
+                            if (_routineController.text.trim().isNotEmpty) {
+                              await ref
+                                  .read(authControllerProvider.notifier)
+                                  .updatePersonalContext(
+                                      _routineController.text.trim());
+                            }
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(

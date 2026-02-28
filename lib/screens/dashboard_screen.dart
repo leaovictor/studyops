@@ -16,7 +16,6 @@ import '../widgets/relevance_tooltip.dart';
 import '../widgets/metric_card.dart';
 import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
-import '../widgets/goal_switcher.dart';
 import '../controllers/quote_controller.dart';
 
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -70,7 +69,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         loading: () => const Center(
             child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation(AppTheme.primary))),
-        error: (e, _) => Center(child: Text('Erro: $e')),
+        error: (e, st) {
+          debugPrint('Dashboard Error: $e');
+          debugPrint('Stack trace: $st');
+          return Center(
+              child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+                'Erro ao carregar dashboard. Verifique o console para mais detalhes.\n\n$e',
+                textAlign: TextAlign.center),
+          ));
+        },
         data: (data) {
           final subjectColorMap = {
             for (final s in subjects) s.id: s.color,
@@ -219,7 +228,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               flex: 5,
                               child: _ChartCard(
                                 title: 'Planejado vs Lido Hoje',
-                                height: 280,
+                                height:
+                                    null, // Allow it to grow or be handled by content
                                 child: PlannedVsReadChart(
                                   data: data.plannedVsRead,
                                   subjectNames: subjectNameMap,
@@ -231,7 +241,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       else
                         _ChartCard(
                           title: 'Planejado vs Lido Hoje',
-                          height: 240,
+                          height: null,
                           child: PlannedVsReadChart(
                             data: data.plannedVsRead,
                             subjectNames: subjectNameMap,
@@ -661,12 +671,14 @@ class _SuggestedSubjectCTAState extends State<_SuggestedSubjectCTA>
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   final String userName;
   const _Header({required this.userName});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeGoal = ref.watch(activeGoalProvider);
+
     return Wrap(
       spacing: 16,
       runSpacing: 16,
@@ -689,33 +701,43 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Text(
-              AppDateUtils.weekdayLabel(DateTime.now()),
-              style: TextStyle(
-                color: (Theme.of(context).textTheme.bodySmall?.color ??
-                    Colors.grey),
-                fontSize: 15,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-            const SizedBox(
-              width: 250,
-              child: GoalSwitcher(),
+            Row(
+              children: [
+                Text(
+                  AppDateUtils.weekdayLabel(DateTime.now()),
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 15,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (activeGoal != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 4,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).dividerColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Estudando para: ${activeGoal.name}',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
             ),
           ],
-        ),
-        FilledButton.icon(
-          onPressed: () => context.go('/checklist'),
-          icon: const Icon(Icons.bolt_rounded, size: 18),
-          label: const Text('Iniciar Sessão'),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppTheme.primary,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
         ),
       ],
     );
@@ -945,12 +967,18 @@ class _TopMetricsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasLostTime = data.todayProductiveMinutes < data.todayMinutes;
+    final String todaySubtitle = hasLostTime
+        ? '${AppDateUtils.formatMinutes(data.todayMinutes)} Bruto'
+        : '100% Produtivo';
+
     final List<Widget> cards = [
       MetricCard(
         icon: Icons.today_rounded,
-        label: 'Hoje',
-        value: AppDateUtils.formatMinutes(data.todayMinutes),
-        accentColor: AppTheme.primary,
+        label: 'Hoje (Líquido)',
+        value: AppDateUtils.formatMinutes(data.todayProductiveMinutes),
+        subtitle: todaySubtitle,
+        accentColor: hasLostTime ? AppTheme.warning : AppTheme.primary,
       ),
       MetricCard(
         icon: Icons.calendar_view_week_rounded,
@@ -992,14 +1020,21 @@ class _TopMetricsRow extends StatelessWidget {
       );
     }
 
-    return GridView.count(
-      crossAxisCount: isTablet ? 4 : 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.3, // Adjusted from 1.6 to prevent overflow on mobile
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: cards,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double spacing = 16.0;
+        final int crossAxisCount = isTablet ? 4 : 2;
+        final double itemWidth =
+            (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /
+                crossAxisCount;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children:
+              cards.map((c) => SizedBox(width: itemWidth, child: c)).toList(),
+        );
+      },
     );
   }
 }
@@ -1007,11 +1042,11 @@ class _TopMetricsRow extends StatelessWidget {
 class _ChartCard extends StatelessWidget {
   final String title;
   final Widget child;
-  final double height;
+  final double? height;
   const _ChartCard({
     required this.title,
     required this.child,
-    required this.height,
+    this.height,
   });
 
   @override
@@ -1051,7 +1086,7 @@ class _ChartCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(height: height, child: child),
+          height != null ? SizedBox(height: height, child: child) : child,
         ],
       ),
     );

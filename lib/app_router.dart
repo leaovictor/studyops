@@ -5,8 +5,8 @@ import 'controllers/auth_controller.dart';
 import 'controllers/study_plan_controller.dart';
 import 'controllers/subject_controller.dart';
 import 'controllers/goal_controller.dart';
-import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/landing_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/daily_checklist_screen.dart';
@@ -19,6 +19,7 @@ import 'screens/manual_screen.dart';
 import 'screens/flashcards_screen.dart';
 import 'screens/flashcard_study_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
+import 'screens/quiz_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -59,15 +60,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = authState.valueOrNull;
       final loggedIn = user != null;
-      final isPublicRoute = path == '/login' || path == '/';
+      final isLandingRoute = path == '/';
+      final isLoginRoute = path == '/login';
 
       if (!loggedIn) {
-        if (path == '/login') return null;
-        return '/login';
+        if (isLandingRoute || isLoginRoute) return null;
+        return '/'; // Go to landing page
       }
 
       // If logged in and on a public route, determine where to go next
-      if (isPublicRoute) {
+      if (isLandingRoute || isLoginRoute) {
         final planAsync = ref.read(activePlanProvider);
         final subjectsAsync = ref.read(subjectsProvider);
         final goalsAsync = ref.read(goalsProvider);
@@ -93,7 +95,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => const SplashScreen(),
+        builder: (_, __) => const LandingScreen(),
       ),
       GoRoute(
         path: '/login',
@@ -132,7 +134,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/settings', builder: (_, __) => const SettingsScreen()),
           GoRoute(path: '/manual', builder: (_, __) => const ManualScreen()),
-          GoRoute(path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
+          GoRoute(
+              path: '/admin', builder: (_, __) => const AdminDashboardScreen()),
+          GoRoute(path: '/quiz', builder: (_, __) => const QuizScreen()),
         ],
       ),
     ],

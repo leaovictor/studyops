@@ -31,7 +31,8 @@ class ManualScreen extends StatelessWidget {
                 Text(
                   'Explore as Funcionalidades',
                   style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
@@ -51,12 +52,12 @@ class ManualScreen extends StatelessWidget {
                 const _ManualCard(
                   title: 'Checklist: Sua Missão Diária',
                   description:
-                      'O coração do app. Aqui aparecem as matérias que você precisa estudar hoje, calculadas pelo nosso algoritmo inteligente.',
+                      'O coração do app. Aqui aparecem as tarefas que você precisa estudar hoje e as revisões pendentes do seu Caderno de Erros (marcadas em laranja).',
                   icon: Icons.checklist_rounded,
                   color: Colors.green,
                   tips: [
                     'Cumpra as tarefas do topo primeiro!',
-                    'Use o timer Pomodoro para manter o foco total.'
+                    'Ao concluir uma tarefa, a IA gerará um teste rápido. Use-o para medir seu foco!'
                   ],
                 ),
                 const _ManualCard(
@@ -136,6 +137,39 @@ class ManualScreen extends StatelessWidget {
                     'Gerencie os Assuntos do seu concurso na aba Matérias.'
                   ],
                 ),
+                const _ManualCard(
+                  title: 'Simulado (Banco Global)',
+                  description:
+                      'Pratique seus conhecimentos com questões reais extraídas pela comunidade. Receba feedback imediato e envie seus erros para revisão.',
+                  icon: Icons.quiz_rounded,
+                  color: Colors.pinkAccent,
+                  tips: [
+                    'Errou? A questão vai direto para o seu Caderno de Erros automaticamente.',
+                    'Peça a ajuda da inteligência artificial clicando em "Explicação IA" em qualquer questão!'
+                  ],
+                ),
+                const _ManualCard(
+                  title: 'Validação Rápida de Conhecimento (IA)',
+                  description:
+                      'Ao marcar uma tarefa do Checklist como concluída, a IA gera um mini-teste de 5 questões sobre o tópico estudado para fixação. Sua nota define a rentabilidade do seu estudo!',
+                  icon: Icons.psychology_rounded,
+                  color: Colors.deepOrange,
+                  tips: [
+                    'Acerte mais de 60% para converter seu Tempo Bruto em Tempo Líquido no Dashboard.',
+                    'A IA explica as respostas para cada questão instantaneamente caso você erre.'
+                  ],
+                ),
+                const _ManualCard(
+                  title: 'Modo Foco Hardcore (Pomodoro)',
+                  description:
+                      'Chega de se enganar. O seu tempo Pomodoro só roda quando você está efetivamente no app.',
+                  icon: Icons.timer_rounded,
+                  color: Colors.redAccent,
+                  tips: [
+                    'Se você sair do app enquanto o timer estiver rodando, ele é pausado automaticamente.',
+                    'Combine o Modo Hardcore com a Validação da IA para ter 100% de certeza do seu rendimento.'
+                  ],
+                ),
                 const SizedBox(height: 40),
                 const _GamificationFooter(),
               ],
@@ -171,7 +205,8 @@ class _WelcomeSection extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
             ),
             textAlign: TextAlign.center,
           ),
@@ -179,7 +214,8 @@ class _WelcomeSection extends StatelessWidget {
           Text(
             'O StudyOps foi criado para que você não precise pensar no "o que estudar", apenas no "estudar". Aqui está como tirar o máximo proveito de cada ferramenta.',
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 15,
               height: 1.5,
             ),
@@ -234,7 +270,8 @@ class _ManualCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -246,7 +283,8 @@ class _ManualCard extends StatelessWidget {
           Text(
             description,
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 14,
               height: 1.6,
             ),
@@ -263,7 +301,9 @@ class _ManualCard extends StatelessWidget {
                       child: Text(
                         tip,
                         style: TextStyle(
-                          color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey),
+                          color:
+                              (Theme.of(context).textTheme.labelSmall?.color ??
+                                  Colors.grey),
                           fontSize: 13,
                           fontStyle: FontStyle.italic,
                         ),
@@ -300,14 +340,16 @@ class _GamificationFooter extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Quanto mais você estuda e revisa, mais pontos você ganha. Não quebre sua ofensiva (streak) — a consistência é a chave da aprovação!',
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
               fontSize: 13,
               height: 1.5,
             ),

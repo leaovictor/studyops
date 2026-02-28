@@ -7,6 +7,7 @@ class StudyLog {
   final String date; // "yyyy-MM-dd"
   final String subjectId;
   final int minutes;
+  final int? productiveMinutes;
 
   const StudyLog({
     required this.id,
@@ -15,6 +16,7 @@ class StudyLog {
     required this.date,
     required this.subjectId,
     required this.minutes,
+    this.productiveMinutes,
   });
 
   Map<String, dynamic> toMap() => {
@@ -23,6 +25,7 @@ class StudyLog {
         'date': date,
         'subjectId': subjectId,
         'minutes': minutes,
+        'productiveMinutes': productiveMinutes,
       };
 
   factory StudyLog.fromMap(String id, Map<String, dynamic> map) => StudyLog(
@@ -32,6 +35,7 @@ class StudyLog {
         date: map['date'] as String? ?? '',
         subjectId: map['subjectId'] as String? ?? '',
         minutes: (map['minutes'] as num?)?.toInt() ?? 0,
+        productiveMinutes: (map['productiveMinutes'] as num?)?.toInt(),
       );
 
   factory StudyLog.fromDoc(DocumentSnapshot doc) =>

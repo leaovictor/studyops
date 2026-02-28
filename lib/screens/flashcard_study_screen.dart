@@ -23,8 +23,13 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
   int _currentIndex = 0;
   bool _flipped = false;
   bool _rated = false;
-  int _correct = 0;
-  int _incorrect = 0;
+  final Map<fsrs.Rating, int> _ratingsCount = {
+    fsrs.Rating.again: 0,
+    fsrs.Rating.hard: 0,
+    fsrs.Rating.good: 0,
+    fsrs.Rating.easy: 0,
+  };
+  late DateTime _startTime;
   bool _sessionDone = false;
   late ConfettiController _confettiController;
 
@@ -35,6 +40,7 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
+    _startTime = DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadCards());
   }
 
@@ -62,11 +68,9 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
     final card = _cards[_currentIndex];
     await ref.read(flashcardControllerProvider.notifier).rate(card, rating);
 
-    if (rating == fsrs.Rating.again) {
-      setState(() => _incorrect++);
-    } else {
-      setState(() => _correct++);
-    }
+    setState(() {
+      _ratingsCount[rating] = (_ratingsCount[rating] ?? 0) + 1;
+    });
 
     await Future.delayed(const Duration(milliseconds: 350));
 
@@ -90,7 +94,9 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey)),
+          icon: Icon(Icons.close_rounded,
+              color: (Theme.of(context).textTheme.bodySmall?.color ??
+                  Colors.grey)),
           onPressed: () => Navigator.pop(context),
         ),
         title: _sessionDone || _cards.isEmpty
@@ -100,7 +106,10 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
       body: Stack(
         children: [
           _sessionDone || _cards.isEmpty
-              ? _DonePanel(correct: _correct, incorrect: _incorrect)
+              ? _DonePanel(
+                  ratings: _ratingsCount,
+                  duration: DateTime.now().difference(_startTime),
+                )
               : _StudyPanel(
                   card: _cards[_currentIndex],
                   flipped: _flipped,
@@ -144,7 +153,10 @@ class _ProgressBar extends StatelessWidget {
       children: [
         Text(
           '$current / $total',
-          style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 13),
+          style: TextStyle(
+              color: (Theme.of(context).textTheme.labelSmall?.color ??
+                  Colors.grey),
+              fontSize: 13),
         ),
         const SizedBox(height: 4),
         ClipRRect(
@@ -290,7 +302,8 @@ class _CardFace extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: (Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface),
+        color: (Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
@@ -325,7 +338,8 @@ class _CardFace extends StatelessWidget {
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+              color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                  Colors.white),
               fontSize: 20,
               fontWeight: FontWeight.w600,
               height: 1.4,
@@ -335,7 +349,10 @@ class _CardFace extends StatelessWidget {
             const SizedBox(height: 20),
             Text(
               hint!,
-              style: TextStyle(color: (Theme.of(context).textTheme.labelSmall?.color ?? Colors.grey), fontSize: 12),
+              style: TextStyle(
+                  color: (Theme.of(context).textTheme.labelSmall?.color ??
+                      Colors.grey),
+                  fontSize: 12),
             ),
           ],
         ],
@@ -468,14 +485,25 @@ class _RatingBtn extends StatelessWidget {
 // Done panel
 // ---------------------------------------------------------------------------
 class _DonePanel extends StatelessWidget {
-  final int correct;
-  final int incorrect;
+  final Map<fsrs.Rating, int> ratings;
+  final Duration duration;
 
-  const _DonePanel({required this.correct, required this.incorrect});
+  const _DonePanel({required this.ratings, required this.duration});
+
+  String _formatDuration(Duration d) {
+    if (d.inMinutes == 0) return '${d.inSeconds} seg';
+    return '${d.inMinutes} min ${d.inSeconds % 60} seg';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final total = correct + incorrect;
+    final total =
+        ratings.values.isEmpty ? 0 : ratings.values.reduce((a, b) => a + b);
+    final again = ratings[fsrs.Rating.again] ?? 0;
+    final progress =
+        (ratings[fsrs.Rating.hard] ?? 0) + (ratings[fsrs.Rating.good] ?? 0);
+    final mastered = ratings[fsrs.Rating.easy] ?? 0;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -495,7 +523,8 @@ class _DonePanel extends StatelessWidget {
             Text(
               'Sessão concluída!',
               style: TextStyle(
-                color: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white),
+                color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                    Colors.white),
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
               ),
@@ -504,35 +533,56 @@ class _DonePanel extends StatelessWidget {
             if (total == 0)
               Text(
                 'Nenhum card para revisar hoje.',
-                style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
+                style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 14),
               )
             else ...[
               Text(
-                '$total cards revisados',
+                'Você estudou por ${_formatDuration(duration)}',
                 style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 14),
+                    color: (Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.grey),
+                    fontSize: 14),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _Stat(
-                      value: correct,
-                      label: 'Acertos',
-                      color: const Color(0xFF10B981)),
-                  const SizedBox(width: 32),
+                    value: again,
+                    label: 'Revisar',
+                    color: const Color(0xFFEF4444),
+                  ),
                   _Stat(
-                      value: incorrect,
-                      label: 'Erros',
-                      color: const Color(0xFFEF4444)),
+                    value: progress,
+                    label: 'Aprendendo',
+                    color: const Color(0xFFF59E0B),
+                  ),
+                  _Stat(
+                    value: mastered,
+                    label: 'Dominados',
+                    color: const Color(0xFF10B981),
+                  ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Text(
+                '$total cards revisados no total',
+                style: TextStyle(
+                  color: (Theme.of(context).textTheme.bodySmall?.color ??
+                          Colors.grey)
+                      .withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
+              ),
             ],
-            const SizedBox(height: 40),
+            const SizedBox(height: 48),
             FilledButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Voltar'),
+              label: const Text('Voltar ao início'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 padding:
@@ -569,7 +619,10 @@ class _Stat extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(color: (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey), fontSize: 13),
+          style: TextStyle(
+              color:
+                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
+              fontSize: 13),
         ),
       ],
     );

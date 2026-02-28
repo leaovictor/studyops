@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../controllers/auth_controller.dart';
-import '../core/theme/app_theme.dart';
+import '../widgets/landing_components.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,9 +27,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
     );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic);
     _animController.forward();
   }
 
@@ -69,301 +72,375 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.error.toString()),
-            backgroundColor: AppTheme.error,
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
     });
 
     return Scaffold(
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: Row(
-          children: [
-            // Left panel — shown on desktop
-            if (MediaQuery.of(context).size.width >= 800)
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).scaffoldBackgroundColor,
-                        Theme.of(context).colorScheme.surface
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(48),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppTheme.primary,
-                                AppTheme.primaryVariant
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(Icons.school_rounded,
-                              color: Colors.white, size: 30),
-                        ),
-                        const SizedBox(height: 32),
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Study',
-                                style: TextStyle(
-                                  color: (Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.color ??
-                                      Colors.white),
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const TextSpan(
-                                text: 'Ops',
-                                style: TextStyle(
-                                  color: AppTheme.primary,
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Sistema inteligente de\nperformance para estudos.',
-                          style: TextStyle(
-                            color:
-                                (Theme.of(context).textTheme.bodySmall?.color ??
-                                    Colors.grey),
-                            fontSize: 18,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 48),
-                        ...[
-                          const _Feature(
-                            icon: Icons.auto_awesome_rounded,
-                            text: 'Cronograma gerado automaticamente',
-                          ),
-                          const _Feature(
-                            icon: Icons.timer_rounded,
-                            text: 'Pomodoro integrado no checklist',
-                          ),
-                          const _Feature(
-                            icon: Icons.repeat_rounded,
-                            text: 'Revisão espaçada inteligente',
-                          ),
-                          const _Feature(
-                            icon: Icons.bar_chart_rounded,
-                            text: 'Métricas de performance em tempo real',
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+      backgroundColor: LandingTheme.background,
+      body: Stack(
+        children: [
+          // Background Glows
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: LandingTheme.primary.withValues(alpha: 0.1),
               ),
+            ),
+          ),
+          Positioned(
+            bottom: -150,
+            left: -150,
+            child: Container(
+              width: 500,
+              height: 500,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: LandingTheme.secondary.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
 
-            // Right panel — form
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(
-                      MediaQuery.of(context).size.width >= 600 ? 32 : 16),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Form(
-                      key: _formKey,
+          FadeTransition(
+            opacity: _fadeAnim,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 64),
+                    child: Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            _isSignUp ? 'Criar conta' : 'Entrar',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: (Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color ??
-                                  Colors.white),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isSignUp
-                                ? 'Crie sua conta e comece a estudar com método'
-                                : 'Bem-vindo de volta ao StudyOps',
-                            style: TextStyle(
-                              color: (Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color ??
-                                  Colors.grey),
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Email
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'E-mail',
-                              prefixIcon: Icon(Icons.email_outlined),
-                            ),
-                            validator: (v) => (v?.contains('@') ?? false)
-                                ? null
-                                : 'E-mail inválido',
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Password
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Senha',
-                              prefixIcon:
-                                  const Icon(Icons.lock_outline_rounded),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined),
-                                onPressed: () => setState(
-                                    () => _obscurePassword = !_obscurePassword),
-                              ),
-                            ),
-                            validator: (v) => (v?.length ?? 0) >= 6
-                                ? null
-                                : 'Mínimo 6 caracteres',
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Submit
-                          FilledButton(
-                            onPressed: isLoading ? null : _submit,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(_isSignUp ? 'Criar conta' : 'Entrar'),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Divider
-                          Row(
-                            children: [
-                              const Expanded(child: Divider()),
-                              Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 16),
-                                child: Text('ou',
-                                    style: TextStyle(
-                                        color: (Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.color ??
-                                            Colors.grey))),
-                              ),
-                              const Expanded(child: Divider()),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Google Sign In
-                          OutlinedButton.icon(
-                            onPressed: isLoading ? null : _googleSignIn,
-                            icon: const Icon(Icons.login_rounded, size: 18),
-                            label: const Text('Entrar com Google'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Toggle
-                          Center(
-                            child: TextButton(
-                              onPressed: () =>
-                                  setState(() => _isSignUp = !_isSignUp),
+                          // Brand Logo/Header
+                          GestureDetector(
+                            onTap: () => context.go('/'),
+                            child: Hero(
+                              tag: 'brand_logo',
                               child: Text(
-                                _isSignUp
-                                    ? 'Já tem conta? Entrar'
-                                    : 'Não tem conta? Criar',
-                                style: const TextStyle(color: AppTheme.primary),
+                                'StudyOps',
+                                style: GoogleFonts.inter(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -1.5,
+                                ),
                               ),
+                            ),
+                          ),
+                          const SizedBox(height: 48),
+
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 450),
+                            child: GlassCard(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16, // Reduced on mobile if needed
+                                vertical: 40,
+                              ),
+                              borderColor:
+                                  LandingTheme.primary.withValues(alpha: 0.2),
+                              child: Form(
+                                key: _formKey,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        _isSignUp
+                                            ? 'Criar conta'
+                                            : 'Acesse sua conta',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        _isSignUp
+                                            ? 'Inicie sua jornada na engenharia de aprendizado.'
+                                            : 'Bem-vindo de volta à orquestração do seu sucesso.',
+                                        style: GoogleFonts.inter(
+                                          color: LandingTheme.textSecondary,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 40),
+
+                                      // Email
+                                      _buildTextField(
+                                        controller: _emailController,
+                                        label: 'E-mail',
+                                        icon: Icons.email_outlined,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        validator: (v) =>
+                                            (v?.contains('@') ?? false)
+                                                ? null
+                                                : 'E-mail inválido',
+                                      ),
+                                      const SizedBox(height: 20),
+
+                                      // Password
+                                      _buildTextField(
+                                        controller: _passwordController,
+                                        label: 'Senha',
+                                        icon: Icons.lock_outline_rounded,
+                                        obscureText: _obscurePassword,
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _obscurePassword
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            color: LandingTheme.textSecondary,
+                                            size: 20,
+                                          ),
+                                          onPressed: () => setState(() =>
+                                              _obscurePassword =
+                                                  !_obscurePassword),
+                                        ),
+                                        validator: (v) => (v?.length ?? 0) >= 6
+                                            ? null
+                                            : 'Mínimo 6 caracteres',
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      // Submit
+                                      ElevatedButton(
+                                        onPressed: isLoading ? null : _submit,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: LandingTheme.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 20),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        child: isLoading
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                            : Text(
+                                                _isSignUp
+                                                    ? 'Criar conta gratuita'
+                                                    : 'Entrar no StudyOps',
+                                                style: GoogleFonts.inter(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                      ),
+                                      const SizedBox(height: 24),
+
+                                      // Divider
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                              child: Divider(
+                                                  color: LandingTheme.border
+                                                      .withValues(alpha: 0.5))),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 16),
+                                            child: Text(
+                                              'ou',
+                                              style: GoogleFonts.inter(
+                                                color: LandingTheme.textMuted,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                              child: Divider(
+                                                  color: LandingTheme.border
+                                                      .withValues(alpha: 0.5))),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+
+                                      // Google Sign In
+                                      OutlinedButton.icon(
+                                        onPressed: isLoading
+                                            ? null
+                                            : () async {
+                                                try {
+                                                  await _googleSignIn();
+                                                } catch (e) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content:
+                                                          Text(e.toString()),
+                                                      backgroundColor:
+                                                          Colors.redAccent,
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                        icon: const Icon(Icons.login_rounded,
+                                            size: 18),
+                                        label:
+                                            const Text('Continuar com Google'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
+                                          side: BorderSide(
+                                              color: LandingTheme.border),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 32),
+
+                                      // Toggle
+                                      Center(
+                                        child: TextButton(
+                                          onPressed: () => setState(
+                                              () => _isSignUp = !_isSignUp),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              text: _isSignUp
+                                                  ? 'Já tem uma conta? '
+                                                  : 'Ainda não tem conta? ',
+                                              style: GoogleFonts.inter(
+                                                color:
+                                                    LandingTheme.textSecondary,
+                                                fontSize: 14,
+                                              ),
+                                              children: [
+                                                TextSpan(
+                                                  text: _isSignUp
+                                                      ? 'Entrar'
+                                                      : 'Criar agora',
+                                                  style: const TextStyle(
+                                                    color: LandingTheme.primary,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          TextButton.icon(
+                            onPressed: () => context.go('/'),
+                            icon: const Icon(Icons.arrow_back, size: 16),
+                            label: Text(
+                              'Voltar para a home',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: LandingTheme.textMuted,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Feature extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _Feature({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppTheme.primary, size: 16),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodySmall?.color ??
-                        Colors.grey))),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: LandingTheme.textSecondary, size: 20),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.05),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  const BorderSide(color: LandingTheme.primary, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            hintText: 'Digite seu ${label.toLowerCase()}',
+            hintStyle:
+                GoogleFonts.inter(color: LandingTheme.textMuted, fontSize: 14),
+          ),
+          validator: validator,
+        ),
+      ],
     );
   }
 }

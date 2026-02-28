@@ -19,11 +19,14 @@ void main() async {
       bool edited = false;
 
       final Map<String, String> replaces = {
-        'Theme.of(context).scaffoldBackgroundColor': 'Theme.of(context).scaffoldBackgroundColor',
-        'Theme.of(context).colorScheme.surface': 'Theme.of(context).colorScheme.surface',
+        'Theme.of(context).scaffoldBackgroundColor':
+            'Theme.of(context).scaffoldBackgroundColor',
+        'Theme.of(context).colorScheme.surface':
+            'Theme.of(context).colorScheme.surface',
         'Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface':
             'Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface',
-        'Theme.of(context).colorScheme.surfaceContainerHighest': 'Theme.of(context).colorScheme.surfaceContainerHighest',
+        'Theme.of(context).colorScheme.surfaceContainerHighest':
+            'Theme.of(context).colorScheme.surfaceContainerHighest',
         'Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white':
             'Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white',
         'Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey':

@@ -86,7 +86,7 @@ class GoalSwitcher extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'AMBIENTE ATIVO',
+                            'Estudando para:',
                             style: TextStyle(
                               color: (Theme.of(context)
                                       .textTheme
