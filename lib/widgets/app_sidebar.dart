@@ -30,6 +30,10 @@ class AppSidebar extends ConsumerWidget {
     _Dest(icon: Icons.school_rounded, label: 'Matérias', path: '/subjects'),
     _Dest(icon: Icons.style_rounded, label: 'Flashcards', path: '/flashcards'),
     _Dest(
+        icon: Icons.emoji_events_rounded,
+        label: 'Conquistas',
+        path: '/achievements'),
+    _Dest(
         icon: Icons.help_outline_rounded,
         label: 'Guia do App',
         path: '/manual'),
