@@ -18,6 +18,7 @@ import '../models/subject_model.dart';
 import '../widgets/app_charts.dart';
 import '../controllers/quote_controller.dart';
 import '../widgets/study_score_banner.dart';
+import '../widgets/xp_level_card.dart';
 
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -744,6 +745,8 @@ class _Header extends ConsumerWidget {
             ),
           ],
         ),
+        const Spacer(),
+        const XpMiniBar(),
       ],
     );
   }
