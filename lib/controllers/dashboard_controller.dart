@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/study_log_service.dart';
 import '../core/utils/app_date_utils.dart';
@@ -6,6 +7,8 @@ import 'subject_controller.dart';
 import 'goal_controller.dart';
 import 'study_plan_controller.dart';
 import '../services/schedule_generator_service.dart';
+import '../core/analytics/study_score_engine.dart';
+import 'performance_controller.dart';
 
 final studyLogServiceProvider =
     Provider<StudyLogService>((ref) => StudyLogService());
@@ -253,8 +256,37 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
       completedExercises: completedExercises,
     );
   } catch (e, st) {
-    print('Dashboard Provider Error: $e');
-    print('Stack trace: $st');
+    debugPrint('Dashboard Provider Error: $e');
+    debugPrint('Stack trace: $st');
     rethrow;
   }
+});
+
+/// Provides a [StudyScore] derived from all existing data providers.
+/// Recomputes automatically when dashboard or performance data changes.
+final studyScoreProvider = Provider<StudyScore>((ref) {
+  final dashAsync = ref.watch(dashboardProvider);
+  final perf = ref.watch(performanceStatsProvider);
+  final plan = ref.watch(activePlanProvider).valueOrNull;
+
+  return dashAsync.when(
+    loading: () => StudyScore.empty,
+    error: (_, __) => StudyScore.empty,
+    data: (data) {
+      final targetDailyMinutes =
+          plan != null ? (plan.dailyHours * 60).toInt() : 180;
+      return StudyScoreEngine.compute(
+        weekMinutes: data.weekMinutes,
+        todayProductiveMinutes: data.todayProductiveMinutes,
+        consistencyPct: data.consistencyPct,
+        streakDays: data.streakDays,
+        quizAccuracyPct: perf.averageAccuracy,
+        totalTopics: data.totalTheory,
+        completedTheory: data.completedTheory,
+        completedReview: data.completedReview,
+        completedExercises: data.completedExercises,
+        targetDailyMinutes: targetDailyMinutes,
+      );
+    },
+  );
 });
