@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dart_openai/dart_openai.dart';
 import '../models/subject_model.dart';
 import '../models/topic_model.dart';
@@ -20,7 +19,6 @@ class AIService {
   final String apiKey;
   final UsageService _usageService;
   static const String _model = "llama-3.3-70b-versatile";
-  static const String _visionModel = "llama-3.2-11b-vision-preview";
 
   AIService({required this.apiKey, required UsageService usageService})
       : _usageService = usageService {
@@ -157,6 +155,53 @@ Regras:
 
     final jsonResponse = jsonDecode(responseText) as Map<String, dynamic>;
     return (jsonResponse['subjects'] as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<List<String>> identifyIrrelevantSubjects({
+    required String userId,
+    required String objective,
+    required List<String> subjectNames,
+  }) async {
+    await _usageService.logAIUsage(userId, 'subject_audit');
+    final prompt = '''
+Você é um Auditor de Planos de Estudo. O aluno tem o objetivo de estudo: "$objective".
+Analise a seguinte lista de matérias e identifique quais delas NÃO são comuns ou relevantes para esse objetivo específico (materias intrusas ou de outros concursos).
+
+Lista de matérias:
+${subjectNames.join(', ')}
+
+Retorne um JSON seguindo EXATAMENTE esta estrutura:
+{
+  "irrelevant_subjects": ["Matéria 1", "Matéria 2"]
+}
+
+Regras:
+1. Seja criterioso. Se uma matéria for minimamente comum ao objetivo, não a marque como irrelevante.
+2. Foque em matérias que claramente pertencem a outras áreas (ex: "Física" em um concurso bancário).
+3. Se todas forem relevantes, retorne uma lista vazia.
+4. Retorne APENAS o JSON, sem explicações.
+''';
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: [
+        OpenAIChatCompletionChoiceMessageModel(
+          content: [
+            OpenAIChatCompletionChoiceMessageContentItemModel.text(prompt)
+          ],
+          role: OpenAIChatMessageRole.user,
+        ),
+      ],
+      responseFormat: {"type": "json_object"},
+    );
+
+    final String? responseText =
+        response.choices.first.message.content?.first.text;
+    if (responseText == null) return [];
+
+    final jsonResponse = jsonDecode(responseText) as Map<String, dynamic>;
+    final List<dynamic> irrelevant = jsonResponse['irrelevant_subjects'] ?? [];
+    return irrelevant.cast<String>();
   }
 
   Future<String> getDailyInsight({
@@ -317,19 +362,22 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
     await _usageService.logAIUsage(userId, 'question_hint');
 
     final prompt = '''
-Você é um Tutor IA pedagógico. O aluno está tentando resolver uma questão e precisa de uma DICA.
-JAMAIS dê a resposta direta. Forneça uma pista que ajude o aluno a raciocinar por conta própria.
+Você é um Tutor de Elite em Concursos Públicos, com um tom encorajador, didático e altamente profissional. O aluno está travado e precisa de uma luz, não da resposta.
 
-Questão:
+ESTIMULE O RACIOCÍNIO:
+Forneça uma pista que ajude o aluno a conectar os pontos por conta própria. Fale como um professor sentado ao lado dele.
+
+QUESTÃO:
 $question
 
-Alternativas:
+ALTERNATIVAS:
 ${options.join('\n')}
 
-Regras:
-1. Seja breve (máximo 2 sentenças).
-2. Use um tom instigante.
-3. Foque no conceito ou na lógica por trás do problema.
+REGRAS DE OURO:
+1. CURTO E DIRETO: Máximo 2 sentenças bem estruturadas.
+2. PEDAGÓGICO: Foque na "chave" lógica ou na "pegadinha" conceitual do tema.
+3. SEM SPOILERS: Jamais revele qual alternativa é a correta ou errada.
+4. PORTUGUÊS IMPECÁVEL: Use pontuação correta e evite termos genéricos.
 ''';
 
     final response = await OpenAI.instance.chat.create(
@@ -427,21 +475,30 @@ Explique o tema central desta questão de forma didática e técnica. No máximo
     await _usageService.logAIUsage(userId, 'question_explanation');
 
     final prompt = '''
-Você é um Professor Especialista em Concursos Públicos.
-Explique de forma didática, concisa e técnica por que a resposta abaixo é a correta para a questão fornecida.
+Você é um Professor Especialista em Concursos Públicos, com linguagem clara, técnica e humanizada. Sua tarefa é desvendar a questão para o aluno, garantindo que ele aprenda o conceito para nunca mais errar.
 
-Questão:
+QUESTÃO:
 $question
 
-Resposta Correta:
+GABARITO:
 $correctAnswer
 
-Estruture sua resposta assim:
-1. **Fundamentação**: A base legal ou teórica (seja direto).
-2. **O Pulo do Gato**: Destaque a pegadinha ou o ponto-chave que a banca costuma cobrar.
-3. **Dica de Ouro**: Como não errar isso na próxima vez.
+ESTRUTURA DA RESPOSTA (OBRIGATÓRIA):
+1. **Fundamentação Teórica**  
+   Explique a base legal, doutrinária ou a regra gramatical de forma direta. Use parágrafos curtos e bem pontuados.
 
-Use Markdown para negrito e listas. Seja breve (máximo 150 palavras).
+2. **O "X" da Questão (Dica Prática)**  
+   Onde está a pegadinha? O que a banca tentou fazer para confundir? Identifique o ponto crítico.
+
+3. **Direito ao Ponto (Como não errar)**  
+   Uma técnica de memorização ou um gatilho mental para a próxima vez.
+
+REGRAS DE FORMATAÇÃO:
+- Use Markdown (negrito para termos técnicos).
+- Indente listas e garanta espaços entre os tópicos para legibilidade.
+- Tom de voz: Mentor experiente e parceiro.
+- Idioma: Português do Brasil de alto nível.
+- Máximo 180 palavras.
 ''';
 
     final response = await OpenAI.instance.chat.create(
@@ -522,78 +579,6 @@ Apenas retorne o JSON.
       print('Failed to parse knowledge check JSON: $e');
       return [];
     }
-  }
-
-  Future<List<Map<String, dynamic>>> extractQuestionsFromFiles(
-      String userId, List<Uint8List> filesBytes, String mimeType) async {
-    await _usageService.logAIUsage(userId, 'exam_extraction');
-    // Note: OpenAI vision models expect URLs or base64 data.
-    // For simplicity in this refactor, we are using the legacy prompt but OpenAI vision would be better.
-    // However, since the goal is a refactor, we adapt.
-
-    final List<OpenAIChatCompletionChoiceMessageContentItemModel> content = [
-      OpenAIChatCompletionChoiceMessageContentItemModel.text('''
-Você é um extrator de dados de alta precisão. Analise as imagens ou PDFs de provas de concurso fornecidos.
-Extraia TODAS as questões completas, incluindo o enunciado, as alternativas (A, B, C, D, E) e identifique o gabarito correto.
-
-Retorne um JSON seguindo EXATAMENTE esta estrutura:
-{
-  "questions": [
-    {
-      "statement": "Enunciado completo da questão",
-      "options": {
-        "A": "Texto da alternativa A",
-        "B": "Texto da alternativa B",
-        "C": "Texto da alternativa C",
-        "D": "Texto da alternativa D",
-        "E": "Texto da alternativa E"
-      },
-      "correctAnswer": "A",
-      "subjectName": "Nome provável da matéria",
-      "topicName": "Nome provável do tópico"
-    }
-  ]
-}
-
-Regras:
-1. Ignore cabeçalhos, rodapés e números de página.
-2. Se não houver certeza do gabarito, tente inferir pela lógica ou deixe em branco.
-3. Não invente questões. Extraia apenas o que está no arquivo.
-'''),
-    ];
-
-    for (var bytes in filesBytes) {
-      final base64Image = base64Encode(bytes);
-      content.add(OpenAIChatCompletionChoiceMessageContentItemModel.imageUrl(
-        'data:image/jpeg;base64,$base64Image',
-      ));
-    }
-
-    final response = await OpenAI.instance.chat.create(
-      model: _visionModel,
-      messages: [
-        OpenAIChatCompletionChoiceMessageModel(
-          content: content,
-          role: OpenAIChatMessageRole.user,
-        ),
-      ],
-    ); // Removed responseFormat to avoid 400 with vision in some Groq models
-
-    final String? responseText =
-        response.choices.first.message.content?.first.text;
-    if (responseText == null)
-      throw Exception('FALHA_GERACAO_IA: Resposta vazia.');
-
-    // Manual extraction of JSON if model returns text around it
-    final jsonStart = responseText.indexOf('{');
-    final jsonEnd = responseText.lastIndexOf('}');
-    if (jsonStart == -1 || jsonEnd == -1) {
-      throw Exception('FALHA_GERACAO_IA: Resposta não contém JSON válido.');
-    }
-    final cleanText = responseText.substring(jsonStart, jsonEnd + 1);
-
-    final jsonResponse = jsonDecode(cleanText) as Map<String, dynamic>;
-    return (jsonResponse['questions'] as List).cast<Map<String, dynamic>>();
   }
 
   Future<List<Map<String, dynamic>>> generateQuestionsForBank({

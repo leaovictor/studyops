@@ -76,7 +76,7 @@ class DashboardData {
 }
 
 final dashboardProvider = FutureProvider<DashboardData>((ref) async {
-  final user = ref.watch(authStateProvider).valueOrNull;
+  final user = await ref.watch(authStateProvider.future);
   if (user == null) return DashboardData.empty;
 
   final activeGoalId = ref.watch(activeGoalIdProvider);
@@ -105,9 +105,10 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   final minutesBySubject = <String, int>{};
   final dailyMap = <String, int>{};
 
-  final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+  // Wait for essential domain data to avoid intermediate empty states
+  final subjects = await ref.watch(subjectsProvider.future);
   final activeSubjectIds = subjects.map((s) => s.id).toSet();
-  final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? [];
+  final allTopics = await ref.watch(allTopicsProvider.future);
 
   for (final log in logs) {
     if (!activeSubjectIds.contains(log.subjectId)) continue; // Filter deleted
@@ -164,7 +165,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
 
   if (subjects.isNotEmpty) {
     // We base the active plan target daily time, default 3h (180 mins)
-    final plan = ref.watch(activePlanProvider).valueOrNull;
+    final plan = await ref.watch(activePlanProvider.future);
     final dailyTotalTarget =
         plan != null ? (plan.dailyHours * 60).toInt() : 180;
 

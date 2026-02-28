@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../controllers/question_bank_controller.dart';
+import '../../controllers/subject_controller.dart';
 
-class QuizTopBar extends StatefulWidget implements PreferredSizeWidget {
+class QuizTopBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback onExit;
   final double fontSizeDelta;
@@ -17,13 +20,13 @@ class QuizTopBar extends StatefulWidget implements PreferredSizeWidget {
   });
 
   @override
-  State<QuizTopBar> createState() => _QuizTopBarState();
+  ConsumerState<QuizTopBar> createState() => _QuizTopBarState();
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-class _QuizTopBarState extends State<QuizTopBar> {
+class _QuizTopBarState extends ConsumerState<QuizTopBar> {
   late Stopwatch _stopwatch;
   late Timer _timer;
 
@@ -50,6 +53,13 @@ class _QuizTopBarState extends State<QuizTopBar> {
     return "$minutes:$seconds";
   }
 
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => const _FilterDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -69,6 +79,12 @@ class _QuizTopBarState extends State<QuizTopBar> {
       ),
       centerTitle: true,
       actions: [
+        // Filter button
+        IconButton(
+          icon: const Icon(Icons.filter_list_rounded, color: AppTheme.primary),
+          onPressed: _showFilterDialog,
+          tooltip: 'Filtrar Questões',
+        ),
         // Font size controls
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -85,12 +101,12 @@ class _QuizTopBarState extends State<QuizTopBar> {
             ),
           ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         Container(
           margin: const EdgeInsets.only(right: 16),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white10),
           ),
@@ -110,6 +126,105 @@ class _QuizTopBarState extends State<QuizTopBar> {
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterDialog extends ConsumerWidget {
+  const _FilterDialog();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subjectsAsync = ref.watch(subjectsProvider);
+    final selectedSubject = ref.watch(selectedQuizSubjectProvider);
+    final selectedTopic = ref.watch(selectedQuizTopicProvider);
+    final topicsAsync = ref.watch(availableQuizTopicsProvider);
+
+    return AlertDialog(
+      backgroundColor: const Color(0xFF151A2C),
+      title: const Text('Filtrar Simulado',
+          style: TextStyle(color: Colors.white, fontSize: 18)),
+      content: subjectsAsync.when(
+        data: (subjects) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Matéria',
+                style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              value: selectedSubject,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF151A2C),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('Todas')),
+                ...subjects.map((s) =>
+                    DropdownMenuItem(value: s.name, child: Text(s.name))),
+              ],
+              onChanged: (val) {
+                ref.read(selectedQuizSubjectProvider.notifier).state = val;
+                ref.read(selectedQuizTopicProvider.notifier).state = null;
+              },
+            ),
+            if (selectedSubject != null) ...[
+              const SizedBox(height: 20),
+              const Text('Tópico',
+                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 8),
+              topicsAsync.when(
+                data: (topics) => DropdownButtonFormField<String?>(
+                  value: selectedTopic,
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF151A2C),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.05),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('Todos')),
+                    ...topics
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t))),
+                  ],
+                  onChanged: (val) {
+                    ref.read(selectedQuizTopicProvider.notifier).state = val;
+                  },
+                ),
+                loading: () => const Center(child: LinearProgressIndicator()),
+                error: (_, __) => const Text('Erro ao carregar tópicos',
+                    style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ],
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Text('Erro ao carregar matérias: $e',
+            style: const TextStyle(color: Colors.red)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            ref.read(selectedQuizSubjectProvider.notifier).state = null;
+            ref.read(selectedQuizTopicProvider.notifier).state = null;
+            Navigator.pop(context);
+          },
+          child: const Text('LIMPAR', style: TextStyle(color: Colors.white54)),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+          child: const Text('APLICAR'),
         ),
       ],
     );

@@ -330,117 +330,110 @@ class PlannedVsReadChart extends StatelessWidget {
       );
     }
 
-    // Find the max Y
-    double maxY = 60.0;
-    for (final e in entries) {
-      final plannedY = (e.value['planned'] ?? 0).toDouble();
-      final readY = (e.value['read'] ?? 0).toDouble();
-      if (plannedY > maxY) maxY = plannedY;
-      if (readY > maxY) maxY = readY;
-    }
-    maxY += 30.0; // Margin top
-
-    final barGroups = List.generate(entries.length, (i) {
-      final entry = entries[i];
-      final p = (entry.value['planned'] ?? 0).toDouble();
-      final r = (entry.value['read'] ?? 0).toDouble();
-
-      return BarChartGroupData(
-        x: i,
-        barRods: [
-          BarChartRodData(
-            toY: p,
-            color: Theme.of(context).dividerColor, // Planned - mute
-            width: 12,
-            borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4), topRight: Radius.circular(4)),
-          ),
-          BarChartRodData(
-            toY: r,
-            color: p > r
-                ? AppTheme.accent
-                : const Color(0xFF10B981), // Read - active
-            width: 12,
-            borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4), topRight: Radius.circular(4)),
-          ),
-        ],
-        barsSpace: 4,
-      );
-    });
-
     return Column(
       children: [
         Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          _LegendItem(
-              color: Theme.of(context).dividerColor, label: 'Planejado'),
+          _LegendItem(color: Theme.of(context).dividerColor, label: 'Meta'),
           const SizedBox(width: 16),
-          const _LegendItem(color: AppTheme.accent, label: 'Lido Hoje'),
+          const _LegendItem(color: AppTheme.accent, label: 'Lido'),
         ]),
         const SizedBox(height: 16),
-        Expanded(
-          child: BarChart(
-            BarChartData(
-              maxY: maxY,
-              barGroups: barGroups,
-              backgroundColor: Colors.transparent,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (_) => FlLine(
-                    color: Theme.of(context).dividerColor, strokeWidth: 1),
-              ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(),
-                rightTitles: const AxisTitles(),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 42,
-                    getTitlesWidget: (v, _) => Text(
-                      '${(v / 60).toStringAsFixed(1)}h',
-                      style: TextStyle(
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: entries.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            final subjectName = subjectNames[entry.key] ?? 'Matéria';
+            final planned = entry.value['planned'] ?? 0;
+            final read = entry.value['read'] ?? 0;
+
+            final percent =
+                planned > 0 ? (read / planned).clamp(0.0, 1.0) : 0.0;
+            final isComplete = read >= planned && planned > 0;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        subjectName,
+                        style: TextStyle(
                           color:
-                              (Theme.of(context).textTheme.labelSmall?.color ??
-                                  Colors.grey),
-                          fontSize: 10),
-                    ),
-                  ),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, _) {
-                      final i = value.toInt();
-                      if (i < 0 || i >= entries.length) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final subjectName = subjectNames[entries[i].key] ?? '?';
-                      final displayStr = subjectName.length > 8
-                          ? '${subjectName.substring(0, 8)}…'
-                          : subjectName;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          displayStr,
-                          style: TextStyle(
-                              color: (Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.color ??
-                                  Colors.grey),
-                              fontSize: 10),
+                              (Theme.of(context).textTheme.bodyMedium?.color ??
+                                  Colors.white),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
-                      );
-                    },
-                  ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      '${AppDateUtils.formatMinutes(read)} / ${AppDateUtils.formatMinutes(planned)}',
+                      style: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-          ),
+                const SizedBox(height: 8),
+                Stack(
+                  children: [
+                    // Background / Planned
+                    Container(
+                      height: 8,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .dividerColor
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    // Progress / Read
+                    FractionallySizedBox(
+                      widthFactor: percent,
+                      child: Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              isComplete
+                                  ? const Color(0xFF10B981)
+                                  : AppTheme.accent,
+                              isComplete
+                                  ? const Color(0xFF34D399)
+                                  : AppTheme.accent.withValues(alpha: 0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            if (percent > 0.05)
+                              BoxShadow(
+                                color: (isComplete
+                                        ? const Color(0xFF10B981)
+                                        : AppTheme.accent)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
         ),
       ],
     );

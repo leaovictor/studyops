@@ -6,10 +6,12 @@ import '../controllers/question_bank_controller.dart';
 import '../controllers/error_notebook_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../models/shared_question_model.dart';
+import '../models/subject_model.dart';
 import '../models/error_note_model.dart';
 import '../core/theme/app_theme.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/subject_controller.dart';
+import '../controllers/performance_controller.dart';
 
 // New Widgets
 import '../widgets/quiz/quiz_top_bar.dart';
@@ -57,6 +59,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Reset filters when starting a new quiz session
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedQuizSubjectProvider.notifier).state = null;
+      ref.read(selectedQuizTopicProvider.notifier).state = null;
+    });
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -64,6 +76,19 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(sharedQuestionsProvider, (previous, next) {
+      if (previous?.value != next.value) {
+        setState(() {
+          _currentIndex = 0;
+          _hits = 0;
+          _misses = 0;
+          if (_pageController.hasClients) {
+            _pageController.jumpToPage(0);
+          }
+        });
+      }
+    });
+
     final questionsAsync = ref.watch(sharedQuestionsProvider);
 
     return Scaffold(
@@ -207,9 +232,62 @@ class _QuestionPageState extends ConsumerState<_QuestionPage> {
 
     widget.onResult(_isCorrect);
 
+    _persistResult(_isCorrect);
+
     if (!_isCorrect) {
       _saveToErrorNotebook();
     }
+  }
+
+  Future<void> _persistResult(bool isCorrect) async {
+    final subjects = ref.read(subjectsProvider).valueOrNull ?? [];
+    String subjectId = 'SIMULADO_GERAL'; // Default fallback
+
+    if (widget.question.subjectName != null) {
+      final match = subjects.firstWhere(
+        (s) =>
+            s.name.toLowerCase() == widget.question.subjectName!.toLowerCase(),
+        orElse: () => subjects.firstWhere((s) => s.name == 'Geral',
+            orElse: () => subjects.isNotEmpty
+                ? subjects.first
+                : Subject(
+                    id: 'temp',
+                    userId: '',
+                    name: 'Geral',
+                    color: '',
+                    priority: 0,
+                    weight: 0,
+                    difficulty: 0)),
+      );
+
+      if (match.id != 'temp') {
+        subjectId = match.id;
+      }
+    }
+
+    try {
+      await ref.read(questionControllerProvider.notifier).addLog(
+            subjectId: subjectId,
+            total: 1,
+            correct: isCorrect ? 1 : 0,
+          );
+    } catch (e) {
+      debugPrint('Erro ao persistir log de questão: $e');
+    }
+  }
+
+  void _toggleElimination(String optionKey) {
+    if (_hasAnswered) return;
+    setState(() {
+      if (_eliminatedOptions.contains(optionKey)) {
+        _eliminatedOptions.remove(optionKey);
+      } else {
+        _eliminatedOptions.add(optionKey);
+        if (_selectedOption == optionKey) {
+          _selectedOption = null;
+        }
+      }
+    });
   }
 
   Future<void> _saveToErrorNotebook() async {
@@ -297,6 +375,7 @@ class _QuestionPageState extends ConsumerState<_QuestionPage> {
             hasAnswered: _hasAnswered,
             eliminatedOptions: _eliminatedOptions,
             onOptionSelected: (val) => setState(() => _selectedOption = val),
+            onToggleElimination: _toggleElimination,
             fontSizeDelta: widget.fontSizeDelta,
           ),
         ),

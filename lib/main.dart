@@ -11,8 +11,10 @@ import 'core/theme/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('🚀 App starting initialization...');
 
   try {
+    debugPrint('📦 Initializing Firebase...');
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -22,25 +24,53 @@ void main() async {
       persistenceEnabled: true,
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
-  } catch (e) {
-    debugPrint('Firebase initialization error: $e');
+    debugPrint('✅ Firebase initialized successfully.');
+  } catch (e, stack) {
+    debugPrint('❌ Firebase initialization error: $e');
+    debugPrint(stack.toString());
   }
-
-  final sharedPrefs = await SharedPreferences.getInstance();
 
   try {
-    await initializeDateFormatting('pt_BR');
-  } catch (e) {
-    debugPrint('Date formatting error: $e');
+    debugPrint('💾 Loading Shared Preferences...');
+    final sharedPrefs = await SharedPreferences.getInstance();
+    debugPrint('✅ Shared Preferences loaded.');
+
+    try {
+      debugPrint('📅 Initializing Date Formatting...');
+      await initializeDateFormatting('pt_BR');
+      debugPrint('✅ Date Formatting initialized.');
+    } catch (e) {
+      debugPrint('⚠️ Date formatting error: $e');
+    }
+
+    debugPrint('🏗️ Running App...');
+    runApp(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+        ],
+        child: const StudyOpsApp(),
+      ),
+    );
+  } catch (e, stack) {
+    debugPrint('💥 CRITICAL STARTUP ERROR: $e');
+    debugPrint(stack.toString());
+
+    // Fallback UI in case of fatal error before runApp
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SelectableText(
+                  'Ocorreu um erro fatal ao iniciar o app:\n\n$e'),
+            ),
+          ),
+        ),
+      ),
+    );
   }
-  runApp(
-    ProviderScope(
-      overrides: [
-        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
-      ],
-      child: const StudyOpsApp(),
-    ),
-  );
 }
 
 class StudyOpsApp extends ConsumerWidget {

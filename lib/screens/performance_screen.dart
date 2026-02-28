@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
-import 'package:file_picker/file_picker.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/subject_controller.dart';
@@ -141,17 +140,6 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                           style: TextStyle(fontSize: 13)),
                                       style: TextButton.styleFrom(
                                           foregroundColor: AppTheme.accent),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () =>
-                                          _showUploadExamDialog(context),
-                                      icon: const Icon(
-                                          Icons.upload_file_rounded,
-                                          size: 18),
-                                      label: const Text('Subir Prova',
-                                          style: TextStyle(fontSize: 13)),
-                                      style: TextButton.styleFrom(
-                                          foregroundColor: AppTheme.primary),
                                     ),
                                     TextButton.icon(
                                       onPressed: () =>
@@ -382,11 +370,6 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
             data: data, stats: stats, subjectNameMap: subjectNameMap));
   }
 
-  void _showUploadExamDialog(BuildContext context) {
-    showDialog(
-        context: context, builder: (context) => const _UploadExamDialog());
-  }
-
   void _showGenerateAIDialog(BuildContext context) {
     showDialog(
         context: context,
@@ -508,7 +491,11 @@ class _GenerateAIPortalDialogState
             else ...[
               DropdownButtonFormField<String>(
                 value: _selectedSubjectId,
-                decoration: const InputDecoration(labelText: 'Matéria'),
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Matéria',
+                  isDense: true,
+                ),
                 items: subjects
                     .map((s) => DropdownMenuItem<String>(
                         value: s.id, child: Text(s.name)))
@@ -521,8 +508,11 @@ class _GenerateAIPortalDialogState
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedTopicId,
-                decoration:
-                    const InputDecoration(labelText: 'Tópico (Opcional)'),
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Tópico (Opcional)',
+                  isDense: true,
+                ),
                 items: topics
                     .map((t) => DropdownMenuItem<String>(
                         value: t.id, child: Text(t.name)))
@@ -532,17 +522,25 @@ class _GenerateAIPortalDialogState
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Text("Quantidade: "),
-                  const Spacer(),
-                  SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(value: 3, label: Text("3")),
-                      ButtonSegment(value: 5, label: Text("5")),
-                      ButtonSegment(value: 10, label: Text("10")),
-                    ],
-                    selected: {_count},
-                    onSelectionChanged: (val) =>
-                        setState(() => _count = val.first),
+                  const Text("Quantidade: ", style: TextStyle(fontSize: 13)),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(
+                            value: 3,
+                            label: Text("3", style: TextStyle(fontSize: 12))),
+                        ButtonSegment(
+                            value: 5,
+                            label: Text("5", style: TextStyle(fontSize: 12))),
+                        ButtonSegment(
+                            value: 10,
+                            label: Text("10", style: TextStyle(fontSize: 12))),
+                      ],
+                      selected: {_count},
+                      onSelectionChanged: (val) =>
+                          setState(() => _count = val.first),
+                    ),
                   ),
                 ],
               ),
@@ -597,7 +595,7 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
       if (user == null) return;
       final aiService = await ref.read(aiServiceProvider.future);
       if (aiService == null) {
-        throw Exception("Gemini API Key não configurada no Painel Admin.");
+        throw Exception("A chave da IA não está configurada no Painel Admin.");
       }
 
       final accuracyByName = <String, double>{};
@@ -652,113 +650,6 @@ class _AIAnalysisDialogState extends ConsumerState<_AIAnalysisDialog> {
           FilledButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Entendi"))
-      ],
-    );
-  }
-}
-
-class _UploadExamDialog extends ConsumerStatefulWidget {
-  const _UploadExamDialog();
-
-  @override
-  ConsumerState<_UploadExamDialog> createState() => _UploadExamDialogState();
-}
-
-class _UploadExamDialogState extends ConsumerState<_UploadExamDialog> {
-  bool _isLoading = false;
-  String? _status;
-
-  Future<void> _pickAndProcess() async {
-    final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ["pdf", "jpg", "png"],
-        withData: true);
-    if (result == null || result.files.isEmpty) return;
-    setState(() {
-      _isLoading = true;
-      _status = "Enviando arquivo para a IA...";
-    });
-
-    try {
-      final user = ref.read(authStateProvider).valueOrNull;
-      if (user == null) return;
-      final aiService = await ref.read(aiServiceProvider.future);
-      if (aiService == null) {
-        throw Exception("Gemini API Key não configurada no Painel Admin.");
-      }
-
-      final bankService = ref.read(questionBankServiceProvider);
-      final file = result.files.first;
-
-      if (file.extension == 'pdf') {
-        throw Exception(
-            "Por enquanto, a extração automática suporta apenas imagens (PNG/JPG). Para PDFs, tente converter as páginas em imagens.");
-      }
-
-      final extracted = await aiService.extractQuestionsFromFiles(
-        user.uid,
-        [file.bytes!],
-        "image/${file.extension}",
-      );
-
-      setState(() => _status =
-          "Processando ${extracted.length} questões e removendo duplicatas...");
-      final List<SharedQuestion> toAdd = extracted.map((qData) {
-        final statement = qData["statement"] as String;
-        final options = Map<String, String>.from(qData["options"]);
-        return SharedQuestion(
-          id: "",
-          statement: statement,
-          options: options,
-          correctAnswer: qData["correctAnswer"],
-          subjectName: qData["subjectName"],
-          topicName: qData["topicName"],
-          source: file.name,
-          textHash: SharedQuestion.generateHash(statement, options),
-        );
-      }).toList();
-
-      final added = await bankService.addQuestions(toAdd);
-      if (mounted)
-        setState(() {
-          _isLoading = false;
-          _status = "Sucesso! $added novas questões adicionadas.";
-        });
-    } catch (e) {
-      if (mounted)
-        setState(() {
-          _isLoading = false;
-          _status = "Erro: $e";
-        });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("Alimentar Banco Global"),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text(
-            "Suba uma prova anterior (PDF ou Imagem). Nossa IA extrairá as questões para o banco compartilhado.",
-            style: TextStyle(fontSize: 13)),
-        const SizedBox(height: 20),
-        if (_isLoading)
-          const CircularProgressIndicator()
-        else if (_status != null)
-          Text(_status!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: AppTheme.accent))
-        else
-          ElevatedButton.icon(
-              onPressed: _pickAndProcess,
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              label: const Text("Selecionar Arquivo")),
-      ]),
-      actions: [
-        TextButton(
-            onPressed: _isLoading ? null : () => Navigator.pop(context),
-            child: const Text("Fechar"))
       ],
     );
   }

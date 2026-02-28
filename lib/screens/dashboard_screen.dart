@@ -218,7 +218,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               flex: 5,
                               child: _ChartCard(
                                 title: 'Planejado vs Lido Hoje',
-                                height: 280,
+                                height:
+                                    null, // Allow it to grow or be handled by content
                                 child: PlannedVsReadChart(
                                   data: data.plannedVsRead,
                                   subjectNames: subjectNameMap,
@@ -230,7 +231,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       else
                         _ChartCard(
                           title: 'Planejado vs Lido Hoje',
-                          height: 240,
+                          height: null,
                           child: PlannedVsReadChart(
                             data: data.plannedVsRead,
                             subjectNames: subjectNameMap,
@@ -1031,11 +1032,11 @@ class _TopMetricsRow extends StatelessWidget {
 class _ChartCard extends StatelessWidget {
   final String title;
   final Widget child;
-  final double height;
+  final double? height;
   const _ChartCard({
     required this.title,
     required this.child,
-    required this.height,
+    this.height,
   });
 
   @override
@@ -1075,7 +1076,7 @@ class _ChartCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(height: height, child: child),
+          height != null ? SizedBox(height: height, child: child) : child,
         ],
       ),
     );

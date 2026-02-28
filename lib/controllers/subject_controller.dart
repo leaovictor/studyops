@@ -39,12 +39,17 @@ final topicsForSubjectProvider =
 });
 
 // All topics across all user subjects — used by schedule generator and selects
-final allTopicsProvider = StreamProvider<List<Topic>>((ref) {
-  final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
+final allTopicsProvider = StreamProvider<List<Topic>>((ref) async* {
+  final subjects = await ref.watch(subjectsProvider.future);
   final ids = subjects.map((s) => s.id).toList();
   final user = ref.watch(authStateProvider).valueOrNull;
-  if (user == null || ids.isEmpty) return Stream.value([]);
-  return ref.watch(subjectServiceProvider).watchAllTopicsForUser(user.uid, ids);
+
+  if (user == null || ids.isEmpty) {
+    yield [];
+    return;
+  }
+
+  yield* ref.watch(subjectServiceProvider).watchAllTopicsForUser(user.uid, ids);
 });
 
 class SubjectController extends AsyncNotifier<void> {
