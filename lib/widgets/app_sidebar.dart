@@ -40,6 +40,7 @@ class AppSidebar extends ConsumerWidget {
         label: 'Streaks',
         path: '/streaks'),
     _Dest(icon: Icons.psychology_rounded, label: 'Mentor IA', path: '/mentor'),
+    _Dest(icon: Icons.auto_stories_rounded, label: 'Diário', path: '/journal'),
     _Dest(
         icon: Icons.help_outline_rounded,
         label: 'Guia do App',
