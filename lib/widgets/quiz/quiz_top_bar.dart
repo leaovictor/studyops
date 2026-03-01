@@ -10,6 +10,8 @@ class QuizTopBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
   final VoidCallback onExit;
   final double fontSizeDelta;
   final Function(double) onFontSizeChanged;
+  final Duration? remainingTime;
+  final bool isTimedMode;
 
   const QuizTopBar({
     super.key,
@@ -17,6 +19,8 @@ class QuizTopBar extends ConsumerStatefulWidget implements PreferredSizeWidget {
     required this.onExit,
     required this.fontSizeDelta,
     required this.onFontSizeChanged,
+    this.remainingTime,
+    this.isTimedMode = false,
   });
 
   @override
@@ -106,19 +110,40 @@ class _QuizTopBarState extends ConsumerState<QuizTopBar> {
           margin: const EdgeInsets.only(right: 16),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: widget.isTimedMode &&
+                    (widget.remainingTime?.inMinutes ?? 99) < 1
+                ? Colors.red.withValues(alpha: 0.1)
+                : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(
+              color: widget.isTimedMode &&
+                      (widget.remainingTime?.inMinutes ?? 99) < 1
+                  ? Colors.red.withValues(alpha: 0.3)
+                  : Colors.white10,
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.timer_outlined,
-                  size: 14, color: AppTheme.primary),
+              Icon(
+                widget.isTimedMode
+                    ? Icons.hourglass_bottom_rounded
+                    : Icons.timer_outlined,
+                size: 14,
+                color: widget.isTimedMode &&
+                        (widget.remainingTime?.inMinutes ?? 99) < 1
+                    ? Colors.redAccent
+                    : AppTheme.primary,
+              ),
               const SizedBox(width: 4),
               Text(
-                _formatDuration(_stopwatch.elapsed),
-                style: const TextStyle(
-                  color: Colors.white,
+                widget.isTimedMode
+                    ? _formatDuration(widget.remainingTime ?? Duration.zero)
+                    : _formatDuration(_stopwatch.elapsed),
+                style: TextStyle(
+                  color: widget.isTimedMode &&
+                          (widget.remainingTime?.inMinutes ?? 99) < 1
+                      ? Colors.redAccent
+                      : Colors.white,
                   fontFamily: 'Monospace',
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

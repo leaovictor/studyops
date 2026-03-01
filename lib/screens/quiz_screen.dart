@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -35,6 +36,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   final Set<String> _flaggedForReview = {};
   double _fontSizeDelta = 0;
 
+  // Timer state
+  Duration? _timeLimit;
+  Duration? _remainingTime;
+  Timer? _countdownTimer;
+  DateTime? _startTime;
+  Duration? _totalTimeTaken;
+
   void _recordResult(bool isCorrect) {
     setState(() {
       if (isCorrect)
@@ -71,7 +79,38 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  void _startTimedExam(int minutes) {
+    setState(() {
+      _timeLimit = Duration(minutes: minutes);
+      _remainingTime = _timeLimit;
+      _startTime = DateTime.now();
+    });
+
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_remainingTime == null) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        if (_remainingTime!.inSeconds > 0) {
+          _remainingTime = _remainingTime! - const Duration(seconds: 1);
+        } else {
+          timer.cancel();
+          _handleTimeUp();
+        }
+      });
+    });
+  }
+
+  void _handleTimeUp() {
+    final questions = ref.read(sharedQuestionsProvider).valueOrNull ?? [];
+    _showSummary(questions, isTimeUp: true);
   }
 
   @override
@@ -97,9 +136,13 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         children: [
           if (!_isFocusMode)
             QuizTopBar(
-              title: 'Simulado Premium',
+              title: _timeLimit != null
+                  ? 'Simulado Cronometrado'
+                  : 'Simulado Premium',
               fontSizeDelta: _fontSizeDelta,
               onFontSizeChanged: (val) => setState(() => _fontSizeDelta = val),
+              remainingTime: _remainingTime,
+              isTimedMode: _timeLimit != null,
               onExit: () {
                 if (context.canPop()) {
                   context.pop();
@@ -118,6 +161,11 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                       style: TextStyle(color: Colors.white70),
                     ),
                   );
+                }
+
+                // Show time limit selection if not set
+                if (_timeLimit == null && _startTime == null) {
+                  return _buildTimeSelection(context);
                 }
 
                 return Column(
@@ -155,6 +203,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                                   curve: Curves.easeInOutCubic,
                                 );
                               } else {
+                                _totalTimeTaken =
+                                    DateTime.now().difference(_startTime!);
                                 _showSummary(questions);
                               }
                             },
@@ -176,7 +226,16 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     );
   }
 
-  void _showSummary(List<SharedQuestion> questions) {
+  void _showSummary(List<SharedQuestion> questions, {bool isTimeUp = false}) {
+    if (_countdownTimer != null) {
+      _countdownTimer!.cancel();
+    }
+
+    // Calculate total time taken if not already set (e.g. from manual completion)
+    if (_totalTimeTaken == null && _startTime != null) {
+      _totalTimeTaken = DateTime.now().difference(_startTime!);
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -188,6 +247,140 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         misses: _misses,
         total: questions.length,
         flaggedCount: _flaggedForReview.length,
+        totalTimeTaken: _totalTimeTaken ?? Duration.zero,
+        isTimeUp: isTimeUp,
+      ),
+    );
+  }
+
+  Widget _buildTimeSelection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.timer_outlined,
+                size: 48, color: AppTheme.primary),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Modo de Simulado',
+            style: TextStyle(
+                color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Escolha como deseja realizar esta prova:',
+            style: TextStyle(color: Colors.white54, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+          _TimeOption(
+            title: 'Modo Livre',
+            subtitle: 'Sem tempo limite. Foque no aprendizado.',
+            icon: Icons.auto_awesome_rounded,
+            color: Colors.cyan,
+            onTap: () {
+              setState(() {
+                _startTime = DateTime.now();
+                _timeLimit = null; // Ensure null for free mode
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          _TimeOption(
+            title: 'Simulado Real (15 min)',
+            subtitle: 'Ideal para revisões rápidas.',
+            icon: Icons.timer_rounded,
+            color: Colors.orange,
+            onTap: () => _startTimedExam(15),
+          ),
+          const SizedBox(height: 16),
+          _TimeOption(
+            title: 'Simulado Real (30 min)',
+            subtitle: 'Para testar resistência média.',
+            icon: Icons.timer_rounded,
+            color: Colors.deepOrange,
+            onTap: () => _startTimedExam(30),
+          ),
+          const SizedBox(height: 16),
+          _TimeOption(
+            title: 'Maratona (60 min)',
+            subtitle: 'Experiência completa de concurso.',
+            icon: Icons.hourglass_full_rounded,
+            color: Colors.redAccent,
+            onTap: () => _startTimedExam(60),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeOption extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _TimeOption({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 13)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white24),
+          ],
+        ),
       ),
     );
   }
@@ -532,68 +725,125 @@ class _QuizSummarySheet extends StatelessWidget {
   final int misses;
   final int total;
   final int flaggedCount;
+  final Duration totalTimeTaken;
+  final bool isTimeUp;
 
   const _QuizSummarySheet({
     required this.hits,
     required this.misses,
     required this.total,
     required this.flaggedCount,
+    required this.totalTimeTaken,
+    required this.isTimeUp,
   });
 
   @override
   Widget build(BuildContext context) {
-    double accuracy = (hits / total) * 100;
+    double accuracy = total > 0 ? (hits / total) * 100 : 0;
 
     return Padding(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.fromLTRB(32, 12, 32, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(2))),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
           const SizedBox(height: 24),
-          const Text('Simulado Concluído!',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold)),
+          Text(
+            isTimeUp ? 'Tempo Esgotado!' : 'Simulado Concluído!',
+            style: TextStyle(
+              color: isTimeUp ? Colors.redAccent : Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _SummaryItem(
-                  label: 'Acertos',
-                  value: '$hits',
-                  color: const Color(0xFF4ADE80)),
+                label: 'Acertos',
+                value: '$hits',
+                color: const Color(0xFF4ADE80),
+              ),
               _SummaryItem(
-                  label: 'Erros',
-                  value: '$misses',
-                  color: const Color(0xFFFB7185)),
+                label: 'Erros',
+                value: '$misses',
+                color: const Color(0xFFFB7185),
+              ),
               _SummaryItem(
-                  label: 'Precisão',
-                  value: '${accuracy.toStringAsFixed(0)}%',
-                  color: const Color(0xFF00A3FF)),
+                label: 'Precisão',
+                value: '${accuracy.toStringAsFixed(0)}%',
+                color: const Color(0xFF00A3FF),
+              ),
             ],
           ),
-          const SizedBox(height: 40),
-          if (flaggedCount > 0) ...[
+          const SizedBox(height: 24),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _SummaryItem(
+                label: 'Tempo Total',
+                value: _formatDuration(totalTimeTaken),
+                color: Colors.white70,
+              ),
+              _SummaryItem(
+                label: 'Média/Questão',
+                value: _formatDuration(Duration(
+                    seconds: total > 0
+                        ? (totalTimeTaken.inSeconds / total).round()
+                        : 0)),
+                color: Colors.white70,
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          if (isTimeUp) ...[
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.orange.withOpacity(0.2))),
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.red.withOpacity(0.2)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.timer_off_rounded, color: Colors.redAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'O ciclo foi encerrado automaticamente pelo cronômetro.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ] else if (flaggedCount > 0) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withOpacity(0.2)),
+              ),
               child: Row(
                 children: [
                   const Icon(Icons.star_rounded, color: Colors.orange),
                   const SizedBox(width: 12),
-                  Text('Você marcou $flaggedCount questões para revisão.',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 13)),
+                  Text(
+                    'Você marcou $flaggedCount questões para revisão.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
                 ],
               ),
             ),
@@ -604,18 +854,27 @@ class _QuizSummarySheet extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => context.go('/dashboard'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00A3FF),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16))),
-              child: const Text('VOLTAR AO INÍCIO',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.white)),
+                backgroundColor: const Color(0xFF00A3FF),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text(
+                'VOLTAR AO INÍCIO',
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }
 
