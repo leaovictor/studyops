@@ -68,7 +68,17 @@ Não mostramos apenas gráficos, entregamos inteligência:
 
 ---
 
-### 🛠️ stack Tecnológica
+### 🚀 Funcionalidades Recentes (Sprints 11-13)
+
+A evolução do StudyOps não para. Recentemente implementamos:
+
+*   **Diário de Estudos Inteligente**: Sistema de reflexão diária com análise de humor e insights gerados por IA para identificar padrões de comportamento e produtividade.
+*   **Settings Screen Premium**: Interface de configurações redesenhada com seções para Personalização de IA (Contexto Pessoal), Gestão de Plano, Preferências de Aparência (Dark Mode dinâmico) e Conta.
+*   **Timed Exam Mode (Simulado Cronometrado)**: Simulação real de prova com timer regressivo, auto-submissão e métricas de tempo (Tempo Total e Médio por Questão).
+
+---
+
+### 🛠️ Stack Tecnológica
 
 *   **Frontend**: Flutter (Multiplataforma)
 *   **Estado & DI**: Riverpod (Arquitetura reativa)
@@ -88,7 +98,7 @@ flutter pub get
 # Adicione google-services.json (Android) e GoogleService-Info.plist (iOS)
 
 # 3. Configure a IA
-# Adicione sua API Key do Groq em lib/services/ai_service.dart
+# Adicione sua API Key do Groq no sistema de ambiente ou em lib/services/ai_service.dart
 
 # 4. Inicie o motor
 flutter run
