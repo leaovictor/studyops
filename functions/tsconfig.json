@@ -1,9 +1,12 @@
 {
     "compilerOptions": {
         "module": "commonjs",
+        "moduleResolution": "node",
         "noImplicitReturns": true,
         "noUnusedLocals": true,
         "outDir": "lib",
+        "rootDir": "src",
+        "baseUrl": ".",
         "sourceMap": true,
         "strict": true,
         "target": "es2020",

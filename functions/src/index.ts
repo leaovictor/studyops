@@ -5,6 +5,7 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 
+// Re-exporting functions for Firebase
 export { onDeleteGoal } from "./onDeleteGoal";
 export { onDeleteSubject } from "./onDeleteSubject";
 export { checkAIRateLimit } from "./checkAIRateLimit";

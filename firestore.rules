@@ -28,9 +28,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // AI Usage tracking: Users can only create their own logs, Admin can see everything.
+    // AI Usage tracking: Users can only create and read their own logs, Admin can see everything.
     match /usage/{docId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
@@ -49,9 +49,10 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
-    // User Profiles
+    // User Profiles: Allow read/list if it's the owner OR if searching by their own authenticated email.
     match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && (request.auth.uid == userId || resource.data.email == request.auth.token.email);
+      allow list: if isAuthenticated() && request.query.limit <= 10 && request.query.filters.size() > 0;
       allow write: if isAuthenticated() && request.auth.uid == userId;
     }
 

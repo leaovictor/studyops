@@ -66,221 +66,227 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width >= 600 ? 24 : 16,
-          vertical: 24,
+      body: SmartRefresher(
+        controller: _refreshController,
+        onRefresh: _onRefresh,
+        header: const WaterDropMaterialHeader(
+          backgroundColor: AppTheme.primary,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                Text(
-                  'Cronograma',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                        Colors.white),
-                  ),
-                ),
-                if (activePlan != null)
-                  FilledButton.tonalIcon(
-                    onPressed: () => showDialog(
-                      context: context,
-                      builder: (context) =>
-                          StudyPlanWizardDialog(activePlan: activePlan),
-                    ),
-                    icon: const Icon(Icons.settings_suggest_rounded, size: 18),
-                    label: const Text('Ajustar Plano'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: isDark
-                          ? AppTheme.primary.withValues(alpha: 0.2)
-                          : AppTheme.primary.withValues(alpha: 0.12),
-                      foregroundColor: AppTheme.primary,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width >= 600 ? 24 : 16,
+            vertical: 24,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    'Cronograma',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                          Colors.white),
                     ),
                   ),
-              ],
-            ),
-
-            if (activePlan == null)
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primary,
-                      AppTheme.primary.withValues(alpha: 0.8)
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.auto_awesome_rounded,
-                          color: Colors.white, size: 32),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Comece com um Plano',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Organize seus estudos gerando um plano.',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    FilledButton(
+                  if (activePlan != null)
+                    FilledButton.tonalIcon(
                       onPressed: () => showDialog(
                         context: context,
-                        builder: (context) => const StudyPlanWizardDialog(),
+                        builder: (context) =>
+                            StudyPlanWizardDialog(activePlan: activePlan),
                       ),
+                      icon:
+                          const Icon(Icons.settings_suggest_rounded, size: 18),
+                      label: const Text('Ajustar Plano'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
+                        backgroundColor: isDark
+                            ? AppTheme.primary.withValues(alpha: 0.2)
+                            : AppTheme.primary.withValues(alpha: 0.12),
                         foregroundColor: AppTheme.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
                       ),
-                      child: const Text('Criar Agora',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ],
-                ),
+                ],
               ),
 
-            const SizedBox(height: 20),
-
-            // Calendar
-            Container(
-              decoration: BoxDecoration(
-                color: (Theme.of(context).cardTheme.color ??
-                    Theme.of(context).colorScheme.surface),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-              child: TableCalendar(
-                firstDay: DateTime(2020),
-                lastDay: DateTime(2030),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                calendarFormat: CalendarFormat.month,
-                startingDayOfWeek: StartingDayOfWeek.monday,
-                onDaySelected: (selected, focused) {
-                  setState(() {
-                    _selectedDay = selected;
-                    _focusedDay = focused;
-                  });
-                  ref.read(selectedDateProvider.notifier).state = selected;
-                },
-                onPageChanged: (focused) {
-                  setState(() => _focusedDay = focused);
-                },
-                calendarBuilders: CalendarBuilders(
-                  defaultBuilder: (context, day, focusedDay) =>
-                      _buildCalendarCell(context, day, activePlan),
-                  todayBuilder: (context, day, focusedDay) =>
-                      _buildCalendarCell(context, day, activePlan,
-                          isToday: true),
+              if (activePlan == null)
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primary,
+                        AppTheme.primary.withValues(alpha: 0.8)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.auto_awesome_rounded,
+                            color: Colors.white, size: 32),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Comece com um Plano',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Organize seus estudos gerando um plano.',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      FilledButton(
+                        onPressed: () => showDialog(
+                          context: context,
+                          builder: (context) => const StudyPlanWizardDialog(),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppTheme.primary,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                        ),
+                        child: const Text('Criar Agora',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
                 ),
-                calendarStyle: CalendarStyle(
-                  defaultTextStyle: TextStyle(
+
+              const SizedBox(height: 20),
+
+              // Calendar
+              Container(
+                decoration: BoxDecoration(
+                  color: (Theme.of(context).cardTheme.color ??
+                      Theme.of(context).colorScheme.surface),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                ),
+                child: TableCalendar(
+                  firstDay: DateTime(2020),
+                  lastDay: DateTime(2030),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  calendarFormat: CalendarFormat.month,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  onDaySelected: (selected, focused) {
+                    setState(() {
+                      _selectedDay = selected;
+                      _focusedDay = focused;
+                    });
+                    ref.read(selectedDateProvider.notifier).state = selected;
+                  },
+                  onPageChanged: (focused) {
+                    setState(() => _focusedDay = focused);
+                  },
+                  calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (context, day, focusedDay) =>
+                        _buildCalendarCell(context, day, activePlan),
+                    todayBuilder: (context, day, focusedDay) =>
+                        _buildCalendarCell(context, day, activePlan,
+                            isToday: true),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    defaultTextStyle: TextStyle(
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white)),
+                    weekendTextStyle: TextStyle(
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
+                    todayDecoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    todayTextStyle: const TextStyle(
+                        color: AppTheme.primary, fontWeight: FontWeight.w700),
+                    selectedDecoration: const BoxDecoration(
+                      color: AppTheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    selectedTextStyle: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w700),
+                    outsideDaysVisible: false,
+                  ),
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    titleTextStyle: TextStyle(
                       color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                          Colors.white)),
-                  weekendTextStyle: TextStyle(
-                      color: (Theme.of(context).textTheme.bodySmall?.color ??
-                          Colors.grey)),
-                  todayDecoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
+                          Colors.white),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    leftChevronIcon: Icon(Icons.chevron_left_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
+                    rightChevronIcon: Icon(Icons.chevron_right_rounded,
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey)),
                   ),
-                  todayTextStyle: const TextStyle(
-                      color: AppTheme.primary, fontWeight: FontWeight.w700),
-                  selectedDecoration: const BoxDecoration(
-                    color: AppTheme.primary,
-                    shape: BoxShape.circle,
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: TextStyle(
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
+                        fontSize: 12),
+                    weekendStyle: TextStyle(
+                        color: (Theme.of(context).textTheme.labelSmall?.color ??
+                            Colors.grey),
+                        fontSize: 12),
                   ),
-                  selectedTextStyle: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w700),
-                  outsideDaysVisible: false,
-                ),
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  titleTextStyle: TextStyle(
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                        Colors.white),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  leftChevronIcon: Icon(Icons.chevron_left_rounded,
-                      color: (Theme.of(context).textTheme.bodySmall?.color ??
-                          Colors.grey)),
-                  rightChevronIcon: Icon(Icons.chevron_right_rounded,
-                      color: (Theme.of(context).textTheme.bodySmall?.color ??
-                          Colors.grey)),
-                ),
-                daysOfWeekStyle: DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(
-                      color: (Theme.of(context).textTheme.bodySmall?.color ??
-                          Colors.grey),
-                      fontSize: 12),
-                  weekendStyle: TextStyle(
-                      color: (Theme.of(context).textTheme.labelSmall?.color ??
-                          Colors.grey),
-                      fontSize: 12),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // 🧠 Adaptive Weakness Insights (shown only when plan is active)
-            if (activePlan != null) ...[
-              const WeaknessInsightCard(),
               const SizedBox(height: 16),
-            ],
 
-            // Tasks for selected day
-            Expanded(
-              child: Column(
+              // 🧠 Adaptive Weakness Insights (shown only when plan is active)
+              if (activePlan != null) ...[
+                const WeaknessInsightCard(),
+                const SizedBox(height: 16),
+              ],
+
+              // Tasks for selected day
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -295,148 +301,134 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Expanded(
-                    child: SmartRefresher(
-                      controller: _refreshController,
-                      onRefresh: _onRefresh,
-                      header: const WaterDropMaterialHeader(
-                        backgroundColor: AppTheme.primary,
-                      ),
-                      child: tasks.isEmpty
-                          ? const _EmptyScheduleQuote()
-                          : AnimationLimiter(
-                              child: ListView.separated(
-                                itemCount: tasks.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
-                                itemBuilder: (_, i) {
-                                  final task = tasks[i];
-                                  final subject = subjectMap[task.subjectId];
-                                  final topic = topicMap[task.topicId];
-                                  final color = subject != null
-                                      ? Color(int.parse(
-                                          'FF${subject.color.replaceAll('#', '')}',
-                                          radix: 16))
-                                      : AppTheme.primary;
-                                  return AnimationConfiguration.staggeredList(
-                                    position: i,
-                                    duration: const Duration(milliseconds: 375),
-                                    child: SlideAnimation(
-                                      verticalOffset: 50.0,
-                                      child: FadeInAnimation(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 16, vertical: 12),
-                                          decoration: BoxDecoration(
-                                            color: (Theme.of(context)
-                                                    .cardTheme
-                                                    .color ??
-                                                Theme.of(context)
-                                                    .colorScheme
-                                                    .surface),
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            border: Border.all(
-                                              color: task.done
-                                                  ? Theme.of(context)
-                                                      .dividerColor
-                                                  : color.withValues(
-                                                      alpha: 0.3),
+                  tasks.isEmpty
+                      ? const _EmptyScheduleQuote()
+                      : AnimationLimiter(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: tasks.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (_, i) {
+                              final task = tasks[i];
+                              final subject = subjectMap[task.subjectId];
+                              final topic = topicMap[task.topicId];
+                              final color = subject != null
+                                  ? Color(int.parse(
+                                      'FF${subject.color.replaceAll('#', '')}',
+                                      radix: 16))
+                                  : AppTheme.primary;
+                              return AnimationConfiguration.staggeredList(
+                                position: i,
+                                duration: const Duration(milliseconds: 375),
+                                child: SlideAnimation(
+                                  verticalOffset: 50.0,
+                                  child: FadeInAnimation(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: (Theme.of(context)
+                                                .cardTheme
+                                                .color ??
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .surface),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: task.done
+                                              ? Theme.of(context).dividerColor
+                                              : color.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            task.done
+                                                ? Icons.check_circle_rounded
+                                                : Icons.circle_outlined,
+                                            color: task.done
+                                                ? AppTheme.accent
+                                                : (Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.color ??
+                                                    Colors.grey),
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Flexible(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: color.withValues(
+                                                    alpha: 0.15),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                subject?.name ?? 'Matéria',
+                                                style: TextStyle(
+                                                  color: color,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ),
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                task.done
-                                                    ? Icons.check_circle_rounded
-                                                    : Icons.circle_outlined,
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              topic?.name ?? 'Tópico',
+                                              style: TextStyle(
                                                 color: task.done
-                                                    ? AppTheme.accent
-                                                    : (Theme.of(context)
+                                                    ? (Theme.of(context)
                                                             .textTheme
                                                             .labelSmall
                                                             ?.color ??
-                                                        Colors.grey),
-                                                size: 18,
+                                                        Colors.grey)
+                                                    : (Theme.of(context)
+                                                            .textTheme
+                                                            .bodyLarge
+                                                            ?.color ??
+                                                        Colors.white),
+                                                fontSize: 13,
                                               ),
-                                              const SizedBox(width: 12),
-                                              Flexible(
-                                                child: Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: color.withValues(
-                                                        alpha: 0.15),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            6),
-                                                  ),
-                                                  child: Text(
-                                                    subject?.name ?? 'Matéria',
-                                                    style: TextStyle(
-                                                      color: color,
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  topic?.name ?? 'Tópico',
-                                                  style: TextStyle(
-                                                    color: task.done
-                                                        ? (Theme.of(context)
-                                                                .textTheme
-                                                                .labelSmall
-                                                                ?.color ??
-                                                            Colors.grey)
-                                                        : (Theme.of(context)
-                                                                .textTheme
-                                                                .bodyLarge
-                                                                ?.color ??
-                                                            Colors.white),
-                                                    fontSize: 13,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                              Text(
-                                                AppDateUtils.formatMinutes(
-                                                    task.plannedMinutes),
-                                                style: TextStyle(
-                                                  color: (Theme.of(context)
-                                                          .textTheme
-                                                          .labelSmall
-                                                          ?.color ??
-                                                      Colors.grey),
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
-                                        ),
+                                          Text(
+                                            AppDateUtils.formatMinutes(
+                                                task.plannedMinutes),
+                                            style: TextStyle(
+                                              color: (Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.color ??
+                                                  Colors.grey),
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
