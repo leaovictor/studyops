@@ -57,12 +57,14 @@ class PerformanceStats {
   final int totalQuestions;
   final int totalCorrect;
   final Map<String, double> accuracyBySubject;
+  final Map<String, double> accuracyByTopic;
 
   PerformanceStats({
     required this.averageAccuracy,
     required this.totalQuestions,
     required this.totalCorrect,
     required this.accuracyBySubject,
+    required this.accuracyByTopic,
   });
 }
 
@@ -74,12 +76,14 @@ final performanceStatsProvider = Provider<PerformanceStats>((ref) {
       totalQuestions: 0,
       totalCorrect: 0,
       accuracyBySubject: {},
+      accuracyByTopic: {},
     );
   }
 
   int totalQ = 0;
   int totalC = 0;
   final subjTotals = <String, List<int>>{}; // subjectId -> [total, correct]
+  final topicTotals = <String, List<int>>{}; // topicId -> [total, correct]
 
   for (final log in logs) {
     totalQ += log.totalQuestions;
@@ -90,9 +94,21 @@ final performanceStatsProvider = Provider<PerformanceStats>((ref) {
     }
     subjTotals[log.subjectId]![0] += log.totalQuestions;
     subjTotals[log.subjectId]![1] += log.correctAnswers;
+
+    if (log.topicId != null) {
+      if (!topicTotals.containsKey(log.topicId)) {
+        topicTotals[log.topicId!] = [0, 0];
+      }
+      topicTotals[log.topicId!]![0] += log.totalQuestions;
+      topicTotals[log.topicId!]![1] += log.correctAnswers;
+    }
   }
 
   final accuracyBySubject = subjTotals.map((key, value) {
+    return MapEntry(key, value[0] > 0 ? (value[1] / value[0]) * 100 : 0.0);
+  });
+
+  final accuracyByTopic = topicTotals.map((key, value) {
     return MapEntry(key, value[0] > 0 ? (value[1] / value[0]) * 100 : 0.0);
   });
 
@@ -101,5 +117,6 @@ final performanceStatsProvider = Provider<PerformanceStats>((ref) {
     totalQuestions: totalQ,
     totalCorrect: totalC,
     accuracyBySubject: accuracyBySubject,
+    accuracyByTopic: accuracyByTopic,
   );
 });

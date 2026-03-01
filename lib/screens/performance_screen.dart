@@ -47,6 +47,7 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     final subjects = ref.watch(subjectsProvider).valueOrNull ?? [];
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
     final stats = ref.watch(performanceStatsProvider);
+    final allTopics = ref.watch(allTopicsProvider).valueOrNull ?? [];
 
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
@@ -243,8 +244,20 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
                                       ),
                                     ],
                                   ),
-                                const SizedBox(height: 16),
-
+                                const SizedBox(height: 20),
+                                // ── Liquid vs Brute (Cognitive Efficiency) ──
+                                _LiquidVsBruteCard(
+                                  liquidMins: data.weekProductiveMinutes,
+                                  bruteMins: data.weekMinutes,
+                                ),
+                                const SizedBox(height: 20),
+                                // ── Gap Analysis ─────────────────────────────
+                                _GapAnalysisSection(
+                                  accuracyByTopic: stats.accuracyByTopic,
+                                  allTopics: allTopics,
+                                  subjects: subjects,
+                                ),
+                                const SizedBox(height: 20),
                                 if (data.streakDays > 0)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -875,5 +888,255 @@ class _KpiCard extends StatelessWidget {
                       Colors.grey),
                   fontSize: 11))
         ]));
+  }
+}
+
+class _LiquidVsBruteCard extends StatelessWidget {
+  final int liquidMins;
+  final int bruteMins;
+
+  const _LiquidVsBruteCard({required this.liquidMins, required this.bruteMins});
+
+  @override
+  Widget build(BuildContext context) {
+    final efficiency = bruteMins > 0 ? (liquidMins / bruteMins) : 0.0;
+    final color = efficiency >= 0.8
+        ? AppTheme.accent
+        : efficiency >= 0.6
+            ? AppTheme.primary
+            : Colors.orangeAccent;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color ??
+            Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.05),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Cognitive Efficiency',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Qualidade do tempo líquido vs bruto',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${(efficiency * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(
+                      color: color, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Stack(
+            children: [
+              Container(
+                height: 12,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: efficiency.clamp(0.0, 1.0),
+                child: Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [color.withValues(alpha: 0.6), color]),
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                          color: color.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2))
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _LegendItem(
+                  label: 'Líquido',
+                  value: '${(liquidMins / 60).toStringAsFixed(1)}h',
+                  color: color),
+              _LegendItem(
+                  label: 'Bruto',
+                  value: '${(bruteMins / 60).toStringAsFixed(1)}h',
+                  color: Colors.grey),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _LegendItem(
+      {required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+                width: 8,
+                height: 8,
+                decoration:
+                    BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text(label,
+                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          ],
+        ),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      ],
+    );
+  }
+}
+
+class _GapAnalysisSection extends StatelessWidget {
+  final Map<String, double> accuracyByTopic;
+  final List<dynamic>
+      allTopics; // Topic types vary, using dynamic for flexibility
+  final List<dynamic> subjects;
+
+  const _GapAnalysisSection({
+    required this.accuracyByTopic,
+    required this.allTopics,
+    required this.subjects,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Sort topics by accuracy (ascending) and filter those with enough data or poor performance
+    final sortedGaps = accuracyByTopic.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+
+    final criticalGaps = sortedGaps.take(3).toList();
+
+    if (criticalGaps.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            children: [
+              Icon(Icons.analytics_outlined, color: Colors.redAccent, size: 20),
+              SizedBox(width: 8),
+              Text('Gap Analysis (Focos de Atenção)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        ...criticalGaps.map((gap) {
+          final topic =
+              allTopics.firstWhere((t) => t.id == gap.key, orElse: () => null);
+          if (topic == null) return const SizedBox.shrink();
+
+          final subject = subjects.firstWhere((s) => s.id == topic.subjectId,
+              orElse: () => null);
+          final subjectName = subject?.name ?? 'Geral';
+          final color = subject != null
+              ? Color(int.parse('FF${subject.color.replaceAll('#', '')}',
+                  radix: 16))
+              : Colors.grey;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  Border.all(color: Colors.redAccent.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded,
+                      color: Colors.redAccent, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(topic.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 2),
+                      Text(subjectName,
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${gap.value.toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18)),
+                    const Text('acerto',
+                        style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ],
+    );
   }
 }

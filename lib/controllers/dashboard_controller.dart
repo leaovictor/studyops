@@ -21,6 +21,7 @@ class DashboardData {
   final int todayMinutes;
   final int todayProductiveMinutes;
   final int weekMinutes;
+  final int weekProductiveMinutes;
   final int monthMinutes;
   final Map<String, int> minutesBySubject; // subjectId → minutes
   final List<MapEntry<String, int>>
@@ -45,6 +46,7 @@ class DashboardData {
     required this.todayMinutes,
     required this.todayProductiveMinutes,
     required this.weekMinutes,
+    required this.weekProductiveMinutes,
     required this.monthMinutes,
     required this.minutesBySubject,
     required this.weeklyTrend,
@@ -66,6 +68,7 @@ class DashboardData {
     todayMinutes: 0,
     todayProductiveMinutes: 0,
     weekMinutes: 0,
+    weekProductiveMinutes: 0,
     monthMinutes: 0,
     minutesBySubject: {},
     weeklyTrend: [],
@@ -104,6 +107,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   int todayMinutes = 0;
   int todayProductiveMinutes = 0;
   int weekMinutes = 0;
+  int weekProductiveMinutes = 0;
   int monthMinutes = 0;
   final minutesBySubject = <String, int>{};
   final dailyMap = <String, int>{};
@@ -133,6 +137,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
       final logDate = AppDateUtils.fromKey(log.date);
       if (!logDate.isBefore(weekStart) && !logDate.isAfter(weekEnd)) {
         weekMinutes += log.minutes;
+        weekProductiveMinutes += log.productiveMinutes ?? log.minutes;
       }
     }
 
@@ -239,6 +244,7 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
       todayMinutes: todayMinutes,
       todayProductiveMinutes: todayProductiveMinutes,
       weekMinutes: weekMinutes,
+      weekProductiveMinutes: weekProductiveMinutes,
       monthMinutes: monthMinutes,
       minutesBySubject: minutesBySubject,
       weeklyTrend: trend,
