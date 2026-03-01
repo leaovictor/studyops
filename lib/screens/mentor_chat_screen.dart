@@ -8,6 +8,8 @@ import '../controllers/auth_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../services/user_service.dart';
+import '../core/theme/app_theme.dart';
+import '../models/user_model.dart';
 
 // ─── Chat message model ───────────────────────────────────────────────────────
 
@@ -184,108 +186,115 @@ class _MentorChatScreenState extends ConsumerState<MentorChatScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [DesignTokens.primary, DesignTokens.secondary],
-                ),
-                borderRadius: DesignTokens.brSm,
-                boxShadow: [
-                  BoxShadow(
-                    color: DesignTokens.primary.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                  )
-                ],
-              ),
-              child: const Icon(Icons.psychology_rounded,
-                  color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: Spacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
+      child: Column(
+        children: [
+          AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Row(
               children: [
-                Text(
-                  'StudyMentor',
-                  style: AppTypography.headingSm.copyWith(
-                    color: isDark
-                        ? DesignTokens.darkTextPrimary
-                        : DesignTokens.lightTextPrimary,
-                    fontSize: 15,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [DesignTokens.primary, DesignTokens.secondary],
+                    ),
+                    borderRadius: DesignTokens.brSm,
+                    boxShadow: [
+                      BoxShadow(
+                        color: DesignTokens.primary.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                      )
+                    ],
                   ),
+                  child: const Icon(Icons.psychology_rounded,
+                      color: Colors.white, size: 20),
                 ),
-                Text(
-                  'IA · Llama 3.3 70B',
-                  style: AppTypography.overline.copyWith(
-                    color: DesignTokens.primary,
-                    fontSize: 10,
-                  ),
+                const SizedBox(width: Spacing.sm),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'StudyMentor',
+                      style: AppTypography.headingSm.copyWith(
+                        color: isDark
+                            ? DesignTokens.darkTextPrimary
+                            : DesignTokens.lightTextPrimary,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      'IA · Llama 3.3 70B',
+                      style: AppTypography.overline.copyWith(
+                        color: DesignTokens.primary,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_rounded),
-            tooltip: 'Limpar conversa',
-            onPressed: () {
-              setState(() {
-                _messages.clear();
-                _hasIntroduced = false;
-              });
-              _sendIntro();
-            },
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.delete_sweep_rounded),
+                tooltip: 'Limpar conversa',
+                onPressed: () {
+                  setState(() {
+                    _messages.clear();
+                    _hasIntroduced = false;
+                  });
+                  _sendIntro();
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Message list
           Expanded(
-            child: _messages.isEmpty
-                ? _EmptyState(isDark: isDark)
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.md, vertical: Spacing.sm),
-                    itemCount: _messages.length + (_isTyping ? 1 : 0),
-                    itemBuilder: (context, i) {
-                      if (i == _messages.length && _isTyping) {
-                        return _TypingIndicator(isDark: isDark);
-                      }
-                      final msg = _messages[i];
-                      return _MessageBubble(
-                        message: msg,
-                        isDark: isDark,
-                      );
-                    },
+            child: Column(
+              children: [
+                // Message list
+                Expanded(
+                  child: _messages.isEmpty
+                      ? _EmptyState(isDark: isDark)
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: Spacing.md, vertical: Spacing.sm),
+                          itemCount: _messages.length + (_isTyping ? 1 : 0),
+                          itemBuilder: (context, i) {
+                            if (i == _messages.length && _isTyping) {
+                              return _TypingIndicator(isDark: isDark);
+                            }
+                            final msg = _messages[i];
+                            return _MessageBubble(
+                              message: msg,
+                              isDark: isDark,
+                            );
+                          },
+                        ),
+                ),
+
+                // Quick prompts (show only when few messages)
+                if (_messages.length <= 1 && !_isTyping)
+                  _QuickPrompts(
+                    prompts: _quickPrompts,
+                    onTap: _send,
+                    isDark: isDark,
                   ),
-          ),
 
-          // Quick prompts (show only when few messages)
-          if (_messages.length <= 1 && !_isTyping)
-            _QuickPrompts(
-              prompts: _quickPrompts,
-              onTap: _send,
-              isDark: isDark,
+                // Input bar
+                _InputBar(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  isDark: isDark,
+                  isLoading: _isTyping,
+                  onSend: _send,
+                ),
+              ],
             ),
-
-          // Input bar
-          _InputBar(
-            controller: _controller,
-            focusNode: _focusNode,
-            isDark: isDark,
-            isLoading: _isTyping,
-            onSend: _send,
           ),
         ],
       ),
@@ -312,14 +321,13 @@ class _MessageBubble extends StatelessWidget {
             isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           if (!isUser) ...[
-            // Mentor Avatar
+            // Avatar
             Container(
               width: 30,
               height: 30,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [DesignTokens.primary, DesignTokens.secondary],
-                ),
+                    colors: [DesignTokens.primary, DesignTokens.secondary]),
                 borderRadius: DesignTokens.brSm,
               ),
               child: const Icon(Icons.psychology_rounded,
@@ -332,8 +340,7 @@ class _MessageBubble extends StatelessWidget {
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.78,
-              ),
+                  maxWidth: MediaQuery.of(context).size.width * 0.75),
               padding: const EdgeInsets.symmetric(
                   horizontal: Spacing.md, vertical: Spacing.sm),
               decoration: BoxDecoration(
@@ -358,7 +365,7 @@ class _MessageBubble extends StatelessWidget {
 
           if (isUser) ...[
             const SizedBox(width: Spacing.xs),
-            // User avatar placeholder
+            // User Avatar Placeholder
             Container(
               width: 30,
               height: 30,

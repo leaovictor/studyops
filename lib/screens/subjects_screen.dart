@@ -44,307 +44,318 @@ class _SubjectsScreenState extends ConsumerState<SubjectsScreen> {
     final subjectsAsync = ref.watch(subjectsProvider);
     final controller = ref.read(subjectControllerProvider.notifier);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showSubjectDialog(context, null),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Matéria'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width >= 600 ? 24 : 16,
-          vertical: 24,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 16,
-              runSpacing: 8,
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width >= 600 ? 24 : 16,
+              vertical: 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Matérias',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                        Colors.white),
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (val) {
-                    if (val == 'import') _showAIImportDialog(context);
-                    if (val == 'suggest') _suggestWithAI();
-                    if (val == 'audit') _auditWithAI();
-                    if (val == 'clear') _confirmClearAll();
-                  },
-                  tooltip: 'Opções',
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'suggest',
-                      child: Row(
-                        children: [
-                          Icon(Icons.auto_awesome_rounded,
-                              size: 18, color: AppTheme.accent),
-                          SizedBox(width: 12),
-                          Text('Sugerir com IA'),
-                        ],
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    Text(
+                      'Matérias',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                            Colors.white),
                       ),
                     ),
-                    const PopupMenuItem(
-                      value: 'audit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.fact_check_rounded,
-                              size: 18, color: AppTheme.primary),
-                          SizedBox(width: 12),
-                          Text('Verificar com IA'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'import',
-                      child: Row(
-                        children: [
-                          Icon(Icons.description_rounded, size: 18),
-                          SizedBox(width: 12),
-                          Text('Importar Edital/Texto'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'clear',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_sweep_rounded,
-                              size: 18, color: AppTheme.error),
-                          SizedBox(width: 12),
-                          Text('Limpar Todas',
-                              style: TextStyle(color: AppTheme.error)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _isGeneratingSuggestions
-                              ? Icons.hourglass_empty_rounded
-                              : Icons.auto_awesome_rounded,
-                          size: 18,
-                          color: AppTheme.accent,
+                    PopupMenuButton<String>(
+                      onSelected: (val) {
+                        if (val == 'import') _showAIImportDialog(context);
+                        if (val == 'suggest') _suggestWithAI();
+                        if (val == 'audit') _auditWithAI();
+                        if (val == 'clear') _confirmClearAll();
+                      },
+                      tooltip: 'Opções',
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(
+                          value: 'suggest',
+                          child: Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded,
+                                  size: 18, color: AppTheme.accent),
+                              SizedBox(width: 12),
+                              Text('Sugerir com IA'),
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _isGeneratingSuggestions
-                              ? 'Gerando...'
-                              : 'Gerenciar com IA',
-                          style: const TextStyle(
-                            color: AppTheme.accent,
-                            fontWeight: FontWeight.w600,
+                        const PopupMenuItem(
+                          value: 'audit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.fact_check_rounded,
+                                  size: 18, color: AppTheme.primary),
+                              SizedBox(width: 12),
+                              Text('Verificar com IA'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'import',
+                          child: Row(
+                            children: [
+                              Icon(Icons.description_rounded, size: 18),
+                              SizedBox(width: 12),
+                              Text('Importar Edital/Texto'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'clear',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_sweep_rounded,
+                                  size: 18, color: AppTheme.error),
+                              SizedBox(width: 12),
+                              Text('Limpar Todas',
+                                  style: TextStyle(color: AppTheme.error)),
+                            ],
                           ),
                         ),
                       ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isGeneratingSuggestions
+                                  ? Icons.hourglass_empty_rounded
+                                  : Icons.auto_awesome_rounded,
+                              size: 18,
+                              color: AppTheme.accent,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isGeneratingSuggestions
+                                  ? 'Gerando...'
+                                  : 'Gerenciar com IA',
+                              style: const TextStyle(
+                                color: AppTheme.accent,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                subjectsAsync.maybeWhen(
+                  data: (subjects) => Text(
+                    '${subjects.length} matéria(s) cadastrada(s)',
+                    style: TextStyle(
+                        color: (Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.grey),
+                        fontSize: 13),
+                  ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: SmartRefresher(
+                    controller: _refreshController,
+                    onRefresh: _onRefresh,
+                    header: const WaterDropMaterialHeader(
+                      backgroundColor: AppTheme.primary,
+                    ),
+                    child: subjectsAsync.when(
+                      loading: () => const Center(
+                          child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation(AppTheme.primary),
+                      )),
+                      error: (e, _) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: AppTheme.error, size: 48),
+                              const SizedBox(height: 16),
+                              const Text('Erro ao carregar matérias',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w600)),
+                              Text(e.toString(),
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: (Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.color ??
+                                          Colors.grey))),
+                              const SizedBox(height: 16),
+                              TextButton(
+                                  onPressed: _onRefresh,
+                                  child: const Text('Tentar novamente')),
+                            ],
+                          ),
+                        ),
+                      ),
+                      data: (subjects) => subjects.isEmpty
+                          ? SingleChildScrollView(
+                              child: _EmptySubjects(
+                                onImport: () => _showAIImportDialog(context),
+                                onSuggest: _suggestWithAI,
+                                isGenerating: _isGeneratingSuggestions,
+                              ),
+                            )
+                          : AnimationLimiter(
+                              child: ListView.separated(
+                                itemCount: subjects.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (_, i) {
+                                  final subject = subjects[i];
+                                  final isExpanded =
+                                      _expandedSubjectId == subject.id;
+                                  return AnimationConfiguration.staggeredList(
+                                    position: i,
+                                    duration: const Duration(milliseconds: 375),
+                                    child: SlideAnimation(
+                                      verticalOffset: 50.0,
+                                      child: FadeInAnimation(
+                                        child: _SubjectCard(
+                                          key: ValueKey(subject.id),
+                                          subject: subject,
+                                          isExpanded: isExpanded,
+                                          onExpand: () => setState(() {
+                                            _expandedSubjectId =
+                                                isExpanded ? null : subject.id;
+                                          }),
+                                          onEdit: () => _showSubjectDialog(
+                                              context, subject),
+                                          onDelete: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                bool isDeleting = false;
+                                                return StatefulBuilder(
+                                                  builder: (ctx, setS) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                          'Excluir Matéria'),
+                                                      content: Text(
+                                                          'Excluir "${subject.name}" e todos os seus tópicos?'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: isDeleting
+                                                              ? null
+                                                              : () =>
+                                                                  Navigator.pop(
+                                                                      ctx),
+                                                          child: const Text(
+                                                              'Cancelar'),
+                                                        ),
+                                                        FilledButton(
+                                                          onPressed: isDeleting
+                                                              ? null
+                                                              : () async {
+                                                                  setS(() =>
+                                                                      isDeleting =
+                                                                          true);
+                                                                  try {
+                                                                    await controller
+                                                                        .deleteSubject(
+                                                                            subject.id);
+                                                                    if (ctx
+                                                                        .mounted) {
+                                                                      Navigator
+                                                                          .pop(
+                                                                              ctx);
+                                                                      ScaffoldMessenger.of(
+                                                                              context)
+                                                                          .showSnackBar(
+                                                                        const SnackBar(
+                                                                            content:
+                                                                                Text('Matéria excluída')),
+                                                                      );
+                                                                    }
+                                                                  } catch (e) {
+                                                                    if (ctx
+                                                                        .mounted) {
+                                                                      setS(() =>
+                                                                          isDeleting =
+                                                                              false);
+                                                                      ScaffoldMessenger.of(
+                                                                              context)
+                                                                          .showSnackBar(
+                                                                        SnackBar(
+                                                                            content:
+                                                                                Text('Erro ao excluir: $e')),
+                                                                      );
+                                                                    }
+                                                                  }
+                                                                },
+                                                          style: FilledButton
+                                                              .styleFrom(
+                                                                  backgroundColor:
+                                                                      AppTheme
+                                                                          .error),
+                                                          child: isDeleting
+                                                              ? const SizedBox(
+                                                                  width: 20,
+                                                                  height: 20,
+                                                                  child:
+                                                                      CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                    valueColor:
+                                                                        AlwaysStoppedAnimation(
+                                                                            Colors.white),
+                                                                  ),
+                                                                )
+                                                              : const Text(
+                                                                  'Excluir'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                            );
+                                          },
+                                          onAddTopic: () => _showTopicDialog(
+                                              context, subject.id, null),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            subjectsAsync.maybeWhen(
-              data: (subjects) => Text(
-                '${subjects.length} matéria(s) cadastrada(s)',
-                style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodySmall?.color ??
-                        Colors.grey),
-                    fontSize: 13),
-              ),
-              orElse: () => const SizedBox.shrink(),
+          ),
+          // ➕ Botão para adicionar matéria manual
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showSubjectDialog(context, null),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Matéria'),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: SmartRefresher(
-                controller: _refreshController,
-                onRefresh: _onRefresh,
-                header: const WaterDropMaterialHeader(
-                  backgroundColor: AppTheme.primary,
-                ),
-                child: subjectsAsync.when(
-                  loading: () => const Center(
-                      child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation(AppTheme.primary),
-                  )),
-                  error: (e, _) => SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 40),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppTheme.error, size: 48),
-                          const SizedBox(height: 16),
-                          const Text('Erro ao carregar matérias',
-                              style: TextStyle(fontWeight: FontWeight.w600)),
-                          Text(e.toString(),
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: (Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.color ??
-                                      Colors.grey))),
-                          const SizedBox(height: 16),
-                          TextButton(
-                              onPressed: _onRefresh,
-                              child: const Text('Tentar novamente')),
-                        ],
-                      ),
-                    ),
-                  ),
-                  data: (subjects) => subjects.isEmpty
-                      ? SingleChildScrollView(
-                          child: _EmptySubjects(
-                            onImport: () => _showAIImportDialog(context),
-                            onSuggest: _suggestWithAI,
-                            isGenerating: _isGeneratingSuggestions,
-                          ),
-                        )
-                      : AnimationLimiter(
-                          child: ListView.separated(
-                            itemCount: subjects.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (_, i) {
-                              final subject = subjects[i];
-                              final isExpanded =
-                                  _expandedSubjectId == subject.id;
-                              return AnimationConfiguration.staggeredList(
-                                position: i,
-                                duration: const Duration(milliseconds: 375),
-                                child: SlideAnimation(
-                                  verticalOffset: 50.0,
-                                  child: FadeInAnimation(
-                                    child: _SubjectCard(
-                                      key: ValueKey(subject.id),
-                                      subject: subject,
-                                      isExpanded: isExpanded,
-                                      onExpand: () => setState(() {
-                                        _expandedSubjectId =
-                                            isExpanded ? null : subject.id;
-                                      }),
-                                      onEdit: () =>
-                                          _showSubjectDialog(context, subject),
-                                      onDelete: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) {
-                                            bool isDeleting = false;
-                                            return StatefulBuilder(
-                                              builder: (ctx, setS) {
-                                                return AlertDialog(
-                                                  title: const Text(
-                                                      'Excluir Matéria'),
-                                                  content: Text(
-                                                      'Excluir "${subject.name}" e todos os seus tópicos?'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: isDeleting
-                                                          ? null
-                                                          : () => Navigator.pop(
-                                                              ctx),
-                                                      child: const Text(
-                                                          'Cancelar'),
-                                                    ),
-                                                    FilledButton(
-                                                      onPressed: isDeleting
-                                                          ? null
-                                                          : () async {
-                                                              setS(() =>
-                                                                  isDeleting =
-                                                                      true);
-                                                              try {
-                                                                await controller
-                                                                    .deleteSubject(
-                                                                        subject
-                                                                            .id);
-                                                                if (ctx
-                                                                    .mounted) {
-                                                                  Navigator.pop(
-                                                                      ctx);
-                                                                  ScaffoldMessenger.of(
-                                                                          context)
-                                                                      .showSnackBar(
-                                                                    const SnackBar(
-                                                                        content:
-                                                                            Text('Matéria excluída')),
-                                                                  );
-                                                                }
-                                                              } catch (e) {
-                                                                if (ctx
-                                                                    .mounted) {
-                                                                  setS(() =>
-                                                                      isDeleting =
-                                                                          false);
-                                                                  ScaffoldMessenger.of(
-                                                                          context)
-                                                                      .showSnackBar(
-                                                                    SnackBar(
-                                                                        content:
-                                                                            Text('Erro ao excluir: $e')),
-                                                                  );
-                                                                }
-                                                              }
-                                                            },
-                                                      style: FilledButton
-                                                          .styleFrom(
-                                                              backgroundColor:
-                                                                  AppTheme
-                                                                      .error),
-                                                      child: isDeleting
-                                                          ? const SizedBox(
-                                                              width: 20,
-                                                              height: 20,
-                                                              child:
-                                                                  CircularProgressIndicator(
-                                                                strokeWidth: 2,
-                                                                valueColor:
-                                                                    AlwaysStoppedAnimation(
-                                                                        Colors
-                                                                            .white),
-                                                              ),
-                                                            )
-                                                          : const Text(
-                                                              'Excluir'),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                      },
-                                      onAddTopic: () => _showTopicDialog(
-                                          context, subject.id, null),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

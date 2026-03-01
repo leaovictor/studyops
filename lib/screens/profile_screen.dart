@@ -74,9 +74,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final perf = ref.watch(performanceStatsProvider);
     final gamification = ref.watch(gamificationProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
-      body: profileAsync.when(
+    return Material(
+      color: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
+      child: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Erro: $e')),
         data: (profile) => CustomScrollView(

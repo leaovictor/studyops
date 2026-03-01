@@ -91,11 +91,12 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
     final questionsAsync = ref.watch(sharedQuestionsProvider);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B1220),
-      appBar: _isFocusMode
-          ? null
-          : QuizTopBar(
+    return Material(
+      color: const Color(0xFF0B1220),
+      child: Column(
+        children: [
+          if (!_isFocusMode)
+            QuizTopBar(
               title: 'Simulado Premium',
               fontSizeDelta: _fontSizeDelta,
               onFontSizeChanged: (val) => setState(() => _fontSizeDelta = val),
@@ -107,65 +108,70 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                 }
               },
             ),
-      body: questionsAsync.when(
-        data: (questions) {
-          if (questions.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhuma questão encontrada.',
-                style: TextStyle(color: Colors.white70),
-              ),
-            );
-          }
+          Expanded(
+            child: questionsAsync.when(
+              data: (questions) {
+                if (questions.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Nenhuma questão encontrada.',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
 
-          return Column(
-            children: [
-              if (!_isFocusMode) ...[
-                QuizProgressBar(
-                  current: _currentIndex + 1,
-                  total: questions.length,
-                ),
-              ],
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: questions.length,
-                  onPageChanged: (index) =>
-                      setState(() => _currentIndex = index),
-                  itemBuilder: (context, index) {
-                    final question = questions[index];
-                    return _QuestionPage(
-                      question: question,
-                      questionIndex: index,
-                      totalQuestions: questions.length,
-                      onResult: _recordResult,
-                      isFocusMode: _isFocusMode,
-                      isFlagged: _flaggedForReview.contains(question.id),
-                      onToggleReview: () => _toggleReviewFlag(question.id),
-                      onToggleFocus: _toggleFocusMode,
-                      fontSizeDelta: _fontSizeDelta,
-                      onNext: () {
-                        if (index < questions.length - 1) {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeInOutCubic,
+                return Column(
+                  children: [
+                    if (!_isFocusMode) ...[
+                      QuizProgressBar(
+                        current: _currentIndex + 1,
+                        total: questions.length,
+                      ),
+                    ],
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: questions.length,
+                        onPageChanged: (index) =>
+                            setState(() => _currentIndex = index),
+                        itemBuilder: (context, index) {
+                          final question = questions[index];
+                          return _QuestionPage(
+                            question: question,
+                            questionIndex: index,
+                            totalQuestions: questions.length,
+                            onResult: _recordResult,
+                            isFocusMode: _isFocusMode,
+                            isFlagged: _flaggedForReview.contains(question.id),
+                            onToggleReview: () =>
+                                _toggleReviewFlag(question.id),
+                            onToggleFocus: _toggleFocusMode,
+                            fontSizeDelta: _fontSizeDelta,
+                            onNext: () {
+                              if (index < questions.length - 1) {
+                                _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeInOutCubic,
+                                );
+                              } else {
+                                _showSummary(questions);
+                              }
+                            },
                           );
-                        } else {
-                          _showSummary(questions);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-            child: Text('Erro: $e',
-                style: const TextStyle(color: AppTheme.error))),
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                  child: Text('Erro: $e',
+                      style: const TextStyle(color: AppTheme.error))),
+            ),
+          ),
+        ],
       ),
     );
   }

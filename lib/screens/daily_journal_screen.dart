@@ -10,6 +10,7 @@ import '../controllers/goal_controller.dart';
 import '../controllers/subject_controller.dart';
 import '../models/study_journal_model.dart';
 import '../core/constants/app_constants.dart';
+import '../services/ai_service.dart';
 
 // ─── Providers ────────────────────────────────────────────────────────────────
 
@@ -128,10 +129,7 @@ class _DailyJournalScreenState extends ConsumerState<DailyJournalScreen> {
     try {
       final goals = ref.read(goalsProvider).valueOrNull ?? [];
       final activeGoalId = ref.read(activeGoalIdProvider);
-      final goal = goals.cast<dynamic>().firstWhere(
-            (g) => g.id == activeGoalId,
-            orElse: () => null,
-          );
+      final goal = goals.where((g) => g.id == activeGoalId).firstOrNull;
 
       final entry = StudyJournal(
         id: '${user.uid}_$_todayKey',
@@ -183,11 +181,9 @@ class _DailyJournalScreenState extends ConsumerState<DailyJournalScreen> {
 
       final goals = ref.read(goalsProvider).valueOrNull ?? [];
       final activeGoalId = ref.read(activeGoalIdProvider);
-      final goalName = goals
-              .cast<dynamic>()
-              .firstWhere((g) => g.id == activeGoalId, orElse: () => null)
-              ?.name ??
-          'Concurso Público';
+      final goalName =
+          goals.where((g) => g.id == activeGoalId).firstOrNull?.name ??
+              'Concurso Público';
 
       final moodLabel = _moodLabels[_mood - 1];
       final studied = _studiedCtrl.text.trim();
@@ -235,93 +231,100 @@ class _DailyJournalScreenState extends ConsumerState<DailyJournalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final entriesAsync = ref.watch(journalEntriesProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          '📓 Reflexão Diária',
-          style: AppTypography.headingSm.copyWith(
-            color: isDark
-                ? DesignTokens.darkTextPrimary
-                : DesignTokens.lightTextPrimary,
-          ),
-        ),
-      ),
-      body: _isLoadingToday
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.lg, vertical: Spacing.md),
-              child: AnimationLimiter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: AnimationConfiguration.toStaggeredList(
-                    duration: const Duration(milliseconds: 350),
-                    childAnimationBuilder: (w) => SlideAnimation(
-                      verticalOffset: 20,
-                      child: FadeInAnimation(child: w),
-                    ),
-                    children: [
-                      // ── Today's entry card ─────────────────────────────
-                      _TodayCard(
-                        isDark: isDark,
-                        mood: _mood,
-                        onMoodChanged: (m) => setState(() => _mood = m),
-                        studiedCtrl: _studiedCtrl,
-                        struggledCtrl: _struggledCtrl,
-                        tomorrowCtrl: _tomorrowCtrl,
-                        isSaving: _isSaving,
-                        savedToday: _savedToday,
-                        aiReflection: _aiReflection,
-                        isGeneratingAI: _isGeneratingAI,
-                        onSave: _save,
-                        onGenerateAI: _generateAIReflection,
-                      ),
-                      const SizedBox(height: Spacing.xl),
-
-                      // ── Timeline header ────────────────────────────────
-                      Text(
-                        'Histórico de Reflexões',
-                        style: AppTypography.labelMd.copyWith(
-                          color: isDark
-                              ? DesignTokens.darkTextPrimary
-                              : DesignTokens.lightTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.md),
-
-                      // ── Timeline entries ───────────────────────────────
-                      entriesAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text('Erro: $e'),
-                        data: (entries) {
-                          // Filter out today (shown in card above)
-                          final past = entries
-                              .where((e) => e.date != _todayKey)
-                              .toList();
-                          if (past.isEmpty) {
-                            return _EmptyTimeline(isDark: isDark);
-                          }
-                          return Column(
-                            children: past.asMap().entries.map((entry) {
-                              return _JournalTile(
-                                journal: entry.value,
-                                isDark: isDark,
-                                isLast: entry.key == past.length - 1,
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: Spacing.xxl),
-                    ],
-                  ),
-                ),
+    return Material(
+      color: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
+      child: Column(
+        children: [
+          AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Text(
+              '📓 Reflexão Diária',
+              style: AppTypography.headingSm.copyWith(
+                color: isDark
+                    ? DesignTokens.darkTextPrimary
+                    : DesignTokens.lightTextPrimary,
               ),
             ),
+          ),
+          Expanded(
+            child: _isLoadingToday
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.lg, vertical: Spacing.md),
+                    child: AnimationLimiter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: AnimationConfiguration.toStaggeredList(
+                          duration: const Duration(milliseconds: 350),
+                          childAnimationBuilder: (w) => SlideAnimation(
+                            verticalOffset: 20,
+                            child: FadeInAnimation(child: w),
+                          ),
+                          children: [
+                            // ── Today's entry card ─────────────────────────────
+                            _TodayCard(
+                              isDark: isDark,
+                              mood: _mood,
+                              onMoodChanged: (m) => setState(() => _mood = m),
+                              studiedCtrl: _studiedCtrl,
+                              struggledCtrl: _struggledCtrl,
+                              tomorrowCtrl: _tomorrowCtrl,
+                              isSaving: _isSaving,
+                              savedToday: _savedToday,
+                              aiReflection: _aiReflection,
+                              isGeneratingAI: _isGeneratingAI,
+                              onSave: _save,
+                              onGenerateAI: _generateAIReflection,
+                            ),
+                            const SizedBox(height: Spacing.xl),
+
+                            // ── Timeline header ────────────────────────────────
+                            Text(
+                              'Histórico de Reflexões',
+                              style: AppTypography.labelMd.copyWith(
+                                color: isDark
+                                    ? DesignTokens.darkTextPrimary
+                                    : DesignTokens.lightTextPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: Spacing.md),
+
+                            // ── Timeline entries ───────────────────────────────
+                            entriesAsync.when(
+                              loading: () => const Center(
+                                  child: CircularProgressIndicator()),
+                              error: (e, _) => Text('Erro: $e'),
+                              data: (entries) {
+                                // Filter out today (shown in card above)
+                                final past = entries
+                                    .where((e) => e.date != _todayKey)
+                                    .toList();
+                                if (past.isEmpty) {
+                                  return _EmptyTimeline(isDark: isDark);
+                                }
+                                return Column(
+                                  children: past.asMap().entries.map((entry) {
+                                    return _JournalTile(
+                                      journal: entry.value,
+                                      isDark: isDark,
+                                      isLast: entry.key == past.length - 1,
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: Spacing.xxl),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

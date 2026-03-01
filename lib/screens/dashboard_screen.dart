@@ -10,6 +10,7 @@ import '../controllers/flashcard_controller.dart';
 import '../controllers/goal_controller.dart';
 import '../controllers/performance_controller.dart';
 import '../core/theme/app_theme.dart';
+import '../core/design_system/design_tokens.dart';
 import '../core/utils/app_date_utils.dart';
 import 'package:el_tooltip/el_tooltip.dart';
 import '../widgets/relevance_tooltip.dart';
@@ -66,9 +67,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isDesktop = width >= 1100;
     final isTablet = width >= 700 && width < 1100;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: dashAsync.when(
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
+      child: dashAsync.when(
         loading: () => const Center(
             child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation(AppTheme.primary))),

@@ -73,503 +73,534 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final Color cardBorder =
         isDark ? DesignTokens.darkBg3 : const Color(0xFFDDE3EC);
 
-    return Scaffold(
-      backgroundColor: bg1,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(Spacing.lg),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Page Header ────────────────────────────────────────────
-              Text(
-                'Configurações',
-                style: AppTypography.headingSm.copyWith(color: textPrimary),
-              ),
-              Text(
-                'Personalize sua experiência',
-                style: AppTypography.bodySm.copyWith(color: textSecondary),
-              ),
-              const SizedBox(height: Spacing.xl),
-
-              // ── Conta ──────────────────────────────────────────────────
-              _SectionHeader(title: 'CONTA', isDark: isDark),
-              _SettingsCard(
-                isDark: isDark,
-                bg: bg2,
-                border: cardBorder,
-                child: Column(
-                  children: [
-                    // Avatar + info
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                DesignTokens.primary,
-                                DesignTokens.secondary,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Center(
-                            child: Text(
-                              (user?.displayName?.isNotEmpty == true
-                                      ? user!.displayName![0]
-                                      : user?.email?.isNotEmpty == true
-                                          ? user!.email![0]
-                                          : 'U')
-                                  .toUpperCase(),
-                              style: AppTypography.headingSm.copyWith(
-                                color: Colors.white,
-                                fontSize: 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: Spacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user?.displayName ?? 'Usuário',
-                                style: AppTypography.bodyMd.copyWith(
-                                  color: textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                user?.email ?? '',
-                                style: AppTypography.bodySm.copyWith(
-                                  color: textSecondary,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: Spacing.sm, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: DesignTokens.accent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Text(
-                            'PRO',
-                            style: AppTypography.overline.copyWith(
-                              color: DesignTokens.accent,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 9,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.md),
-                    const Divider(height: 1),
-                    const SizedBox(height: Spacing.sm),
-                    // Profile quick-nav
-                    _ListTile(
-                      icon: Icons.person_outline_rounded,
-                      iconColor: primary,
-                      label: 'Meu Perfil',
-                      subtitle: 'Foto, nome, objetivos',
-                      isDark: isDark,
-                      onTap: () => context.go('/profile'),
-                      trailing: Icon(Icons.chevron_right_rounded,
-                          color: textSecondary, size: 18),
-                    ),
-                    _ListTile(
-                      icon: Icons.logout_rounded,
-                      iconColor: DesignTokens.error,
-                      label: 'Sair da conta',
-                      subtitle: null,
-                      isDark: isDark,
-                      onTap: () =>
-                          ref.read(authControllerProvider.notifier).signOut(),
-                      trailing: null,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-
-              // ── Aparência ──────────────────────────────────────────────
-              _SectionHeader(title: 'APARÊNCIA', isDark: isDark),
-              _SettingsCard(
-                isDark: isDark,
-                bg: bg2,
-                border: cardBorder,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.1),
-                            borderRadius: DesignTokens.brMd,
-                          ),
-                          child: const Icon(Icons.palette_rounded,
-                              color: DesignTokens.primary, size: 18),
-                        ),
-                        const SizedBox(width: Spacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Tema',
-                                  style: AppTypography.bodySm.copyWith(
-                                      color: textPrimary,
-                                      fontWeight: FontWeight.w600)),
-                              Text(
-                                themeMode == ThemeMode.dark
-                                    ? 'Modo escuro'
-                                    : themeMode == ThemeMode.light
-                                        ? 'Modo claro'
-                                        : 'Sistema',
-                                style: AppTypography.overline.copyWith(
-                                    color: textSecondary, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.md),
-                    // Theme options row
-                    Row(
-                      children: [
-                        _ThemeChip(
-                          icon: Icons.wb_sunny_rounded,
-                          label: 'Claro',
-                          selected: themeMode == ThemeMode.light,
-                          color: const Color(0xFFFFB300),
-                          onTap: () => ref
-                              .read(themeProvider.notifier)
-                              .setThemeMode(ThemeMode.light),
-                        ),
-                        const SizedBox(width: Spacing.sm),
-                        _ThemeChip(
-                          icon: Icons.nightlight_round,
-                          label: 'Escuro',
-                          selected: themeMode == ThemeMode.dark,
-                          color: DesignTokens.primary,
-                          onTap: () => ref
-                              .read(themeProvider.notifier)
-                              .setThemeMode(ThemeMode.dark),
-                        ),
-                        const SizedBox(width: Spacing.sm),
-                        _ThemeChip(
-                          icon: Icons.brightness_auto_rounded,
-                          label: 'Sistema',
-                          selected: themeMode == ThemeMode.system,
-                          color: textSecondary,
-                          onTap: () => ref
-                              .read(themeProvider.notifier)
-                              .setThemeMode(ThemeMode.system),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-
-              // ── IA Personalizada ───────────────────────────────────────
-              _SectionHeader(title: 'IA PERSONALIZADA', isDark: isDark),
-              _SettingsCard(
-                isDark: isDark,
-                bg: bg2,
-                border: cardBorder,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color:
-                                DesignTokens.secondary.withValues(alpha: 0.1),
-                            borderRadius: DesignTokens.brMd,
-                          ),
-                          child: const Icon(Icons.psychology_rounded,
-                              color: DesignTokens.secondary, size: 18),
-                        ),
-                        const SizedBox(width: Spacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Contexto pessoal para o Mentor IA',
-                                style: AppTypography.bodySm.copyWith(
-                                    color: textPrimary,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              Text(
-                                'O Mentor usa isso para personalizar suas respostas',
-                                style: AppTypography.overline.copyWith(
-                                    color: textSecondary, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.md),
-                    TextField(
-                      controller: _contextCtrl,
-                      maxLines: 4,
-                      onChanged: (_) => setState(() => _contextSaved = false),
-                      style: AppTypography.bodySm
-                          .copyWith(color: textPrimary, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText:
-                            'Ex: Sou funcionário público, estudo para o concurso do TRF. Tenho dificuldade em Direito Administrativo e estudo 3h por dia...',
-                        hintStyle: AppTypography.bodySm.copyWith(
-                          color: textSecondary,
-                          fontSize: 12,
-                        ),
-                        filled: true,
-                        fillColor: isDark
-                            ? DesignTokens.darkBg3
-                            : DesignTokens.lightBg1,
-                        border: OutlineInputBorder(
-                          borderRadius: DesignTokens.brMd,
-                          borderSide: BorderSide(
-                              color: DesignTokens.secondary
-                                  .withValues(alpha: 0.3)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: DesignTokens.brMd,
-                          borderSide: BorderSide(
-                              color: DesignTokens.secondary
-                                  .withValues(alpha: 0.2)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: DesignTokens.brMd,
-                          borderSide:
-                              const BorderSide(color: DesignTokens.secondary),
-                        ),
-                        contentPadding: const EdgeInsets.all(Spacing.md),
+    return Material(
+      color: bg1,
+      child: Column(
+        children: [
+          AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Text(
+              'Configurações',
+              style: AppTypography.headingSm.copyWith(color: textPrimary),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(Spacing.lg),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Header Subtitle ────────────────────────────────────
+                      Text(
+                        'Personalize sua experiência',
+                        style:
+                            AppTypography.bodySm.copyWith(color: textSecondary),
                       ),
-                    ),
-                    const SizedBox(height: Spacing.sm),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (_contextSaved)
-                          Padding(
-                            padding: const EdgeInsets.only(right: Spacing.sm),
-                            child: Row(
+                      const SizedBox(height: Spacing.xl),
+
+                      // ── Conta ──────────────────────────────────────────────────
+                      _SectionHeader(title: 'CONTA', isDark: isDark),
+                      _SettingsCard(
+                        isDark: isDark,
+                        bg: bg2,
+                        border: cardBorder,
+                        child: Column(
+                          children: [
+                            // Avatar + info
+                            Row(
                               children: [
-                                const Icon(Icons.check_circle_rounded,
-                                    color: DesignTokens.accent, size: 14),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Salvo!',
-                                  style: AppTypography.overline.copyWith(
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        DesignTokens.primary,
+                                        DesignTokens.secondary,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      (user?.displayName?.isNotEmpty == true
+                                              ? user!.displayName![0]
+                                              : user?.email?.isNotEmpty == true
+                                                  ? user!.email![0]
+                                                  : 'U')
+                                          .toUpperCase(),
+                                      style: AppTypography.headingSm.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: Spacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user?.displayName ?? 'Usuário',
+                                        style: AppTypography.bodyMd.copyWith(
+                                          color: textPrimary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        user?.email ?? '',
+                                        style: AppTypography.bodySm.copyWith(
+                                          color: textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: Spacing.sm, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: DesignTokens.accent
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                  child: Text(
+                                    'PRO',
+                                    style: AppTypography.overline.copyWith(
                                       color: DesignTokens.accent,
-                                      fontWeight: FontWeight.w600),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 9,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        FilledButton.icon(
-                          onPressed: _isSavingContext
-                              ? null
-                              : () => _savePersonalContext(user?.uid),
-                          icon: _isSavingContext
-                              ? const SizedBox(
-                                  width: 12,
-                                  height: 12,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white))
-                              : const Icon(Icons.save_rounded, size: 14),
-                          label: const Text('Salvar contexto'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: DesignTokens.secondary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: Spacing.md),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: Spacing.xl),
-
-              // ── Plano Ativo ────────────────────────────────────────────
-              _SectionHeader(title: 'PLANO ATIVO', isDark: isDark),
-              _SettingsCard(
-                isDark: isDark,
-                bg: bg2,
-                border: cardBorder,
-                child: Builder(builder: (context) {
-                  final goal = activeGoal;
-                  if (goal == null) {
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color:
-                                    DesignTokens.warning.withValues(alpha: 0.1),
-                                borderRadius: DesignTokens.brMd,
-                              ),
-                              child: const Icon(Icons.flag_rounded,
-                                  color: DesignTokens.warning, size: 18),
+                            const SizedBox(height: Spacing.md),
+                            const Divider(height: 1),
+                            const SizedBox(height: Spacing.sm),
+                            // Profile quick-nav
+                            _ListTile(
+                              icon: Icons.person_outline_rounded,
+                              iconColor: primary,
+                              label: 'Meu Perfil',
+                              subtitle: 'Foto, nome, objetivos',
+                              isDark: isDark,
+                              onTap: () => context.go('/profile'),
+                              trailing: Icon(Icons.chevron_right_rounded,
+                                  color: textSecondary, size: 18),
                             ),
-                            const SizedBox(width: Spacing.md),
-                            Expanded(
-                              child: Text(
-                                'Nenhum objetivo ativo',
-                                style: AppTypography.bodySm
-                                    .copyWith(color: textSecondary),
-                              ),
+                            _ListTile(
+                              icon: Icons.logout_rounded,
+                              iconColor: DesignTokens.error,
+                              label: 'Sair da conta',
+                              subtitle: null,
+                              isDark: isDark,
+                              onTap: () => ref
+                                  .read(authControllerProvider.notifier)
+                                  .signOut(),
+                              trailing: null,
                             ),
                           ],
                         ),
-                        const SizedBox(height: Spacing.md),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => context.go('/onboarding'),
-                            icon: const Icon(Icons.add_rounded, size: 16),
-                            label: const Text('Criar objetivo'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: primary,
-                              side:
-                                  const BorderSide(color: DesignTokens.primary),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: primary.withValues(alpha: 0.1),
-                              borderRadius: DesignTokens.brMd,
-                            ),
-                            child: const Icon(Icons.flag_rounded,
-                                color: DesignTokens.primary, size: 18),
-                          ),
-                          const SizedBox(width: Spacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                      const SizedBox(height: Spacing.xl),
+
+                      // ── Aparência ──────────────────────────────────────────────
+                      _SectionHeader(title: 'APARÊNCIA', isDark: isDark),
+                      _SettingsCard(
+                        isDark: isDark,
+                        bg: bg2,
+                        border: cardBorder,
+                        child: Column(
+                          children: [
+                            Row(
                               children: [
-                                Text(
-                                  goal.name,
-                                  style: AppTypography.bodySm.copyWith(
-                                      color: textPrimary,
-                                      fontWeight: FontWeight.w700),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: primary.withValues(alpha: 0.1),
+                                    borderRadius: DesignTokens.brMd,
+                                  ),
+                                  child: const Icon(Icons.palette_rounded,
+                                      color: DesignTokens.primary, size: 18),
                                 ),
-                                Text(
-                                  'Criado em: ${_fmtDate(goal.createdAt)}',
-                                  style: AppTypography.overline.copyWith(
-                                      color: textSecondary, fontSize: 11),
+                                const SizedBox(width: Spacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Tema',
+                                          style: AppTypography.bodySm.copyWith(
+                                              color: textPrimary,
+                                              fontWeight: FontWeight.w600)),
+                                      Text(
+                                        themeMode == ThemeMode.dark
+                                            ? 'Modo escuro'
+                                            : themeMode == ThemeMode.light
+                                                ? 'Modo claro'
+                                                : 'Sistema',
+                                        style: AppTypography.overline.copyWith(
+                                            color: textSecondary, fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: Spacing.md),
+                            // Theme options row
+                            Row(
+                              children: [
+                                _ThemeChip(
+                                  icon: Icons.wb_sunny_rounded,
+                                  label: 'Claro',
+                                  selected: themeMode == ThemeMode.light,
+                                  color: const Color(0xFFFFB300),
+                                  onTap: () => ref
+                                      .read(themeProvider.notifier)
+                                      .setThemeMode(ThemeMode.light),
+                                ),
+                                const SizedBox(width: Spacing.sm),
+                                _ThemeChip(
+                                  icon: Icons.nightlight_round,
+                                  label: 'Escuro',
+                                  selected: themeMode == ThemeMode.dark,
+                                  color: DesignTokens.primary,
+                                  onTap: () => ref
+                                      .read(themeProvider.notifier)
+                                      .setThemeMode(ThemeMode.dark),
+                                ),
+                                const SizedBox(width: Spacing.sm),
+                                _ThemeChip(
+                                  icon: Icons.brightness_auto_rounded,
+                                  label: 'Sistema',
+                                  selected: themeMode == ThemeMode.system,
+                                  color: textSecondary,
+                                  onTap: () => ref
+                                      .read(themeProvider.notifier)
+                                      .setThemeMode(ThemeMode.system),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: Spacing.md),
-                      const Divider(height: 1),
-                      const SizedBox(height: Spacing.sm),
-                      _ListTile(
-                        icon: Icons.auto_awesome_rounded,
-                        iconColor: primary,
-                        label: 'Gerenciar Plano de Estudos (IA)',
-                        subtitle: null,
-                        isDark: isDark,
-                        onTap: () => context.go('/checklist'),
-                        trailing: Icon(Icons.chevron_right_rounded,
-                            color: textSecondary, size: 18),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-              const SizedBox(height: Spacing.xl),
+                      const SizedBox(height: Spacing.xl),
 
-              // ── Sobre ──────────────────────────────────────────────────
-              _SectionHeader(title: 'SOBRE O APP', isDark: isDark),
-              _SettingsCard(
-                isDark: isDark,
-                bg: bg2,
-                border: cardBorder,
-                child: Column(
-                  children: [
-                    _ListTile(
-                      icon: Icons.book_outlined,
-                      iconColor: const Color(0xFF43A047),
-                      label: 'Guia do Usuário',
-                      subtitle: 'Como funciona cada recurso',
-                      isDark: isDark,
-                      onTap: () => context.go('/manual'),
-                      trailing: Icon(Icons.chevron_right_rounded,
-                          color: textSecondary, size: 18),
-                    ),
-                    const Divider(height: 1),
-                    _ListTile(
-                      icon: Icons.info_outline_rounded,
-                      iconColor: primary,
-                      label: 'Versão',
-                      subtitle: '1.12.0 • Sprint 12',
-                      isDark: isDark,
-                      onTap: null,
-                      trailing: null,
-                    ),
-                    const Divider(height: 1),
-                    _ListTile(
-                      icon: Icons.code_rounded,
-                      iconColor: const Color(0xFFA78BFA),
-                      label: 'Feito com Engenharia de Aprendizagem',
-                      subtitle: 'StudyOps © 2026',
-                      isDark: isDark,
-                      onTap: null,
-                      trailing: null,
-                    ),
-                  ],
+                      // ── IA Personalizada ───────────────────────────────────────
+                      _SectionHeader(title: 'IA PERSONALIZADA', isDark: isDark),
+                      _SettingsCard(
+                        isDark: isDark,
+                        bg: bg2,
+                        border: cardBorder,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: DesignTokens.secondary
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: DesignTokens.brMd,
+                                  ),
+                                  child: const Icon(Icons.psychology_rounded,
+                                      color: DesignTokens.secondary, size: 18),
+                                ),
+                                const SizedBox(width: Spacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Contexto pessoal para o Mentor IA',
+                                        style: AppTypography.bodySm.copyWith(
+                                            color: textPrimary,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      Text(
+                                        'O Mentor usa isso para personalizar suas respostas',
+                                        style: AppTypography.overline.copyWith(
+                                            color: textSecondary, fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: Spacing.md),
+                            TextField(
+                              controller: _contextCtrl,
+                              maxLines: 4,
+                              onChanged: (_) =>
+                                  setState(() => _contextSaved = false),
+                              style: AppTypography.bodySm
+                                  .copyWith(color: textPrimary, fontSize: 13),
+                              decoration: InputDecoration(
+                                hintText:
+                                    'Ex: Sou funcionário público, estudo para o concurso do TRF. Tenho dificuldade em Direito Administrativo e estudo 3h por dia...',
+                                hintStyle: AppTypography.bodySm.copyWith(
+                                  color: textSecondary,
+                                  fontSize: 12,
+                                ),
+                                filled: true,
+                                fillColor: isDark
+                                    ? DesignTokens.darkBg3
+                                    : DesignTokens.lightBg1,
+                                border: OutlineInputBorder(
+                                  borderRadius: DesignTokens.brMd,
+                                  borderSide: BorderSide(
+                                      color: DesignTokens.secondary
+                                          .withValues(alpha: 0.3)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: DesignTokens.brMd,
+                                  borderSide: BorderSide(
+                                      color: DesignTokens.secondary
+                                          .withValues(alpha: 0.2)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: DesignTokens.brMd,
+                                  borderSide: const BorderSide(
+                                      color: DesignTokens.secondary),
+                                ),
+                                contentPadding:
+                                    const EdgeInsets.all(Spacing.md),
+                              ),
+                            ),
+                            const SizedBox(height: Spacing.sm),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (_contextSaved)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                        right: Spacing.sm),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.check_circle_rounded,
+                                            color: DesignTokens.accent,
+                                            size: 14),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Salvo!',
+                                          style: AppTypography.overline
+                                              .copyWith(
+                                                  color: DesignTokens.accent,
+                                                  fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                FilledButton.icon(
+                                  onPressed: _isSavingContext
+                                      ? null
+                                      : () => _savePersonalContext(user?.uid),
+                                  icon: _isSavingContext
+                                      ? const SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white))
+                                      : const Icon(Icons.save_rounded,
+                                          size: 14),
+                                  label: const Text('Salvar contexto'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: DesignTokens.secondary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: Spacing.md),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.xl),
+
+                      // ── Plano Ativo ────────────────────────────────────────────
+                      _SectionHeader(title: 'PLANO ATIVO', isDark: isDark),
+                      _SettingsCard(
+                        isDark: isDark,
+                        bg: bg2,
+                        border: cardBorder,
+                        child: Builder(builder: (context) {
+                          final goal = activeGoal;
+                          if (goal == null) {
+                            return Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: DesignTokens.warning
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: DesignTokens.brMd,
+                                      ),
+                                      child: const Icon(Icons.flag_rounded,
+                                          color: DesignTokens.warning,
+                                          size: 18),
+                                    ),
+                                    const SizedBox(width: Spacing.md),
+                                    Expanded(
+                                      child: Text(
+                                        'Nenhum objetivo ativo',
+                                        style: AppTypography.bodySm
+                                            .copyWith(color: textSecondary),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: Spacing.md),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => context.go('/onboarding'),
+                                    icon:
+                                        const Icon(Icons.add_rounded, size: 16),
+                                    label: const Text('Criar objetivo'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: primary,
+                                      side: const BorderSide(
+                                          color: DesignTokens.primary),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: primary.withValues(alpha: 0.1),
+                                      borderRadius: DesignTokens.brMd,
+                                    ),
+                                    child: const Icon(Icons.flag_rounded,
+                                        color: DesignTokens.primary, size: 18),
+                                  ),
+                                  const SizedBox(width: Spacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          goal.name,
+                                          style: AppTypography.bodySm.copyWith(
+                                              color: textPrimary,
+                                              fontWeight: FontWeight.w700),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          'Criado em: ${_fmtDate(goal.createdAt)}',
+                                          style: AppTypography.overline
+                                              .copyWith(
+                                                  color: textSecondary,
+                                                  fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: Spacing.md),
+                              const Divider(height: 1),
+                              const SizedBox(height: Spacing.sm),
+                              _ListTile(
+                                icon: Icons.auto_awesome_rounded,
+                                iconColor: primary,
+                                label: 'Gerenciar Plano de Estudos (IA)',
+                                subtitle: null,
+                                isDark: isDark,
+                                onTap: () => context.go('/checklist'),
+                                trailing: Icon(Icons.chevron_right_rounded,
+                                    color: textSecondary, size: 18),
+                              ),
+                            ],
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: Spacing.xl),
+
+                      // ── Sobre ──────────────────────────────────────────────────
+                      _SectionHeader(title: 'SOBRE O APP', isDark: isDark),
+                      _SettingsCard(
+                        isDark: isDark,
+                        bg: bg2,
+                        border: cardBorder,
+                        child: Column(
+                          children: [
+                            _ListTile(
+                              icon: Icons.book_outlined,
+                              iconColor: const Color(0xFF43A047),
+                              label: 'Guia do Usuário',
+                              subtitle: 'Como funciona cada recurso',
+                              isDark: isDark,
+                              onTap: () => context.go('/manual'),
+                              trailing: Icon(Icons.chevron_right_rounded,
+                                  color: textSecondary, size: 18),
+                            ),
+                            const Divider(height: 1),
+                            _ListTile(
+                              icon: Icons.info_outline_rounded,
+                              iconColor: primary,
+                              label: 'Versão',
+                              subtitle: '1.12.0 • Sprint 12',
+                              isDark: isDark,
+                              onTap: null,
+                              trailing: null,
+                            ),
+                            const Divider(height: 1),
+                            _ListTile(
+                              icon: Icons.code_rounded,
+                              iconColor: const Color(0xFFA78BFA),
+                              label: 'Feito com Engenharia de Aprendizagem',
+                              subtitle: 'StudyOps © 2026',
+                              isDark: isDark,
+                              onTap: null,
+                              trailing: null,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Spacing.xxl),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: Spacing.xxl),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

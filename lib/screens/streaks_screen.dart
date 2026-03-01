@@ -47,64 +47,71 @@ class StreaksScreen extends ConsumerWidget {
     final dashAsync = ref.watch(dashboardProvider);
     final yearAsync = ref.watch(yearHeatmapProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          '🔥 Hábito de Estudos',
-          style: AppTypography.headingSm.copyWith(
-            color: isDark
-                ? DesignTokens.darkTextPrimary
-                : DesignTokens.lightTextPrimary,
-          ),
-        ),
-      ),
-      body: dashAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erro: $e')),
-        data: (data) => yearAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Erro: $e')),
-          data: (yearMap) {
-            final stats = _computeStreakStats(yearMap, data.streakDays);
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: Spacing.lg, vertical: Spacing.md),
-              child: AnimationLimiter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: AnimationConfiguration.toStaggeredList(
-                    duration: const Duration(milliseconds: 380),
-                    childAnimationBuilder: (w) => SlideAnimation(
-                      verticalOffset: 25,
-                      child: FadeInAnimation(child: w),
-                    ),
-                    children: [
-                      // ── Hero streak row ───────────────────────────────
-                      _HeroStreakRow(stats: stats, isDark: isDark),
-                      const SizedBox(height: Spacing.xl),
-
-                      // ── Year calendar ─────────────────────────────────
-                      _YearCalendar(yearMap: yearMap, isDark: isDark),
-                      const SizedBox(height: Spacing.xl),
-
-                      // ── Personal Records ──────────────────────────────
-                      _RecordsCard(stats: stats, isDark: isDark),
-                      const SizedBox(height: Spacing.xl),
-
-                      // ── Monthly Breakdown ─────────────────────────────
-                      _MonthlyBreakdown(yearMap: yearMap, isDark: isDark),
-                      const SizedBox(height: Spacing.xxl),
-                    ],
-                  ),
-                ),
+    return Material(
+      color: isDark ? DesignTokens.darkBg1 : DesignTokens.lightBg1,
+      child: Column(
+        children: [
+          AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: Text(
+              '🔥 Hábito de Estudos',
+              style: AppTypography.headingSm.copyWith(
+                color: isDark
+                    ? DesignTokens.darkTextPrimary
+                    : DesignTokens.lightTextPrimary,
               ),
-            );
-          },
-        ),
+            ),
+          ),
+          Expanded(
+            child: dashAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Erro: $e')),
+              data: (data) => yearAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Erro: $e')),
+                data: (yearMap) {
+                  final stats = _computeStreakStats(yearMap, data.streakDays);
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.lg, vertical: Spacing.md),
+                    child: AnimationLimiter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: AnimationConfiguration.toStaggeredList(
+                          duration: const Duration(milliseconds: 380),
+                          childAnimationBuilder: (w) => SlideAnimation(
+                            verticalOffset: 25,
+                            child: FadeInAnimation(child: w),
+                          ),
+                          children: [
+                            // ── Hero streak row ───────────────────────────────
+                            _HeroStreakRow(stats: stats, isDark: isDark),
+                            const SizedBox(height: Spacing.xl),
+
+                            // ── Year calendar ─────────────────────────────────
+                            _YearCalendar(yearMap: yearMap, isDark: isDark),
+                            const SizedBox(height: Spacing.xl),
+
+                            // ── Personal Records ──────────────────────────────
+                            _RecordsCard(stats: stats, isDark: isDark),
+                            const SizedBox(height: Spacing.xl),
+
+                            // ── Monthly Breakdown ─────────────────────────────
+                            _MonthlyBreakdown(yearMap: yearMap, isDark: isDark),
+                            const SizedBox(height: Spacing.xxl),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -692,7 +699,8 @@ class _MonthlyBreakdown extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: months.map((m) {
                 final ratio = maxMins > 0 ? m.totalMinutes / maxMins : 0.0;
-                final isCurrentMonth = m == months.last;
+                final isCurrentMonth =
+                    m.label == _monthAbbr(now.month) && m.year == now.year;
 
                 return Expanded(
                   child: Padding(

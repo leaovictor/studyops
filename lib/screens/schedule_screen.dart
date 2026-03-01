@@ -64,9 +64,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         (themeMode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SmartRefresher(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SmartRefresher(
         controller: _refreshController,
         onRefresh: _onRefresh,
         header: const WaterDropMaterialHeader(

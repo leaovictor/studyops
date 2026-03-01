@@ -56,169 +56,184 @@ class _ErrorNotebookScreenState extends ConsumerState<ErrorNotebookScreen> {
     final subjectMap = {for (final s in subjects) s.id: s};
     final topicMap = {for (final t in allTopics) t.id: t};
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showNoteDialog(context, null, subjects, allTopics),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Erro'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Caderno de Erros',
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: (Theme.of(context)
-                                      .textTheme
-                                      .bodyLarge
-                                      ?.color ??
-                                  Colors.white))),
-                      Text('Revisão espaçada inteligente',
-                          style: TextStyle(
-                              color: (Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.color ??
-                                  Colors.grey),
-                              fontSize: 13)),
-                    ],
-                  ),
-                ),
-                dueAsync.when(
-                  data: (due) => due.isNotEmpty
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                              color: AppTheme.warning.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Caderno de Erros',
+                              style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color ??
+                                      Colors.white))),
+                          Text('Revisão espaçada inteligente',
+                              style: TextStyle(
+                                  color: (Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.color ??
+                                      Colors.grey),
+                                  fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    dueAsync.when(
+                      data: (due) => due.isNotEmpty
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
                                   color:
-                                      AppTheme.warning.withValues(alpha: 0.4))),
-                          child: Text('${due.length} p/ revisão',
-                              style: const TextStyle(
-                                  color: AppTheme.warning,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
-                        )
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                                      AppTheme.warning.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: AppTheme.warning
+                                          .withValues(alpha: 0.4))),
+                              child: Text('${due.length} p/ revisão',
+                                  style: const TextStyle(
+                                      color: AppTheme.warning,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600)),
+                            )
+                          : const SizedBox.shrink(),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  FilterChip(
+                      label: const Text('Somente revisões de hoje'),
+                      selected: _showDueOnly,
+                      onSelected: (v) => setState(() => _showDueOnly = v),
+                      selectedColor: AppTheme.primary.withValues(alpha: 0.2),
+                      checkmarkColor: AppTheme.primary)
+                ]),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SmartRefresher(
+                    controller: _refreshController,
+                    onRefresh: _onRefresh,
+                    header: const WaterDropMaterialHeader(
+                        backgroundColor: AppTheme.primary),
+                    child: notesAsync.when(
+                      loading: () => const Center(
+                          child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation(AppTheme.primary))),
+                      error: (e, _) => SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Center(child: Text('Erro: $e'))),
+                      data: (notes) {
+                        final filtered = _showDueOnly
+                            ? notes.where((n) => n.isDueToday).toList()
+                            : notes;
+                        if (filtered.isEmpty)
+                          return SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: _EmptyNotes(showDueOnly: _showDueOnly));
+                        return AnimationLimiter(
+                          child: ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, i) {
+                              final note = filtered[i];
+                              return AnimationConfiguration.staggeredList(
+                                position: i,
+                                duration: const Duration(milliseconds: 375),
+                                child: SlideAnimation(
+                                  verticalOffset: 50.0,
+                                  child: FadeInAnimation(
+                                    child: _NoteCard(
+                                      key: ValueKey(note.id),
+                                      note: note,
+                                      subject: subjectMap[note.subjectId],
+                                      topicName: topicMap[note.topicId]?.name ??
+                                          'Tópico',
+                                      onMarkReviewed: () => ref
+                                          .read(errorNotebookControllerProvider
+                                              .notifier)
+                                          .markReviewed(note),
+                                      onEdit: () => _showNoteDialog(
+                                          context, note, subjects, allTopics),
+                                      onDelete: () async {
+                                        final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                                    title: const Text(
+                                                        'Excluir Erro'),
+                                                    content: const Text(
+                                                        'Tem certeza que deseja excluir este erro?'),
+                                                    actions: [
+                                                      TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  false),
+                                                          child: const Text(
+                                                              'Cancelar')),
+                                                      FilledButton(
+                                                          style: FilledButton
+                                                              .styleFrom(
+                                                                  backgroundColor:
+                                                                      AppTheme
+                                                                          .error),
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  true),
+                                                          child: const Text(
+                                                              'Excluir'))
+                                                    ]));
+                                        if (confirm == true)
+                                          ref
+                                              .read(
+                                                  errorNotebookControllerProvider
+                                                      .notifier)
+                                              .deleteNote(note.id);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(children: [
-              FilterChip(
-                  label: const Text('Somente revisões de hoje'),
-                  selected: _showDueOnly,
-                  onSelected: (v) => setState(() => _showDueOnly = v),
-                  selectedColor: AppTheme.primary.withValues(alpha: 0.2),
-                  checkmarkColor: AppTheme.primary)
-            ]),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SmartRefresher(
-                controller: _refreshController,
-                onRefresh: _onRefresh,
-                header: const WaterDropMaterialHeader(
-                    backgroundColor: AppTheme.primary),
-                child: notesAsync.when(
-                  loading: () => const Center(
-                      child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation(AppTheme.primary))),
-                  error: (e, _) => SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Center(child: Text('Erro: $e'))),
-                  data: (notes) {
-                    final filtered = _showDueOnly
-                        ? notes.where((n) => n.isDueToday).toList()
-                        : notes;
-                    if (filtered.isEmpty)
-                      return SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: _EmptyNotes(showDueOnly: _showDueOnly));
-                    return AnimationLimiter(
-                      child: ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final note = filtered[i];
-                          return AnimationConfiguration.staggeredList(
-                            position: i,
-                            duration: const Duration(milliseconds: 375),
-                            child: SlideAnimation(
-                              verticalOffset: 50.0,
-                              child: FadeInAnimation(
-                                child: _NoteCard(
-                                  key: ValueKey(note.id),
-                                  note: note,
-                                  subject: subjectMap[note.subjectId],
-                                  topicName:
-                                      topicMap[note.topicId]?.name ?? 'Tópico',
-                                  onMarkReviewed: () => ref
-                                      .read(errorNotebookControllerProvider
-                                          .notifier)
-                                      .markReviewed(note),
-                                  onEdit: () => _showNoteDialog(
-                                      context, note, subjects, allTopics),
-                                  onDelete: () async {
-                                    final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                                title:
-                                                    const Text('Excluir Erro'),
-                                                content: const Text(
-                                                    'Tem certeza que deseja excluir este erro?'),
-                                                actions: [
-                                                  TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, false),
-                                                      child: const Text(
-                                                          'Cancelar')),
-                                                  FilledButton(
-                                                      style: FilledButton
-                                                          .styleFrom(
-                                                              backgroundColor:
-                                                                  AppTheme
-                                                                      .error),
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, true),
-                                                      child:
-                                                          const Text('Excluir'))
-                                                ]));
-                                    if (confirm == true)
-                                      ref
-                                          .read(errorNotebookControllerProvider
-                                              .notifier)
-                                          .deleteNote(note.id);
-                                  },
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
+          ),
+          // ➕ Botão para adicionar erro manual
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () =>
+                  _showNoteDialog(context, null, subjects, allTopics),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Erro'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

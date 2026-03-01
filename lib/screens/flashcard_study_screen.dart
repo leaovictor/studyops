@@ -8,6 +8,9 @@ import '../controllers/subject_controller.dart';
 import '../models/flashcard_model.dart';
 import '../core/theme/app_theme.dart';
 import '../core/utils/app_date_utils.dart';
+import '../core/design_system/design_tokens.dart';
+import '../core/design_system/typography_scale.dart';
+import '../core/design_system/spacing_system.dart';
 
 class FlashcardStudyScreen extends ConsumerStatefulWidget {
   final String? subjectId; // null = all due cards
@@ -88,47 +91,59 @@ class _FlashcardStudyScreenState extends ConsumerState<FlashcardStudyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close_rounded,
-              color: (Theme.of(context).textTheme.bodySmall?.color ??
-                  Colors.grey)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: _sessionDone || _cards.isEmpty
-            ? null
-            : _ProgressBar(current: _currentIndex + 1, total: _cards.length),
-      ),
-      body: Stack(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? DesignTokens.darkTextPrimary : DesignTokens.lightTextPrimary;
+    final textSecondary = isDark
+        ? DesignTokens.darkTextSecondary
+        : DesignTokens.lightTextSecondary;
+
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Column(
         children: [
-          _sessionDone || _cards.isEmpty
-              ? _DonePanel(
-                  ratings: _ratingsCount,
-                  duration: DateTime.now().difference(_startTime),
-                )
-              : _StudyPanel(
-                  card: _cards[_currentIndex],
-                  flipped: _flipped,
-                  rated: _rated,
-                  onFlip: () => setState(() => _flipped = true),
-                  onRate: _rate,
+          AppBar(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.close_rounded, color: textSecondary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: _sessionDone || _cards.isEmpty
+                ? null
+                : _ProgressBar(
+                    current: _currentIndex + 1, total: _cards.length),
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                _sessionDone || _cards.isEmpty
+                    ? _DonePanel(
+                        ratings: _ratingsCount,
+                        duration: DateTime.now().difference(_startTime),
+                      )
+                    : _StudyPanel(
+                        card: _cards[_currentIndex],
+                        flipped: _flipped,
+                        rated: _rated,
+                        onFlip: () => setState(() => _flipped = true),
+                        onRate: _rate,
+                      ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConfettiWidget(
+                    confettiController: _confettiController,
+                    blastDirectionality: BlastDirectionality.explosive,
+                    shouldLoop: false,
+                    colors: const [
+                      AppTheme.primary,
+                      AppTheme.accent,
+                      Colors.orange,
+                      Colors.pink,
+                      Colors.green,
+                    ],
+                  ),
                 ),
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirectionality: BlastDirectionality.explosive,
-              shouldLoop: false,
-              colors: const [
-                AppTheme.primary,
-                AppTheme.accent,
-                Colors.orange,
-                Colors.pink,
-                Colors.green,
               ],
             ),
           ),
@@ -148,15 +163,17 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark
+        ? DesignTokens.darkTextSecondary
+        : DesignTokens.lightTextSecondary;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
           '$current / $total',
-          style: TextStyle(
-              color: (Theme.of(context).textTheme.labelSmall?.color ??
-                  Colors.grey),
-              fontSize: 13),
+          style: TextStyle(color: textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 4),
         ClipRRect(
@@ -211,7 +228,7 @@ class _StudyPanel extends ConsumerWidget {
           }();
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(Spacing.xl),
       child: Column(
         children: [
           const Spacer(),
@@ -254,7 +271,7 @@ class _StudyPanel extends ConsumerWidget {
               },
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Spacing.xl),
           if (!flipped)
             TextButton.icon(
               onPressed: onFlip,
@@ -298,13 +315,20 @@ class _CardFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? DesignTokens.darkTextPrimary : DesignTokens.lightTextPrimary;
+    final textSecondary = isDark
+        ? DesignTokens.darkTextSecondary
+        : DesignTokens.lightTextSecondary;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(Spacing.xl),
       decoration: BoxDecoration(
         color: (Theme.of(context).cardTheme.color ??
             Theme.of(context).colorScheme.surface),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: DesignTokens.brLg,
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
@@ -321,7 +345,7 @@ class _CardFace extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: DesignTokens.brSm,
             ),
             child: Text(
               label,
@@ -333,26 +357,22 @@ class _CardFace extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: Spacing.xl),
           Text(
             text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                  Colors.white),
+              color: textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w600,
               height: 1.4,
             ),
           ),
           if (hint != null) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: Spacing.xl),
             Text(
               hint!,
-              style: TextStyle(
-                  color: (Theme.of(context).textTheme.labelSmall?.color ??
-                      Colors.grey),
-                  fontSize: 12),
+              style: TextStyle(color: textSecondary, fontSize: 12),
             ),
           ],
         ],
@@ -497,6 +517,13 @@ class _DonePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary =
+        isDark ? DesignTokens.darkTextPrimary : DesignTokens.lightTextPrimary;
+    final textSecondary = isDark
+        ? DesignTokens.darkTextSecondary
+        : DesignTokens.lightTextSecondary;
+
     final total =
         ratings.values.isEmpty ? 0 : ratings.values.reduce((a, b) => a + b);
     final again = ratings[fsrs.Rating.again] ?? 0;
@@ -506,12 +533,12 @@ class _DonePanel extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(Spacing.xxl),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(Spacing.xl),
               decoration: BoxDecoration(
                 color: AppTheme.accent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
@@ -519,34 +546,27 @@ class _DonePanel extends StatelessWidget {
               child: const Icon(Icons.celebration_rounded,
                   color: AppTheme.accent, size: 56),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: Spacing.xl),
             Text(
               'Sessão concluída!',
               style: TextStyle(
-                color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                    Colors.white),
+                color: textPrimary,
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Spacing.sm),
             if (total == 0)
               Text(
                 'Nenhum card para revisar hoje.',
-                style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodySmall?.color ??
-                        Colors.grey),
-                    fontSize: 14),
+                style: TextStyle(color: textSecondary, fontSize: 14),
               )
             else ...[
               Text(
                 'Você estudou por ${_formatDuration(duration)}',
-                style: TextStyle(
-                    color: (Theme.of(context).textTheme.bodySmall?.color ??
-                        Colors.grey),
-                    fontSize: 14),
+                style: TextStyle(color: textSecondary, fontSize: 14),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: Spacing.xxl),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -567,18 +587,16 @@ class _DonePanel extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: Spacing.md),
               Text(
                 '$total cards revisados no total',
                 style: TextStyle(
-                  color: (Theme.of(context).textTheme.bodySmall?.color ??
-                          Colors.grey)
-                      .withValues(alpha: 0.7),
+                  color: textSecondary.withValues(alpha: 0.7),
                   fontSize: 11,
                 ),
               ),
             ],
-            const SizedBox(height: 48),
+            const SizedBox(height: Spacing.xxl),
             FilledButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back_rounded),
@@ -607,6 +625,11 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textSecondary = isDark
+        ? DesignTokens.darkTextSecondary
+        : DesignTokens.lightTextSecondary;
+
     return Column(
       children: [
         Text(
@@ -619,10 +642,7 @@ class _Stat extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(
-              color:
-                  (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey),
-              fontSize: 13),
+          style: TextStyle(color: textSecondary, fontSize: 13),
         ),
       ],
     );

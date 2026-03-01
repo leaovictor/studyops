@@ -48,327 +48,342 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     final activePlan = ref.watch(activePlanProvider).valueOrNull;
     final stats = ref.watch(performanceStatsProvider);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showRecordQuestionsDialog(context),
-        icon: const Icon(Icons.add_task_rounded),
-        label: const Text('Registrar Questões'),
-        backgroundColor: AppTheme.primary,
-      ),
-      body: SmartRefresher(
-        controller: _refreshController,
-        onRefresh: _onRefresh,
-        header: const WaterDropMaterialHeader(
-          backgroundColor: AppTheme.primary,
-        ),
-        child: dashAsync.when(
-          loading: () => const Center(
-              child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation(AppTheme.primary))),
-          error: (e, _) => SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                  height: 300, child: Center(child: Text('Erro: $e')))),
-          data: (data) {
-            final subjectNameMap = {for (final s in subjects) s.id: s.name};
-            final trend = data.weeklyTrend;
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          SmartRefresher(
+            controller: _refreshController,
+            onRefresh: _onRefresh,
+            header: const WaterDropMaterialHeader(
+              backgroundColor: AppTheme.primary,
+            ),
+            child: dashAsync.when(
+              loading: () => const Center(
+                  child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(AppTheme.primary))),
+              error: (e, _) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                      height: 300, child: Center(child: Text('Erro: $e')))),
+              data: (data) {
+                final subjectNameMap = {for (final s in subjects) s.id: s.name};
+                final trend = data.weeklyTrend;
 
-            // KPI computations
-            final weekHours = data.weekMinutes / 60.0;
-            final targetWeekHours = (activePlan?.dailyHours ?? 3.0) * 7;
-            final productivity = targetWeekHours > 0
-                ? (weekHours / targetWeekHours).clamp(0.0, 1.0)
-                : 0.0;
+                // KPI computations
+                final weekHours = data.weekMinutes / 60.0;
+                final targetWeekHours = (activePlan?.dailyHours ?? 3.0) * 7;
+                final productivity = targetWeekHours > 0
+                    ? (weekHours / targetWeekHours).clamp(0.0, 1.0)
+                    : 0.0;
 
-            final String riskLabel;
-            final Color riskColor;
-            if (productivity >= 0.8) {
-              riskLabel = 'Baixo';
-              riskColor = AppTheme.accent;
-            } else if (productivity >= 0.5) {
-              riskLabel = 'Médio';
-              riskColor = AppTheme.primary;
-            } else {
-              riskLabel = 'Alto';
-              riskColor = Colors.redAccent;
-            }
+                final String riskLabel;
+                final Color riskColor;
+                if (productivity >= 0.8) {
+                  riskLabel = 'Baixo';
+                  riskColor = AppTheme.accent;
+                } else if (productivity >= 0.5) {
+                  riskLabel = 'Médio';
+                  riskColor = AppTheme.primary;
+                } else {
+                  riskLabel = 'Alto';
+                  riskColor = Colors.redAccent;
+                }
 
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 80),
-                    child: AnimationLimiter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: AnimationConfiguration.toStaggeredList(
-                          duration: const Duration(milliseconds: 375),
-                          childAnimationBuilder: (widget) => SlideAnimation(
-                            verticalOffset: 50.0,
-                            child: FadeInAnimation(child: widget),
-                          ),
-                          children: [
-                            Wrap(
-                              alignment: WrapAlignment.spaceBetween,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 16,
-                              runSpacing: 12,
-                              children: [
-                                Text(
-                                  'Performance',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    color: (Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.color ??
-                                        Colors.white),
-                                  ),
-                                ),
-                                Wrap(
-                                  spacing: 8,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: () => _showAIAnalysisDialog(
-                                          context, data, stats, subjectNameMap),
-                                      icon: const Icon(
-                                          Icons.auto_awesome_rounded,
-                                          size: 18),
-                                      label: const Text('Analisar com IA',
-                                          style: TextStyle(fontSize: 13)),
-                                      style: TextButton.styleFrom(
-                                          foregroundColor: AppTheme.accent),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: () =>
-                                          _showGenerateAIDialog(context),
-                                      icon: const Icon(
-                                          Icons.auto_awesome_rounded,
-                                          size: 18),
-                                      label: const Text('Gerar com IA',
-                                          style: TextStyle(fontSize: 13)),
-                                      style: TextButton.styleFrom(
-                                          foregroundColor: AppTheme.accent),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Análise detalhada do seu desempenho de estudos',
-                              style: TextStyle(
-                                  color: (Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.color ??
-                                      Colors.grey),
-                                  fontSize: 13),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // ── Performance Insight Card ──────────────────
-                            const PerformanceInsightCard(),
-                            const SizedBox(height: 20),
-
-                            // KPI Row
-                            if (MediaQuery.of(context).size.width >= 600)
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _KpiCard(
-                                      icon: Icons.percent_rounded,
-                                      iconColor: AppTheme.accent,
-                                      label: 'Aproveitamento',
-                                      value:
-                                          '${stats.averageAccuracy.toStringAsFixed(1)}%',
-                                      subtitle:
-                                          '${stats.totalCorrect}/${stats.totalQuestions} acertos',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _KpiCard(
-                                      icon: Icons.bolt_rounded,
-                                      iconColor: AppTheme.primary,
-                                      label: 'Produtividade',
-                                      value: '${(productivity * 100).round()}%',
-                                      subtitle:
-                                          '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _KpiCard(
-                                      icon: Icons.warning_amber_rounded,
-                                      iconColor: riskColor,
-                                      label: 'Risco de Atraso',
-                                      value: riskLabel,
-                                      valueColor: riskColor,
-                                      subtitle: 'vs. meta semanal',
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Column(
-                                children: [
-                                  _KpiCard(
-                                    icon: Icons.percent_rounded,
-                                    iconColor: AppTheme.accent,
-                                    label: 'Aproveitamento',
-                                    value:
-                                        '${stats.averageAccuracy.toStringAsFixed(1)}%',
-                                    subtitle:
-                                        '${stats.totalCorrect}/${stats.totalQuestions} acertos',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _KpiCard(
-                                    icon: Icons.bolt_rounded,
-                                    iconColor: AppTheme.primary,
-                                    label: 'Produtividade',
-                                    value: '${(productivity * 100).round()}%',
-                                    subtitle:
-                                        '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _KpiCard(
-                                    icon: Icons.warning_amber_rounded,
-                                    iconColor: riskColor,
-                                    label: 'Risco de Atraso',
-                                    value: riskLabel,
-                                    valueColor: riskColor,
-                                    subtitle: 'vs. meta semanal',
-                                  ),
-                                ],
+                return CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 80),
+                        child: AnimationLimiter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: AnimationConfiguration.toStaggeredList(
+                              duration: const Duration(milliseconds: 375),
+                              childAnimationBuilder: (widget) => SlideAnimation(
+                                verticalOffset: 50.0,
+                                child: FadeInAnimation(child: widget),
                               ),
-                            const SizedBox(height: 16),
-
-                            if (data.streakDays > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.orangeAccent
-                                      .withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                      color: Colors.orangeAccent
-                                          .withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 16,
+                                  runSpacing: 12,
                                   children: [
-                                    const Text('🔥',
-                                        style: TextStyle(fontSize: 14)),
-                                    const SizedBox(width: 6),
                                     Text(
-                                      '${data.streakDays} dia${data.streakDays > 1 ? 's' : ''} seguido${data.streakDays > 1 ? 's' : ''}!',
-                                      style: const TextStyle(
-                                        color: Colors.orangeAccent,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
+                                      'Performance',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: (Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color ??
+                                            Colors.white),
                                       ),
                                     ),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () =>
+                                              _showAIAnalysisDialog(context,
+                                                  data, stats, subjectNameMap),
+                                          icon: const Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 18),
+                                          label: const Text('Analisar com IA',
+                                              style: TextStyle(fontSize: 13)),
+                                          style: TextButton.styleFrom(
+                                              foregroundColor: AppTheme.accent),
+                                        ),
+                                        TextButton.icon(
+                                          onPressed: () =>
+                                              _showGenerateAIDialog(context),
+                                          icon: const Icon(
+                                              Icons.auto_awesome_rounded,
+                                              size: 18),
+                                          label: const Text('Gerar com IA',
+                                              style: TextStyle(fontSize: 13)),
+                                          style: TextButton.styleFrom(
+                                              foregroundColor: AppTheme.accent),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ),
-                            const SizedBox(height: 16),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Análise detalhada do seu desempenho de estudos',
+                                  style: TextStyle(
+                                      color: (Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.color ??
+                                          Colors.grey),
+                                      fontSize: 13),
+                                ),
+                                const SizedBox(height: 20),
 
-                            if (stats.accuracyBySubject.isNotEmpty)
-                              _SectionCard(
-                                title: 'Aproveitamento por Matéria (%)',
-                                child: Column(
-                                  children:
-                                      stats.accuracyBySubject.entries.map((e) {
-                                    final subject = subjects.firstWhere(
-                                        (s) => s.id == e.key,
-                                        orElse: () => subjects.first);
-                                    final color = Color(int.parse(
-                                        'FF${subject.color.replaceAll('#', '')}',
-                                        radix: 16));
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 12),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
+                                // ── Performance Insight Card ──────────────────
+                                const PerformanceInsightCard(),
+                                const SizedBox(height: 20),
+
+                                // KPI Row
+                                if (MediaQuery.of(context).size.width >= 600)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _KpiCard(
+                                          icon: Icons.percent_rounded,
+                                          iconColor: AppTheme.accent,
+                                          label: 'Aproveitamento',
+                                          value:
+                                              '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                                          subtitle:
+                                              '${stats.totalCorrect}/${stats.totalQuestions} acertos',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _KpiCard(
+                                          icon: Icons.bolt_rounded,
+                                          iconColor: AppTheme.primary,
+                                          label: 'Produtividade',
+                                          value:
+                                              '${(productivity * 100).round()}%',
+                                          subtitle:
+                                              '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _KpiCard(
+                                          icon: Icons.warning_amber_rounded,
+                                          iconColor: riskColor,
+                                          label: 'Risco de Atraso',
+                                          value: riskLabel,
+                                          valueColor: riskColor,
+                                          subtitle: 'vs. meta semanal',
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Column(
+                                    children: [
+                                      _KpiCard(
+                                        icon: Icons.percent_rounded,
+                                        iconColor: AppTheme.accent,
+                                        label: 'Aproveitamento',
+                                        value:
+                                            '${stats.averageAccuracy.toStringAsFixed(1)}%',
+                                        subtitle:
+                                            '${stats.totalCorrect}/${stats.totalQuestions} acertos',
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _KpiCard(
+                                        icon: Icons.bolt_rounded,
+                                        iconColor: AppTheme.primary,
+                                        label: 'Produtividade',
+                                        value:
+                                            '${(productivity * 100).round()}%',
+                                        subtitle:
+                                            '${weekHours.toStringAsFixed(1)}h / ${targetWeekHours.toStringAsFixed(0)}h',
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _KpiCard(
+                                        icon: Icons.warning_amber_rounded,
+                                        iconColor: riskColor,
+                                        label: 'Risco de Atraso',
+                                        value: riskLabel,
+                                        valueColor: riskColor,
+                                        subtitle: 'vs. meta semanal',
+                                      ),
+                                    ],
+                                  ),
+                                const SizedBox(height: 16),
+
+                                if (data.streakDays > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orangeAccent
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: Colors.orangeAccent
+                                              .withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('🔥',
+                                            style: TextStyle(fontSize: 14)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${data.streakDays} dia${data.streakDays > 1 ? 's' : ''} seguido${data.streakDays > 1 ? 's' : ''}!',
+                                          style: const TextStyle(
+                                            color: Colors.orangeAccent,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
+
+                                if (stats.accuracyBySubject.isNotEmpty)
+                                  _SectionCard(
+                                    title: 'Aproveitamento por Matéria (%)',
+                                    child: Column(
+                                      children: stats.accuracyBySubject.entries
+                                          .map((e) {
+                                        final subject = subjects.firstWhere(
+                                            (s) => s.id == e.key,
+                                            orElse: () => subjects.first);
+                                        final color = Color(int.parse(
+                                            'FF${subject.color.replaceAll('#', '')}',
+                                            radix: 16));
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(subject.name,
-                                                  style: const TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w500)),
-                                              Text(
-                                                  '${e.value.toStringAsFixed(1)}%',
-                                                  style: TextStyle(
-                                                      color: color,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold)),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(subject.name,
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.w500)),
+                                                  Text(
+                                                      '${e.value.toStringAsFixed(1)}%',
+                                                      style: TextStyle(
+                                                          color: color,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                child: LinearProgressIndicator(
+                                                  value: e.value / 100,
+                                                  minHeight: 8,
+                                                  backgroundColor: color
+                                                      .withValues(alpha: 0.1),
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation(
+                                                          color),
+                                                ),
+                                              ),
                                             ],
                                           ),
-                                          const SizedBox(height: 6),
-                                          ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(4),
-                                            child: LinearProgressIndicator(
-                                              value: e.value / 100,
-                                              minHeight: 8,
-                                              backgroundColor:
-                                                  color.withValues(alpha: 0.1),
-                                              valueColor:
-                                                  AlwaysStoppedAnimation(color),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            const SizedBox(height: 16),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+                                const SizedBox(height: 16),
 
-                            _SectionCard(
-                              title: 'Evolução semanal de estudos (horas/dia)',
-                              child: SizedBox(
-                                height: 200,
-                                child: trend.isEmpty
-                                    ? const Center(
-                                        child: Text('Sem dados ainda',
-                                            style:
-                                                TextStyle(color: Colors.grey)))
-                                    : WeeklyBarChart(data: trend),
-                              ),
+                                _SectionCard(
+                                  title:
+                                      'Evolução semanal de estudos (horas/dia)',
+                                  child: SizedBox(
+                                    height: 200,
+                                    child: trend.isEmpty
+                                        ? const Center(
+                                            child: Text('Sem dados ainda',
+                                                style: TextStyle(
+                                                    color: Colors.grey)))
+                                        : WeeklyBarChart(data: trend),
+                                  ),
+                                ),
+                                _SectionCard(
+                                  title: 'Atividade — Últimos 35 Dias',
+                                  child: StudyHeatmap(
+                                    dailyMinutes: ref
+                                            .watch(thirtyDayHeatmapProvider)
+                                            .valueOrNull ??
+                                        {},
+                                    isDark: Theme.of(context).brightness ==
+                                        Brightness.dark,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
                             ),
-                            _SectionCard(
-                              title: 'Atividade — Últimos 35 Dias',
-                              child: StudyHeatmap(
-                                dailyMinutes: ref
-                                        .watch(thirtyDayHeatmapProvider)
-                                        .valueOrNull ??
-                                    {},
-                                isDark: Theme.of(context).brightness ==
-                                    Brightness.dark,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+                  ],
+                );
+              },
+            ),
+          ),
+          // ➕ Botão para registrar questões manual
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showRecordQuestionsDialog(context),
+              icon: const Icon(Icons.add_task_rounded),
+              label: const Text('Registrar Questões'),
+              backgroundColor: AppTheme.primary,
+            ),
+          ),
+        ],
       ),
     );
   }

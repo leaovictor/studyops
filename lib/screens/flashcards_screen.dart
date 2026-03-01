@@ -39,53 +39,62 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: NestedScrollView(
-        headerSliverBuilder: (_, __) => [
-          SliverAppBar(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            pinned: true,
-            title: Text(
-              'Flashcards',
-              style: TextStyle(
-                color: (Theme.of(context).textTheme.bodyLarge?.color ??
-                    Colors.white),
-                fontWeight: FontWeight.w800,
-                fontSize: 22,
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: [
+          NestedScrollView(
+            headerSliverBuilder: (_, __) => [
+              SliverAppBar(
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                pinned: true,
+                title: Text(
+                  'Flashcards',
+                  style: TextStyle(
+                    color: (Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
+                  ),
+                ),
+                bottom: TabBar(
+                  controller: _tabController,
+                  indicatorColor: AppTheme.primary,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelColor: AppTheme.primary,
+                  unselectedLabelColor:
+                      (Theme.of(context).textTheme.labelSmall?.color ??
+                          Colors.grey),
+                  tabs: const [
+                    Tab(text: 'Revisar Hoje'),
+                    Tab(text: 'Todos'),
+                  ],
+                ),
               ),
-            ),
-            bottom: TabBar(
+            ],
+            body: TabBarView(
               controller: _tabController,
-              indicatorColor: AppTheme.primary,
-              indicatorSize: TabBarIndicatorSize.label,
-              labelColor: AppTheme.primary,
-              unselectedLabelColor:
-                  (Theme.of(context).textTheme.labelSmall?.color ??
-                      Colors.grey),
-              tabs: const [
-                Tab(text: 'Revisar Hoje'),
-                Tab(text: 'Todos'),
+              children: [
+                _ReviewTab(),
+                _AllCardsTab(
+                  filterSubjectId: _filterSubjectId,
+                  onFilterChanged: (id) =>
+                      setState(() => _filterSubjectId = id),
+                ),
               ],
             ),
           ),
-        ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _ReviewTab(),
-            _AllCardsTab(
-              filterSubjectId: _filterSubjectId,
-              onFilterChanged: (id) => setState(() => _filterSubjectId = id),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showAddCardModal(context),
+              backgroundColor: AppTheme.primary,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Novo card'),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddCardModal(context),
-        backgroundColor: AppTheme.primary,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Novo card'),
+          ),
+        ],
       ),
     );
   }

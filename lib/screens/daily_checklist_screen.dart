@@ -101,14 +101,9 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
     // Combine tasks and error notes for display
     final List<dynamic> combinedItems = [...tasks, ...dueErrorNotes];
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddTaskDialog(context, subjects, allTopics),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Tarefa'),
-      ),
-      body: Stack(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
         children: [
           SmartRefresher(
             controller: _refreshController,
@@ -478,6 +473,16 @@ class _DailyChecklistScreenState extends ConsumerState<DailyChecklistScreen> {
                 Colors.pink,
                 Colors.green,
               ],
+            ),
+          ),
+          // ➕ Botão para adicionar tarefa manual
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => _showAddTaskDialog(context, subjects, allTopics),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Tarefa'),
             ),
           ),
         ],

@@ -29,9 +29,9 @@ class AchievementsScreen extends ConsumerWidget {
         ? (unlockedCount / totalCount * 100).toStringAsFixed(0)
         : '0';
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
         bottom: false,
         child: AnimationLimiter(
           child: SingleChildScrollView(
