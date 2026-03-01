@@ -865,4 +865,56 @@ Regras:
       "back": jsonResponse["back"] as String,
     };
   }
+
+  /// Multi-turn chat with the AI Mentor.
+  /// [history] is a list of {role: 'user'|'assistant', content: String}.
+  Future<String> mentorChat({
+    required String userId,
+    required List<Map<String, String>> history,
+    required String objective,
+    String? personalContext,
+  }) async {
+    await _usageService.logAIUsage(userId, 'mentor_chat');
+
+    final contextLine = (personalContext != null && personalContext.isNotEmpty)
+        ? '\n- Contexto Pessoal: $personalContext'
+        : '';
+
+    final systemPrompt =
+        'Você é o StudyMentor — mentor de elite para concursos e vestibulares. '
+        'Combine precisão técnica com empatia de coach.\n\n'
+        'CONTEXTO:\n- Objetivo do aluno: $objective$contextLine\n\n'
+        'REGRAS:\n'
+        '1. Responda APENAS em Português do Brasil.\n'
+        '2. Seja direto e didático. Use Markdown para respostas estruturadas.\n'
+        '3. Máximo de 300 palavras, a menos que o aluno peça mais detalhes.\n'
+        '4. Se a pergunta fugir de estudos, redirecione gentilmente.\n'
+        '5. Seja genuíno ao encorajar — sem artificialidade.';
+
+    final messages = <OpenAIChatCompletionChoiceMessageModel>[
+      OpenAIChatCompletionChoiceMessageModel(
+        content: [
+          OpenAIChatCompletionChoiceMessageContentItemModel.text(systemPrompt)
+        ],
+        role: OpenAIChatMessageRole.system,
+      ),
+      ...history.map((m) => OpenAIChatCompletionChoiceMessageModel(
+            content: [
+              OpenAIChatCompletionChoiceMessageContentItemModel.text(
+                  m['content'] ?? '')
+            ],
+            role: m['role'] == 'assistant'
+                ? OpenAIChatMessageRole.assistant
+                : OpenAIChatMessageRole.user,
+          )),
+    ];
+
+    final response = await OpenAI.instance.chat.create(
+      model: _model,
+      messages: messages,
+    );
+
+    return response.choices.first.message.content?.first.text?.trim() ??
+        'Não foi possível processar sua pergunta agora.';
+  }
 }

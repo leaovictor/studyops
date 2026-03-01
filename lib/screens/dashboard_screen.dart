@@ -19,6 +19,7 @@ import '../widgets/app_charts.dart';
 import '../controllers/quote_controller.dart';
 import '../widgets/study_score_banner.dart';
 import '../widgets/xp_level_card.dart';
+import '../widgets/weekly_digest_card.dart';
 
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -118,6 +119,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                       // 🧠 Study Score Intelligence Banner
                       const StudyScoreBanner(),
+                      const SizedBox(height: 20),
+
+                      // 📅 Weekly Digest
+                      const WeeklyDigestCard(),
                       const SizedBox(height: 32),
 
                       // Top Metrics
@@ -732,7 +737,7 @@ class _Header extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Estudando para: ${activeGoal.name}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppTheme.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -838,7 +843,6 @@ class _SyllabusProgressRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final isSmall = constraints.maxWidth < 600;
       return Column(
         children: [
           Row(
@@ -1030,7 +1034,7 @@ class _TopMetricsRow extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double spacing = 16.0;
+        const double spacing = 16.0;
         final int crossAxisCount = isTablet ? 4 : 2;
         final double itemWidth =
             (constraints.maxWidth - (spacing * (crossAxisCount - 1))) /

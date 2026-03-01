@@ -16,6 +16,8 @@ class AppSidebar extends ConsumerWidget {
     _Dest(
         icon: Icons.dashboard_rounded, label: 'Dashboard', path: '/dashboard'),
     _Dest(
+        icon: Icons.account_circle_rounded, label: 'Perfil', path: '/profile'),
+    _Dest(
         icon: Icons.checklist_rounded, label: 'Checklist', path: '/checklist'),
     _Dest(
         icon: Icons.calendar_month_rounded,
@@ -33,6 +35,11 @@ class AppSidebar extends ConsumerWidget {
         icon: Icons.emoji_events_rounded,
         label: 'Conquistas',
         path: '/achievements'),
+    _Dest(
+        icon: Icons.local_fire_department_rounded,
+        label: 'Streaks',
+        path: '/streaks'),
+    _Dest(icon: Icons.psychology_rounded, label: 'Mentor IA', path: '/mentor'),
     _Dest(
         icon: Icons.help_outline_rounded,
         label: 'Guia do App',

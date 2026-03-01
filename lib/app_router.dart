@@ -21,6 +21,9 @@ import 'screens/flashcard_study_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/achievements_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/streaks_screen.dart';
+import 'screens/mentor_chat_screen.dart';
 import 'widgets/app_sidebar.dart';
 
 // Provides AppSidebar shell
@@ -141,6 +144,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/achievements',
               builder: (_, __) => const AchievementsScreen()),
+          GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+          GoRoute(path: '/streaks', builder: (_, __) => const StreaksScreen()),
+          GoRoute(
+              path: '/mentor', builder: (_, __) => const MentorChatScreen()),
         ],
       ),
     ],

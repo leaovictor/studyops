@@ -8,6 +8,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/study_log_model.dart';
 import '../core/theme/app_theme.dart';
 import '../widgets/pomodoro_timer.dart';
+import '../widgets/xp_toast.dart';
+import '../core/gamification/xp_system.dart';
 import '../core/utils/app_date_utils.dart';
 
 class PomodoroGlobalListener extends ConsumerStatefulWidget {
@@ -143,7 +145,19 @@ class _SaveLogDialogState extends ConsumerState<_SaveLogDialog> {
                   }
 
                   if (!context.mounted) return;
+                  // Award XP for completing a productive Pomodoro session
+                  final earnedXp = (widget.minutesCompleted *
+                          (XpSystem.xpPerProductiveHour / 60.0))
+                      .round()
+                      .clamp(10, 90);
                   Navigator.pop(context);
+                  XpToast.show(
+                    context,
+                    xp: earnedXp,
+                    label:
+                        'Pomodoro de ${widget.minutesCompleted}min concluído!',
+                    icon: Icons.timer_rounded,
+                  );
                 },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppTheme.primary,
