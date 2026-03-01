@@ -96,7 +96,17 @@ class GoalService {
       batch.delete(doc.reference);
     }
 
-    // 7. Delete the goal itself
+    // 7. Delete all study journal entries
+    final journalSnap = await _db
+        .collection(AppConstants.colStudyJournals)
+        .where('userId', isEqualTo: userId)
+        .where('goalId', isEqualTo: goalId)
+        .get();
+    for (final doc in journalSnap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 8. Delete the goal itself
     batch.delete(_goals.doc(goalId));
 
     await batch.commit();

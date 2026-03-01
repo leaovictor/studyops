@@ -104,8 +104,9 @@ class SubjectService {
     // 6. Delete all FSRS Review Logs
     final fsrsSnap = await _db
         .collection('fsrs_review_logs')
+        .where('userId', isEqualTo: userId)
         .where('subjectId', isEqualTo: subjectId)
-        .get(); // FSRS Review Logs has general authenticated access, no userId filter required for rules.
+        .get();
     for (final doc in fsrsSnap.docs) {
       batch.delete(doc.reference);
     }

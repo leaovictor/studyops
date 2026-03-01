@@ -18,8 +18,8 @@ final pendingQuestionsProvider = StreamProvider<List<SharedQuestion>>((ref) {
       .watchSharedQuestions(onlyApproved: false);
 });
 
-final totalAICallsProvider = StreamProvider<int>((ref) {
-  return ref.watch(usageServiceProvider).watchTotalAICalls();
+final totalAICallsProvider = FutureProvider<int>((ref) {
+  return ref.watch(usageServiceProvider).getTotalAICalls();
 });
 
 class AdminController extends AsyncNotifier<void> {

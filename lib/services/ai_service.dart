@@ -4,6 +4,7 @@ import '../models/subject_model.dart';
 import '../models/topic_model.dart';
 import '../models/daily_task_model.dart';
 import '../core/utils/app_date_utils.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'usage_service.dart';
 import 'package:uuid/uuid.dart';
 import '../models/knowledge_check_model.dart';
@@ -26,8 +27,22 @@ class AIService {
     OpenAI.baseUrl = "https://api.groq.com/openai";
   }
 
+  Future<void> _checkRateLimit() async {
+    try {
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('checkAIRateLimit');
+      await callable.call();
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'resource-exhausted') {
+        throw Exception('LIMITE_IA: ${e.message}');
+      }
+      rethrow;
+    }
+  }
+
   Future<AISyllabusImportResult> parseSyllabus(
       String rawText, String userId, String? goalId) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'syllabus_import');
     final prompt = '''
 Analise o texto a seguir, que é um conteúdo programático de um edital de concurso público.
@@ -110,6 +125,7 @@ $rawText
 
   Future<List<Map<String, dynamic>>> suggestSubjectsForObjective(
       String userId, String objective) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'subject_suggestion');
     final prompt = '''
 Com base no objetivo de estudo "$objective", sugira as 6 a 10 matérias mais importantes e comuns que um estudante precisa focar para ser aprovado.
@@ -162,6 +178,7 @@ Regras:
     required String objective,
     required List<String> subjectNames,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'subject_audit');
     final prompt = '''
 Você é um Auditor de Planos de Estudo. O aluno tem o objetivo de estudo: "$objective".
@@ -212,6 +229,7 @@ Regras:
     double consistency = 0.0,
     String? personalContext,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'daily_insight');
 
     final personalContextInfo =
@@ -268,6 +286,7 @@ REGRAS:
 
   Future<List<Map<String, String>>> generateFlashcardsFromError(
       String userId, String question, String answer, String reason) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'flashcard_generation');
     final prompt = '''
 Com base no seguinte erro cometido por um estudante em uma questão de concurso, crie 3 flashcards (Pergunta e Resposta) que ajudem a memorizar o conceito correto e evitar o erro novamente.
@@ -327,6 +346,7 @@ Regras:
     required double consistencyPct,
     required int streakDays,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'performance_analysis');
 
     final prompt = '''
@@ -367,6 +387,7 @@ IMPORTANTE: Seja direto, encorajador, mas não passe pano para notas baixas (aba
     required String question,
     required List<String> options,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'question_hint');
 
     final prompt = '''
@@ -410,6 +431,7 @@ REGRAS DE OURO:
     required Map<String, String> options,
     required String correctAnswer,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'eliminate_alternatives');
 
     final prompt = '''
@@ -448,6 +470,7 @@ Retorne apenas as letras das duas alternativas incorretas separadas por vírgula
     required String userId,
     required String question,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'explain_concept');
 
     final prompt = '''
@@ -480,6 +503,7 @@ Explique o tema central desta questão de forma didática e técnica. No máximo
     required String question,
     required String correctAnswer,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'question_explanation');
 
     final prompt = '''
@@ -529,6 +553,7 @@ REGRAS DE FORMATAÇÃO:
     required String subject,
     required String topic,
   }) async {
+    await _checkRateLimit();
     final prompt = '''
 Você é um especialista em $subject.
 O aluno acabou de estudar o tópico "$topic".
@@ -594,6 +619,7 @@ Apenas retorne o JSON.
     required String topic,
     int count = 5,
   }) async {
+    await _checkRateLimit();
     final prompt = '''
 Você é um Especialista em Bancas de Concurso Público.
 Gere $count questões inéditas e de alta qualidade sobre a matéria "$subject" e o tópico "$topic".
@@ -655,6 +681,7 @@ Regras:
     required int durationDays,
     required String routineContext,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'schedule_generation');
 
     final subjectsInfo = subjects.map((s) {
@@ -769,6 +796,7 @@ IMPORTANTE:
     required String objective,
     required String routineContext,
   }) async {
+    await _checkRateLimit();
     await _usageService.logAIUsage(userId, 'plan_suggestion');
 
     final prompt = '''

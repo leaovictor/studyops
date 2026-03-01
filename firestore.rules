@@ -42,26 +42,36 @@ service cloud.firestore {
       allow update, delete: if isOwner(resource.data.userId);
     }
 
-    // User Data (Goals, Subjects, Topics, etc.): Strictly private.
-    match /{collection}/{docId} {
-      allow read, write: if (
-        collection in ['goals', 'subjects', 'topics', 'study_plans', 'daily_tasks', 'study_logs', 'error_notebook', 'flashcards', 'pomodoro_settings']
-      ) && (
-        (resource != null && isOwner(resource.data.userId)) || 
-        (resource == null && isOwner(request.resource.data.userId)) ||
-        (collection == 'pomodoro_settings' && isOwner(docId))
-      );
-    }
-
-    // FSRS Review Logs
+    // FSRS Review Logs: Strictly private by userId ownership.
     match /fsrs_review_logs/{docId} {
-       allow read, write: if isAuthenticated();
+      allow get, list: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // User Profiles
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
       allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Study Journals (Reflexão Diária): Strictly private.
+    match /study_journals/{docId} {
+      allow get, list: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // User Data (Goals, Subjects, Topics, etc.): Strictly private.
+    match /{collection}/{docId} {
+      allow read, write: if (
+        collection in ['goals', 'subjects', 'topics', 'study_plans', 'daily_tasks', 'study_logs', 'error_notebook', 'flashcards', 'pomodoro_settings']
+      ) && (
+        (resource != null && isOwner(resource.data.userId)) ||
+        (resource == null && isOwner(request.resource.data.userId)) ||
+        (collection == 'pomodoro_settings' && isOwner(docId))
+      );
     }
   }
 }
